@@ -1,0 +1,279 @@
+================================================================================
+                    EXPONENT ALTERNATIVE - SYSTEM ARCHITECTURE
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         CLIENT LAYER                                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  ┌──────────────┐      ┌──────────────┐      ┌──────────────┐            │
+│  │  Web Browser │      │  Mobile Web  │      │  Mobile App  │            │
+│  │  (React App) │      │  (React)     │      │(React Native)│            │
+│  │              │      │              │      │              │            │
+│  │  - Dashboard │      │  - Responsive│      │  - Native    │            │
+│  │  - Courses   │      │    UI        │      │    Features  │            │
+│  │  - Practice  │      │  - PWA       │      │  - Push      │            │
+│  │  - Community │      │              │      │    Notifications          │
+│  └──────┬───────┘      └──────┬───────┘      └──────┬───────┘            │
+│         │                      │                      │                      │
+│         └──────────────────────┼──────────────────────┘                      │
+│                                │                                            │
+│                    ┌───────────▼────────────┐                               │
+│                    │    CDN / Edge Layer    │                               │
+│                    │   (Cloudflare/AWS)     │                               │
+│                    │  - Static Assets       │                               │
+│                    │  - Video Streaming     │                               │
+│                    │  - DDoS Protection     │                               │
+│                    └───────────┬────────────┘                               │
+└────────────────────────────────┼────────────────────────────────────────────┘
+                                 │
+                                 │ HTTPS
+                                 │
+┌────────────────────────────────▼────────────────────────────────────────────┐
+│                         API GATEWAY LAYER                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│            ┌──────────────────────────────────────────────┐                │
+│            │         API Gateway (Kong/AWS)               │                │
+│            │                                              │                │
+│            │  ✓ Request Routing                          │                │
+│            │  ✓ Authentication (JWT Validation)          │                │
+│            │  ✓ Rate Limiting                            │                │
+│            │  ✓ Request/Response Transformation          │                │
+│            │  ✓ API Versioning                           │                │
+│            │  ✓ CORS Handling                            │                │
+│            │  ✓ Request Logging                          │                │
+│            └──────────────┬───────────────────────────────┘                │
+│                           │                                                │
+└───────────────────────────┼────────────────────────────────────────────────┘
+                            │
+                            │ Internal Network
+                            │
+┌───────────────────────────▼────────────────────────────────────────────────┐
+│                    APPLICATION LAYER (Microservices)                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐        │
+│  │  Auth Service    │  │  Course Service  │  │ Interview Service│        │
+│  │                  │  │                  │  │                  │        │
+│  │  ✓ Login         │  │  ✓ Courses CRUD  │  │  ✓ Questions     │        │
+│  │  ✓ Register      │  │  ✓ Lessons       │  │  ✓ Mock          │        │
+│  │  ✓ JWT Tokens    │  │  ✓ Enrollment    │  │    Interviews    │        │
+│  │  ✓ OAuth         │  │  ✓ Progress      │  │  ✓ Scheduling    │        │
+│  │  ✓ Password Reset│  │  ✓ Recommendations│ │  ✓ Feedback      │        │
+│  │                  │  │                  │  │                  │        │
+│  │  Tech:           │  │  Tech:           │  │  Tech:           │        │
+│  │  Node.js+Express │  │  Node.js+Express │  │  Node.js+Express │        │
+│  │  TypeScript      │  │  TypeScript      │  │  TypeScript      │        │
+│  └────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘        │
+│           │                     │                      │                    │
+│  ┌────────▼─────────┐  ┌────────▼─────────┐  ┌────────▼─────────┐        │
+│  │ Payment Service  │  │ Community Service│  │  Video Service   │        │
+│  │                  │  │                  │  │                  │        │
+│  │  ✓ Subscriptions │  │  ✓ Forums        │  │  ✓ Upload        │        │
+│  │  ✓ Stripe        │  │  ✓ Posts         │  │  ✓ Transcoding   │        │
+│  │  ✓ Invoices      │  │  ✓ Comments      │  │  ✓ Streaming     │        │
+│  │  ✓ Webhooks      │  │  ✓ Real-time     │  │  ✓ CDN           │        │
+│  │                  │  │    (WebSockets)  │  │  ✓ Thumbnails    │        │
+│  │  Tech:           │  │                  │  │                  │        │
+│  │  Node.js+Express │  │  Tech:           │  │  Tech:           │        │
+│  │  TypeScript      │  │  Node.js+Express │  │  Node.js+Express │        │
+│  └────────┬─────────┘  │  Socket.io       │  │  FFmpeg          │        │
+│           │            └────────┬─────────┘  └────────┬─────────┘        │
+│           │                     │                      │                    │
+│           └─────────────────────┼──────────────────────┘                    │
+│                                 │                                            │
+│                    ┌────────────▼────────────┐                               │
+│                    │   Message Queue         │                               │
+│                    │   (RabbitMQ/Redis)      │                               │
+│                    │                         │                               │
+│                    │  - Async Jobs           │                               │
+│                    │  - Notifications        │                               │
+│                    │  - Email Queue          │                               │
+│                    │  - Event Bus            │                               │
+│                    └────────────┬────────────┘                               │
+│                                 │                                            │
+│                    ┌────────────▼────────────┐                               │
+│                    │  Notification Service   │                               │
+│                    │                         │                               │
+│                    │  ✓ Email (SendGrid)     │                               │
+│                    │  ✓ SMS (Twilio)         │                               │
+│                    │  ✓ Push Notifications   │                               │
+│                    │  ✓ In-App Notifications │                               │
+│                    └─────────────────────────┘                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                 │
+                                 │
+┌────────────────────────────────▼────────────────────────────────────────────┐
+│                            DATA LAYER                                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐        │
+│  │   PostgreSQL     │  │      Redis       │  │   Elasticsearch  │        │
+│  │   (Primary DB)   │  │   (Cache/Session)│  │    (Search)      │        │
+│  │                  │  │                  │  │                  │        │
+│  │  Users           │  │  Sessions        │  │  Full-text       │        │
+│  │  Courses         │  │  Cache           │  │    Search        │        │
+│  │  Enrollments     │  │  Rate Limiting   │  │  Courses         │        │
+│  │  Payments        │  │  Job Queue       │  │  Questions       │        │
+│  │  Interviews      │  │  Real-time Data  │  │  Posts           │        │
+│  │  Subscriptions   │  │                  │  │                  │        │
+│  │                  │  │                  │  │                  │        │
+│  │  Read Replicas   │  │  Cluster Mode    │  │  Cluster         │        │
+│  │  for Scaling     │  │  for HA          │  │                  │        │
+│  └──────────────────┘  └──────────────────┘  └──────────────────┘        │
+│                                                                               │
+│  ┌──────────────────┐  ┌──────────────────┐                                │
+│  │   S3 / Blob      │  │   MongoDB        │                                │
+│  │   Storage        │  │   (Optional)     │                                │
+│  │                  │  │                  │                                │
+│  │  Videos          │  │  Activity Logs   │                                │
+│  │  Images          │  │  Analytics Data  │                                │
+│  │  Documents       │  │  Unstructured    │                                │
+│  │  Static Assets   │  │    Content       │                                │
+│  │                  │  │                  │                                │
+│  │  CDN Enabled     │  │                  │                                │
+│  └──────────────────┘  └──────────────────┘                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                 │
+                                 │
+┌────────────────────────────────▼────────────────────────────────────────────┐
+│                      INTEGRATION LAYER (External APIs)                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐          │
+│  │   Stripe   │  │  SendGrid  │  │   Twilio   │  │ Zoom/Meet  │          │
+│  │            │  │            │  │            │  │            │          │
+│  │  Payments  │  │  Email     │  │  SMS       │  │  Video     │          │
+│  │  Subscr.   │  │  Templates │  │  Notify    │  │  Conf.     │          │
+│  │  Webhooks  │  │  Analytics │  │  2FA       │  │            │          │
+│  └────────────┘  └────────────┘  └────────────┘  └────────────┘          │
+│                                                                               │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐                            │
+│  │  Google    │  │  Mixpanel  │  │  Sentry    │                            │
+│  │  OAuth     │  │            │  │            │                            │
+│  │            │  │  Analytics │  │  Error     │                            │
+│  │  Auth      │  │  Tracking  │  │  Tracking  │                            │
+│  │            │  │            │  │            │                            │
+│  └────────────┘  └────────────┘  └────────────┘                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                 │
+                                 │
+┌────────────────────────────────▼────────────────────────────────────────────┐
+│                      INFRASTRUCTURE LAYER                                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  ┌────────────────────────────────────────────────────────────────────┐    │
+│  │              Cloud Platform (AWS / Azure / GCP)                    │    │
+│  │                                                                     │    │
+│  │  Container Orchestration:                                          │    │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐            │    │
+│  │  │ Kubernetes   │  │  ECS / AKS   │  │  Cloud Run   │            │    │
+│  │  │   (K8s)      │  │              │  │              │            │    │
+│  │  └──────────────┘  └──────────────┘  └──────────────┘            │    │
+│  │                                                                     │    │
+│  │  Infrastructure Services:                                          │    │
+│  │  • Load Balancers (Application Load Balancer)                     │    │
+│  │  • Auto-scaling Groups                                            │    │
+│  │  • VPC / Network Security                                         │    │
+│  │  • Security Groups / Firewalls                                    │    │
+│  │  • Secrets Management (AWS Secrets Manager / Vault)               │    │
+│  │  • Certificate Management (Let's Encrypt / ACM)                   │    │
+│  │                                                                     │    │
+│  │  CI/CD Pipeline:                                                   │    │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐            │    │
+│  │  │ GitHub       │  │  Build       │  │  Deploy      │            │    │
+│  │  │ Actions      │  │  Docker      │  │  to K8s      │            │    │
+│  │  │              │  │  Images      │  │              │            │    │
+│  │  └──────────────┘  └──────────────┘  └──────────────┘            │    │
+│  │                                                                     │    │
+│  │  Monitoring & Observability:                                       │    │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐            │    │
+│  │  │  CloudWatch  │  │  Prometheus  │  │  Grafana     │            │    │
+│  │  │  / Datadog   │  │  (Metrics)   │  │  (Dashboards)│            │    │
+│  │  └──────────────┘  └──────────────┘  └──────────────┘            │    │
+│  │                                                                     │    │
+│  │  Logging:                                                          │    │
+│  │  ┌──────────────┐  ┌──────────────┐                              │    │
+│  │  │  ELK Stack   │  │  CloudWatch  │                              │    │
+│  │  │  (Logs)      │  │    Logs      │                              │    │
+│  │  └──────────────┘  └──────────────┘                              │    │
+│  └────────────────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+                            DATA FLOW EXAMPLES
+================================================================================
+
+1. USER LOGIN FLOW:
+   Client → CDN → API Gateway → Auth Service → PostgreSQL → Redis (Session)
+                ↓
+   Auth Service → JWT Token → Client
+
+2. COURSE ENROLLMENT FLOW:
+   Client → API Gateway → Course Service → PostgreSQL (Enrollment)
+                ↓
+   Course Service → Payment Service → Stripe API
+                ↓
+   Payment Service → Notification Service → SendGrid → User Email
+
+3. VIDEO STREAMING FLOW:
+   Client → CDN (CloudFront) → S3 Storage → Video Files
+                ↓
+   CDN → Client (Optimized Streaming - HLS/DASH)
+
+4. MOCK INTERVIEW SCHEDULING FLOW:
+   Client → API Gateway → Interview Service → PostgreSQL (Schedule)
+                ↓
+   Interview Service → Zoom/Google Meet API (Create Meeting)
+                ↓
+   Interview Service → Notification Service → SendGrid → Coach Email
+                ↓
+   Interview Service → Notification Service → SendGrid → Student Email
+
+5. SEARCH FLOW:
+   Client → API Gateway → Search Service → Elasticsearch
+                ↓
+   Elasticsearch → Results → Client
+
+6. REAL-TIME NOTIFICATION FLOW:
+   Service → Message Queue → Notification Service → SendGrid/Twilio
+                ↓
+   Notification Service → Socket.io → Client (Real-time Update)
+
+
+================================================================================
+                            SECURITY LAYERS
+================================================================================
+
+1. NETWORK LAYER:
+   - VPC Isolation
+   - Security Groups
+   - WAF (Web Application Firewall)
+   - DDoS Protection (CDN)
+
+2. APPLICATION LAYER:
+   - JWT Authentication
+   - Role-Based Access Control (RBAC)
+   - Input Validation & Sanitization
+   - SQL Injection Prevention (ORM)
+   - XSS Prevention
+
+3. DATA LAYER:
+   - Encryption at Rest (Database)
+   - Encryption in Transit (TLS/SSL)
+   - PII Data Encryption
+   - Regular Backups
+   - Database Access Controls
+
+4. INFRASTRUCTURE:
+   - Secrets Management
+   - Certificate Management
+   - Security Audits
+   - Penetration Testing
+   - Compliance (GDPR, SOC2)
+
+
+================================================================================
+

@@ -61,7 +61,7 @@
 ### Recommended Structure
 
 ```
-XponentAlternative/
+Vector/
 ├── .github/
 │   └── workflows/          # GitHub Actions workflows
 ├── frontend/               # React application
@@ -713,8 +713,8 @@ SNYK_TOKEN (for security scanning)
 
 ```bash
 # Create repository on GitHub first, then:
-git clone https://github.com/yourusername/XponentAlternative.git
-cd XponentAlternative
+git clone https://github.com/yourusername/Vector.git
+cd Vector
 git checkout -b develop
 ```
 

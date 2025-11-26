@@ -2,7 +2,7 @@
 
 ## Entity Relationship Overview
 
-This document describes the database schema for the Exponent Alternative platform using PostgreSQL.
+This document describes the database schema for the Vector platform using PostgreSQL.
 
 ---
 

@@ -2,7 +2,7 @@
 
 ## Architecture Overview
 
-This document describes the architecture for the Exponent Alternative platform using modern, scalable technologies.
+This document describes the architecture for the Vector platform using modern, scalable technologies.
 
 ---
 

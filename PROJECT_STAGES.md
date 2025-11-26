@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the staged approach for building the Exponent Alternative platform, prioritizing features in the following order:
+This document outlines the staged approach for building the Vector platform, prioritizing features in the following order:
 1. **Stage 1**: User Management & Authentication
 2. **Stage 2**: Mock Interviews System
 3. **Stage 3**: Resume Review Service

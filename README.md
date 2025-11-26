@@ -1,6 +1,6 @@
-# Exponent Alternative - Project Documentation
+# Vector - Project Documentation
 
-This repository contains the analysis, architecture design, and implementation plan for building an alternative to [Exponent](https://www.tryexponent.com) - a technical interview preparation platform.
+This repository contains the analysis, architecture design, and implementation plan for building Vector - a technical interview preparation platform.
 
 ## 📋 Overview
 

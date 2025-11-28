@@ -7,8 +7,8 @@
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                               │
 │  ┌──────────────┐      ┌──────────────┐      ┌──────────────┐            │
-│  │  Web Browser │      │  Mobile Web  │      │  Mobile App  │            │
-│  │  (React App) │      │  (React)     │      │(React Native)│            │
+│  │  Web Browser │      │  Mobile Web  │                                  │
+│  │  (React App) │      │  (React)     │                                  │
 │  │              │      │              │      │              │            │
 │  │  - Dashboard │      │  - Responsive│      │  - Native    │            │
 │  │  - Courses   │      │    UI        │      │    Features  │            │
@@ -63,7 +63,7 @@
 │  │  ✓ Password Reset│  │  ✓ Recommendations│ │  ✓ Feedback      │        │
 │  │                  │  │                  │  │                  │        │
 │  │  Tech:           │  │  Tech:           │  │  Tech:           │        │
-│  │  Node.js+Express │  │  Node.js+Express │  │  Node.js+Express │        │
+│  │  .NET 8.0+ASP.NET│  │  .NET 8.0+ASP.NET│  │  .NET 8.0+ASP.NET│        │
 │  │  TypeScript      │  │  TypeScript      │  │  TypeScript      │        │
 │  └────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘        │
 │           │                     │                      │                    │
@@ -76,8 +76,8 @@
 │  │  ✓ Webhooks      │  │  ✓ Real-time     │  │  ✓ CDN           │        │
 │  │                  │  │    (WebSockets)  │  │  ✓ Thumbnails    │        │
 │  │  Tech:           │  │                  │  │                  │        │
-│  │  Node.js+Express │  │  Tech:           │  │  Tech:           │        │
-│  │  TypeScript      │  │  Node.js+Express │  │  Node.js+Express │        │
+│  │  .NET 8.0+ASP.NET│  │  Tech:           │  │  Tech:           │        │
+│  │  C#              │  │  .NET 8.0+ASP.NET│  │  .NET 8.0+ASP.NET│        │
 │  └────────┬─────────┘  │  Socket.io       │  │  FFmpeg          │        │
 │           │            └────────┬─────────┘  └────────┬─────────┘        │
 │           │                     │                      │                    │

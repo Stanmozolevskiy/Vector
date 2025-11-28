@@ -14,8 +14,8 @@ This document describes the architecture for the Vector platform using modern, s
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                       │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐              │
-│  │  Web Client  │  │ Mobile Web   │  │ Mobile App   │              │
-│  │   (React)    │  │  (React)     │  │ (React Native)│              │
+│  │  Web Client  │  │ Mobile Web   │                                  │
+│  │   (React)    │  │  (React)     │                                  │
 │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘              │
 │         │                  │                  │                       │
 │         └──────────────────┼──────────────────┘                       │
@@ -144,11 +144,7 @@ This document describes the architecture for the Vector platform using modern, s
 #### Mobile Web (Responsive React)
 - Same stack as Web Client
 - Responsive design with mobile-first approach
-
-#### Mobile App (Optional)
-- **Technology**: React Native or Flutter
-- Native push notifications
-- Offline capability for course content
+- Progressive Web App (PWA) capabilities for mobile-like experience
 
 ---
 
@@ -180,7 +176,7 @@ This document describes the architecture for the Vector platform using modern, s
 - OAuth integration (Google, LinkedIn)
 - Password reset flow
 - Email verification
-- **Tech**: Node.js + Express / Python + FastAPI
+- **Tech**: .NET 8.0 + ASP.NET Core / Python + FastAPI
 
 ### 3.2 Course Service
 - Course CRUD operations
@@ -188,7 +184,7 @@ This document describes the architecture for the Vector platform using modern, s
 - Enrollment tracking
 - Progress tracking
 - Course recommendations
-- **Tech**: Node.js + Express / Python + Django
+- **Tech**: .NET 8.0 + ASP.NET Core / Python + Django
 - **Database**: PostgreSQL
 
 ### 3.3 Interview Service
@@ -196,7 +192,7 @@ This document describes the architecture for the Vector platform using modern, s
 - Mock interview scheduling
 - Session management
 - Feedback and ratings
-- **Tech**: Node.js + Express / Python + FastAPI
+- **Tech**: .NET 8.0 + ASP.NET Core / Python + FastAPI
 - **Database**: PostgreSQL
 
 ### 3.4 Payment Service
@@ -205,14 +201,14 @@ This document describes the architecture for the Vector platform using modern, s
 - Invoice generation
 - Refund processing
 - Webhook handling
-- **Tech**: Node.js + Express / Python + Django
+- **Tech**: .NET 8.0 + ASP.NET Core / Python + Django
 - **Database**: PostgreSQL
 
 ### 3.5 Community Service
 - Forum posts and comments
 - User interactions (likes, follows)
 - Real-time notifications
-- **Tech**: Node.js + Express / Python + FastAPI
+- **Tech**: .NET 8.0 + ASP.NET Core / Python + FastAPI
 - **Database**: PostgreSQL
 - **Real-time**: Socket.io / WebSockets
 
@@ -221,7 +217,7 @@ This document describes the architecture for the Vector platform using modern, s
 - Video streaming (HLS/DASH)
 - Video encoding (transcoding)
 - Thumbnail generation
-- **Tech**: Node.js + Express
+- **Tech**: .NET 8.0 + ASP.NET Core
 - **Storage**: S3 / Azure Blob Storage
 - **CDN**: CloudFront / Cloudflare Stream
 
@@ -230,7 +226,7 @@ This document describes the architecture for the Vector platform using modern, s
 - SMS notifications
 - Push notifications
 - In-app notifications
-- **Tech**: Node.js + Express / Python + Celery
+- **Tech**: .NET 8.0 + ASP.NET Core / Python + Celery
 - **Queue**: RabbitMQ / Redis / AWS SQS
 
 ---

@@ -83,7 +83,7 @@ Technology stack comparison:
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 20+ LTS
+- .NET 8.0 SDK
 - PostgreSQL 15+
 - Redis 7+
 - Docker & Docker Compose (for local development)
@@ -100,7 +100,7 @@ Technology stack comparison:
 
 ### Technology Stack (MVP)
 - **Frontend**: React 18+ with TypeScript, Tailwind CSS
-- **Backend**: Node.js 20+ with Express, TypeScript
+- **Backend**: .NET 8.0 + ASP.NET Core Web API (C#)
 - **Database**: PostgreSQL 15+ (primary), Redis 7+ (cache)
 - **Storage**: AWS S3 / Azure Blob Storage
 - **Payment**: Stripe
@@ -224,7 +224,8 @@ Technology stack comparison:
 
 ### Documentation
 - [React Documentation](https://react.dev/)
-- [Node.js Documentation](https://nodejs.org/en/docs/)
+- [.NET Documentation](https://learn.microsoft.com/dotnet/)
+- [ASP.NET Core Documentation](https://learn.microsoft.com/aspnet/core/)
 - [PostgreSQL Documentation](https://www.postgresql.org/docs/)
 - [Stripe API Documentation](https://stripe.com/docs/api)
 

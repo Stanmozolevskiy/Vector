@@ -68,9 +68,9 @@ Vector/
 │   ├── src/
 │   ├── public/
 │   └── package.json
-├── backend/                # Node.js API
+├── backend/                # .NET 8.0 API
 │   ├── src/
-│   └── package.json
+│   └── Vector.Api.csproj
 ├── infrastructure/         # Infrastructure as Code
 │   ├── terraform/         # Terraform configurations
 │   └── cloudformation/    # AWS CloudFormation (optional)
@@ -269,7 +269,7 @@ on:
       - 'backend/**'
 
 env:
-  NODE_VERSION: '20.x'
+  DOTNET_VERSION: '8.0.x'
   AWS_REGION: us-east-1
 
 jobs:
@@ -307,33 +307,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
+          dotnet-version: ${{ env.DOTNET_VERSION }}
       
-      - name: Install dependencies
-        run: npm ci
+      - name: Restore dependencies
+        run: dotnet restore
       
-      - name: Run linter
-        run: npm run lint
-      
-      - name: Run type check
-        run: npm run type-check
+      - name: Build
+        run: dotnet build --no-restore
       
       - name: Run unit tests
-        run: npm run test:unit
+        run: dotnet test --no-build --verbosity normal
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
-          REDIS_URL: redis://localhost:6379
-      
-      - name: Run integration tests
-        run: npm run test:integration
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
-          REDIS_URL: redis://localhost:6379
+          ConnectionStrings__DefaultConnection: Host=localhost;Database=testdb;Username=postgres;Password=postgres
+          ConnectionStrings__Redis: localhost:6379
       
       - name: Build Docker image
         run: |
@@ -349,11 +338,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Run npm audit
-        run: npm audit --audit-level=high
+      - name: Run .NET security scan
+        run: dotnet list package --vulnerable --include-transitive
       
       - name: Run Snyk security scan
-        uses: snyk/actions/node@master
+        uses: snyk/actions/dotnet@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         continue-on-error: true
@@ -579,7 +568,7 @@ jobs:
 - Write CDK code in TypeScript
 - Leverage Cursor's TypeScript support
 - Type-safe infrastructure
-- Example prompt: "Create AWS CDK stack for a Node.js API with ECS"
+- Example prompt: "Create AWS CDK stack for a .NET API with ECS"
 
 **Option 3: AWS CloudFormation** (YAML/JSON)
 - Create CloudFormation templates in Cursor

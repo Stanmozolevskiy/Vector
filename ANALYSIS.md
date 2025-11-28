@@ -284,7 +284,7 @@ CommunityPost {
 - Email notifications (enrollment, session reminders, feedback)
 - In-app notifications
 - SMS notifications (optional)
-- Push notifications (if mobile app)
+- Browser push notifications (via Web Push API)
 
 ### 3.12 Search & Discovery
 - Global search across courses, questions, coaches, community posts

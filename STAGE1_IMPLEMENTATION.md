@@ -75,8 +75,8 @@ Before starting, ensure you have:
 - [x] Initialize Git repository (already exists)
 - [x] Create .gitignore files
 - [x] Create initial README.md
-- [ ] Set up branch protection rules on GitHub
-- [ ] Create develop branch
+- [x] Set up branch protection rules on GitHub (guide created, manual setup required)
+- [x] Create develop branch
 
 ### Day 3-4: AWS Infrastructure Basics (Terraform)
 - [ ] Create VPC with public/private subnets

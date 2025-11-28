@@ -20,14 +20,14 @@ Stage 1 focuses on building the foundation: user authentication, profile managem
 
 Before starting, ensure you have:
 
-- [ ] .NET 8.0 SDK installed
+- [x] .NET 8.0 SDK installed
 - [ ] PostgreSQL 15+ installed or access to a PostgreSQL database
 - [ ] Redis 7+ installed or access to a Redis instance
-- [ ] Git installed
+- [x] Git installed
 - [ ] Docker Desktop installed (for local development)
-- [ ] Visual Studio 2022, VS Code, or Rider IDE
-- [ ] GitHub account with repository created
-- [ ] AWS account (for infrastructure)
+- [x] Visual Studio 2022, VS Code, or Rider IDE
+- [x] GitHub account with repository created
+- [x] AWS account (for infrastructure)
 - [ ] Stripe account (for payments)
 - [ ] SendGrid account (for emails)
 
@@ -64,12 +64,12 @@ Before starting, ensure you have:
 - [x] Configure Tailwind CSS
 
 #### Infrastructure Setup
-- [ ] Create Terraform configuration files
-- [ ] Create Docker files (Dockerfile.backend, Dockerfile.frontend, docker-compose.yml)
-- [ ] Set up VPC module
-- [ ] Set up RDS module
-- [ ] Set up Redis module
-- [ ] Set up S3 module
+- [x] Create Terraform configuration files
+- [x] Create Docker files (Dockerfile.backend, Dockerfile.frontend, docker-compose.yml)
+- [x] Set up VPC module
+- [x] Set up RDS module
+- [x] Set up Redis module
+- [x] Set up S3 module
 
 #### Git Repository
 - [x] Initialize Git repository (already exists)

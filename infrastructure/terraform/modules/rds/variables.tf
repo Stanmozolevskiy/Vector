@@ -42,3 +42,9 @@ variable "allowed_cidr_blocks" {
   default     = []
 }
 
+variable "engine_version" {
+  description = "PostgreSQL engine version"
+  type        = string
+  default     = "15.5"
+}
+

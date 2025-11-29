@@ -36,6 +36,12 @@ module "vpc" {
   vpc_cidr    = var.vpc_cidr
 }
 
+# Get available PostgreSQL engine versions
+data "aws_rds_engine_version" "postgres" {
+  engine  = "postgres"
+  version = "15"
+}
+
 # RDS Module
 module "database" {
   source = "./modules/rds"
@@ -44,6 +50,7 @@ module "database" {
   vpc_id              = module.vpc.vpc_id
   subnet_ids          = module.vpc.private_subnet_ids
   instance_class      = var.db_instance_class
+  engine_version      = data.aws_rds_engine_version.postgres.version
   db_name             = var.db_name
   db_username         = var.db_username
   db_password         = var.db_password

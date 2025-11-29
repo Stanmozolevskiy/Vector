@@ -59,14 +59,9 @@ $env:AWS_ACCESS_KEY_ID = $AccessKeyId
 $env:AWS_SECRET_ACCESS_KEY = $SecretAccessKey
 $env:AWS_DEFAULT_REGION = $Region
 
-# Use AWS configure command
-$configureInput = @"
-$AccessKeyId
-$SecretAccessKey
-$Region
-$OutputFormat
-"@
-
+# Use AWS configure command with proper escaping
+# Note: Special characters in secret key need to be handled carefully
+$configureInput = "$AccessKeyId`n$SecretAccessKey`n$Region`n$OutputFormat`n"
 $configureInput | aws configure
 
 Write-Host ""

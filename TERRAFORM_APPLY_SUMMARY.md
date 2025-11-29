@@ -35,17 +35,16 @@ Most of the infrastructure was successfully created! Here's what was deployed:
 
 ### ⚠️ RDS Instance - Pending
 
-**Status:** Creation failed due to Free Tier backup retention limit
+**Status:** Creation failed due to two issues (both now fixed)
 
-**Error:**
-```
-FreeTierRestrictionError: The specified backup retention period exceeds 
-the maximum available to free tier customers.
-```
+**Issue 1: Free Tier Backup Retention** ✅ Fixed
+- Error: Backup retention period exceeds Free Tier limit
+- Fix: Changed to `1 day` for dev (Free Tier compliant), `7 days` for production
 
-**Fix Applied:**
-- Updated `infrastructure/terraform/modules/rds/main.tf`
-- Changed backup retention: `1 day` for dev (Free Tier compliant), `7 days` for production
+**Issue 2: PostgreSQL Version** ✅ Fixed
+- Error: `Cannot find version 15.4 for postgres`
+- Fix: Added data source to automatically use latest available PostgreSQL 15.x version
+- Now uses: `data.aws_rds_engine_version.postgres.version` (automatically selects latest 15.x)
 
 ## Next Steps
 

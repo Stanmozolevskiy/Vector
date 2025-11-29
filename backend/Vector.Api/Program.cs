@@ -79,13 +79,24 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// Only use HTTPS redirection if HTTPS is available (not in Docker HTTP-only setup)
+var urls = builder.Configuration["ASPNETCORE_URLS"];
+if (!string.IsNullOrEmpty(urls) && urls.Contains("https"))
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseCors("AllowReactApp");
 app.UseAuthentication();
 app.UseAuthorization();
 // app.UseMiddleware<ErrorHandlingMiddleware>(); // Will be created later
 
 app.MapControllers();
+
+// Add a simple health check endpoint
+app.MapGet("/", () => Results.Ok(new { message = "Vector API is running", version = "1.0.0" }))
+    .WithName("HealthCheck")
+    .WithTags("Health");
 
 // Run database migrations (only in development)
 if (app.Environment.IsDevelopment())

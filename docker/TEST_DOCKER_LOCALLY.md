@@ -137,14 +137,17 @@ docker exec -it vector-redis redis-cli
 #### Test Backend API
 
 ```powershell
-# Check if backend is responding
-curl http://localhost:5000
-
-# Or use PowerShell
+# Health check endpoint
 Invoke-WebRequest -Uri http://localhost:5000 -UseBasicParsing
+
+# Expected response:
+# {"message":"Vector API is running","version":"1.0.0"}
+
+# Swagger UI (open in browser)
+Start-Process http://localhost:5000/swagger
 ```
 
-**Note:** Backend may not have endpoints yet, but should return some response (even if 404).
+**Note:** Backend should return a health check response. See `docker/BACKEND_TESTING.md` for detailed testing guide.
 
 #### Test Frontend
 

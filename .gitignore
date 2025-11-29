@@ -55,6 +55,31 @@ docker-compose.override.yml
 .aws/
 *.pem
 
+# Terraform
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+*.tfplan
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Sensitive configuration files
+**/appsettings.Production.json
+**/appsettings.*.json
+!**/appsettings.json
+!**/appsettings.Development.json.example
+**/.env*
+!.env.example
+**/secrets/
+**/credentials
+
 # Python (if applicable)
 __pycache__/
 *.py[cod]

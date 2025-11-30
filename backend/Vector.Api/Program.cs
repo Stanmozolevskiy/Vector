@@ -5,6 +5,7 @@ using StackExchange.Redis;
 using System.Text;
 using Vector.Api.Data;
 using Vector.Api.Middleware;
+using Vector.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -67,11 +68,11 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Services (will be implemented later)
-// builder.Services.AddScoped<IAuthService, AuthService>();
+// Services
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IJwtService, JwtService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 // builder.Services.AddScoped<IUserService, UserService>();
-// builder.Services.AddScoped<IJwtService, JwtService>();
-// builder.Services.AddScoped<IEmailService, EmailService>();
 // builder.Services.AddScoped<IS3Service, S3Service>();
 // builder.Services.AddScoped<IStripeService, StripeService>();
 

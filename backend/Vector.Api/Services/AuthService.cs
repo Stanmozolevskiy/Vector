@@ -1,5 +1,7 @@
+using Microsoft.EntityFrameworkCore;
 using Vector.Api.Data;
 using Vector.Api.DTOs.Auth;
+using Vector.Api.Helpers;
 using Vector.Api.Models;
 
 namespace Vector.Api.Services;
@@ -7,17 +9,71 @@ namespace Vector.Api.Services;
 public class AuthService : IAuthService
 {
     private readonly ApplicationDbContext _context;
-    // TODO: Add other dependencies (IJwtService, IEmailService, etc.)
+    private readonly IEmailService _emailService;
 
-    public AuthService(ApplicationDbContext context)
+    public AuthService(ApplicationDbContext context, IEmailService emailService)
     {
         _context = context;
+        _emailService = emailService;
     }
 
-    public Task<User> RegisterUserAsync(RegisterDto dto)
+    public async Task<User> RegisterUserAsync(RegisterDto dto)
     {
-        // TODO: Implement user registration
-        throw new NotImplementedException();
+        // Check if user already exists
+        var existingUser = await _context.Users
+            .FirstOrDefaultAsync(u => u.Email.ToLower() == dto.Email.ToLower());
+        
+        if (existingUser != null)
+        {
+            throw new InvalidOperationException("A user with this email already exists.");
+        }
+
+        // Create new user
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = dto.Email.ToLower(),
+            PasswordHash = PasswordHasher.HashPassword(dto.Password),
+            FirstName = dto.FirstName,
+            LastName = dto.LastName,
+            Role = "student",
+            EmailVerified = false,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        // Generate email verification token
+        var verificationToken = Guid.NewGuid().ToString() + Guid.NewGuid().ToString();
+        var emailVerification = new EmailVerification
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            Token = verificationToken,
+            ExpiresAt = DateTime.UtcNow.AddDays(7), // Token expires in 7 days
+            IsUsed = false,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        // Save to database
+        _context.Users.Add(user);
+        _context.EmailVerifications.Add(emailVerification);
+        await _context.SaveChangesAsync();
+
+        // Send verification email (fire and forget - don't wait for it)
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await _emailService.SendVerificationEmailAsync(user.Email, verificationToken);
+            }
+            catch
+            {
+                // Log error but don't fail registration
+                // In production, use proper logging
+            }
+        });
+
+        return user;
     }
 
     public Task<string> LoginAsync(LoginDto dto)

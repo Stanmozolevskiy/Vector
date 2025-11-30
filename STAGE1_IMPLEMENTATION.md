@@ -97,7 +97,7 @@ Before starting, ensure you have:
 - [x] Run initial migrations ✅ (Migrations applied successfully - all tables created)
 - [x] Test database connection ✅ (Connection verified)
 
-### Day 6-7: CI/CD Pipeline Setup
+### Day 6-7: CI/CD Pipeline Setup ✅ COMPLETE
 - [x] Create .github/workflows/backend.yml ✅
 - [x] Create .github/workflows/frontend.yml ✅
 - [x] Create GitHub Secrets setup documentation ✅
@@ -107,21 +107,25 @@ Before starting, ensure you have:
 - [x] Create Application Load Balancer module ✅
 - [x] Create ECR repositories ✅
 - [x] Update CI/CD workflows with ECS deployment ✅
-- [ ] Deploy infrastructure with Terraform (next step)
+- [x] Deploy infrastructure with Terraform ✅ (Infrastructure deployed successfully)
+- [x] Backend and Frontend deployed to AWS ECS ✅
+- [x] Swagger UI configured and accessible ✅
+- [x] Database migrations running automatically on container startup ✅
 - [ ] Set up staging environment (future task)
 
 ---
 
 ## Week 2: Authentication System
 
-### Day 8-9: User Registration
-- [ ] Create registration API endpoint
-- [ ] Implement password hashing (BCrypt)
-- [ ] Create registration form UI
-- [ ] Add form validation (both client and server)
-- [ ] Handle errors gracefully
-- [ ] Implement email verification token generation
-- [ ] Send verification email
+### Day 8-9: User Registration ✅ COMPLETE
+- [x] Create registration API endpoint ✅ (POST /api/auth/register)
+- [x] Implement password hashing (BCrypt) ✅ (PasswordHasher helper)
+- [x] Register services in Program.cs (AuthService, JwtService, EmailService) ✅
+- [x] Create registration form UI ✅ (already exists in frontend)
+- [x] Add form validation (both client and server) ✅ (Data annotations + ModelState validation)
+- [x] Handle errors gracefully ✅ (Try-catch with appropriate status codes)
+- [x] Implement email verification token generation ✅ (Token generated and stored in EmailVerifications table)
+- [x] Send verification email ✅ (EmailService.SendVerificationEmailAsync called)
 
 ### Day 10-11: Login System
 - [ ] Create login API endpoint

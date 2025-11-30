@@ -91,13 +91,21 @@ var app = builder.Build();
 
 // Configure the HTTP request pipeline
 // Enable Swagger for Development and non-Production environments
-if (app.Environment.IsDevelopment() || app.Environment.EnvironmentName == "Staging" || app.Environment.EnvironmentName == "Dev")
+// Also enable for "Dev" environment name (used in AWS ECS)
+if (app.Environment.IsDevelopment() || 
+    app.Environment.EnvironmentName == "Staging" || 
+    app.Environment.EnvironmentName == "Dev" ||
+    app.Environment.EnvironmentName.Equals("Development", StringComparison.OrdinalIgnoreCase))
 {
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Vector API v1");
         c.RoutePrefix = "swagger";
+        // Enable deep linking for Swagger UI
+        c.EnableDeepLinking();
+        // Display operation ID in Swagger UI
+        c.DisplayOperationId();
     });
 }
 

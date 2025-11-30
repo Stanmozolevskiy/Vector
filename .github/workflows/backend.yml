@@ -100,19 +100,11 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Run database migrations
+      - name: Skip database migrations (run in container)
         run: |
-          # Install EF Core tools
-          dotnet tool install --global dotnet-ef --version 8.0.0
-          
-          # Run migrations
-          cd ${{ env.PROJECT_PATH }}
-          # Connection string should be in format: Host=...;Port=5432;Database=...;Username=...;Password=...;SSL Mode=Require;
-          dotnet ef database update --connection "${{ secrets.DEV_DB_CONNECTION_STRING }}"
-        env:
-          ASPNETCORE_ENVIRONMENT: Development
-          # Ensure connection string is properly formatted
-          ConnectionStrings__DefaultConnection: ${{ secrets.DEV_DB_CONNECTION_STRING }}
+          echo "Skipping database migrations in CI/CD"
+          echo "Migrations will run automatically when the container starts (configured in Program.cs)"
+          echo "This is because RDS is in a private subnet and not accessible from GitHub Actions runners"
 
       - name: Login to Amazon ECR
         id: login-ecr

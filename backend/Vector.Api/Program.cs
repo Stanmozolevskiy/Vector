@@ -132,22 +132,34 @@ app.MapGet("/api", () => Results.Ok(new {
     .WithName("ApiRoot")
     .WithTags("API");
 
-// Run database migrations (only in development)
-if (app.Environment.IsDevelopment())
+// Run database migrations automatically on startup
+// This works for all environments (dev, staging, prod) when running in containers
+using (var scope = app.Services.CreateScope())
 {
-    using (var scope = app.Services.CreateScope())
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    try
     {
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        try
+        logger.LogInformation("Checking for pending database migrations...");
+        var pendingMigrations = db.Database.GetPendingMigrations().ToList();
+        if (pendingMigrations.Any())
         {
+            logger.LogInformation($"Applying {pendingMigrations.Count} pending migration(s)...");
             db.Database.Migrate();
+            logger.LogInformation("Database migrations completed successfully.");
         }
-        catch (Exception ex)
+        else
         {
-            // Log error - database might not be available yet
-            var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-            logger.LogError(ex, "An error occurred while migrating the database.");
+            logger.LogInformation("Database is up to date. No migrations needed.");
         }
+    }
+    catch (Exception ex)
+    {
+        // Log error but don't crash - allow application to start
+        // This is important for container orchestration (ECS) where the container
+        // might start before the database is fully ready
+        logger.LogError(ex, "An error occurred while migrating the database. The application will continue to start.");
+        logger.LogWarning("If this is a new deployment, the database connection may not be ready yet. The application will retry on the next request.");
     }
 }
 

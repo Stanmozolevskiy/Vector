@@ -39,8 +39,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: ${{ env.PROJECT_PATH }}/package-lock.json
+          # Disable cache to avoid path resolution issues
+          # cache: 'npm'
+          # cache-dependency-path: ${{ env.PROJECT_PATH }}/package-lock.json
 
       - name: Install dependencies
         working-directory: ${{ env.PROJECT_PATH }}

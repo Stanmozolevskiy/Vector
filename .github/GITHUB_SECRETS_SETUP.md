@@ -22,11 +22,17 @@ The CI/CD pipelines require the following secrets to be configured in GitHub:
 
 **Secret Name:** `DEV_DB_CONNECTION_STRING`
 - **Description:** PostgreSQL connection string for Dev environment
-- **Format:** `Host=<rds-endpoint>;Database=vector_db;Username=postgres;Password=<password>;Port=5432`
+- **Format:** `Host=<rds-endpoint>;Port=5432;Database=vector_db;Username=postgres;Password=<password>;SSL Mode=Require;`
+- **Important:** 
+  - Remove `:5432` from the endpoint if present (use only hostname)
+  - Include `SSL Mode=Require;` at the end
+  - Use semicolons (`;`) as separators, not commas
+- **Example:** `Host=dev-postgres.cahsciiy4v4q.us-east-1.rds.amazonaws.com;Port=5432;Database=vector_db;Username=postgres;Password=$Memic1234;SSL Mode=Require;`
 - **How to get:** 
   ```powershell
   cd infrastructure/terraform
-  terraform output database_endpoint
+  terraform output -raw database_endpoint
+  # Remove :5432 if present, then construct connection string
   ```
 - **Required for:** Dev deployments
 

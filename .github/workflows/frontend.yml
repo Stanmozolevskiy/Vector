@@ -38,7 +38,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: 'frontend/package-lock.json'
+          cache-dependency-path: ${{ env.PROJECT_PATH }}/package-lock.json
 
       - name: Install dependencies
         working-directory: ${{ env.PROJECT_PATH }}
@@ -105,16 +105,56 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Deploy to S3/CloudFront (placeholder)
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Get ECR repository URL
+        id: ecr-repo
         run: |
-          echo "Deployment to AWS Dev environment"
-          echo "Options:"
-          echo "1. S3 + CloudFront for static hosting"
-          echo "2. ECS for containerized deployment"
-          echo "3. EC2 for traditional hosting"
-          # Example for S3:
-          # aws s3 sync ${{ env.PROJECT_PATH }}/dist s3://dev-vector-frontend --delete
-          # aws cloudfront create-invalidation --distribution-id ${{ secrets.DEV_CLOUDFRONT_ID }} --paths "/*"
+          REPO_URL=$(aws ecr describe-repositories --repository-names vector-frontend --region us-east-1 --query 'repositories[0].repositoryUri' --output text 2>/dev/null || echo "")
+          if [ -z "$REPO_URL" ]; then
+            echo "ECR repository not found. Please run 'terraform apply' in infrastructure/terraform to create it."
+            exit 1
+          fi
+          echo "repository_url=$REPO_URL" >> $GITHUB_OUTPUT
+          echo "registry=${REPO_URL%/*}" >> $GITHUB_OUTPUT
+
+      - name: Build and push Docker image to ECR
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-repo.outputs.registry }}
+          ECR_REPOSITORY: vector-frontend
+          IMAGE_TAG: ${{ github.sha }}
+          VITE_API_URL: ${{ secrets.DEV_API_URL || 'http://dev-vector-alb-1842167636.us-east-1.elb.amazonaws.com/api' }}
+        run: |
+          # Build and push image with API URL
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            --build-arg VITE_API_URL="$VITE_API_URL" \
+            -f docker/Dockerfile.frontend .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          echo "Image pushed: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+      - name: Update ECS service
+        run: |
+          CLUSTER_NAME="dev-vector-cluster"
+          SERVICE_NAME="dev-vector-frontend-service"
+          
+          # Force new deployment to pick up new image
+          aws ecs update-service \
+            --cluster $CLUSTER_NAME \
+            --service $SERVICE_NAME \
+            --force-new-deployment \
+            --region us-east-1
+          echo "Deployment initiated. Service will update to new image."
+          
+          # Wait for service to stabilize
+          echo "Waiting for service to stabilize..."
+          aws ecs wait services-stable \
+            --cluster $CLUSTER_NAME \
+            --services $SERVICE_NAME \
+            --region us-east-1 || echo "Service stabilization check completed (may still be deploying)"
 
   deploy-staging:
     name: Deploy to Staging

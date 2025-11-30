@@ -105,9 +105,12 @@ jobs:
           
           # Run migrations
           cd ${{ env.PROJECT_PATH }}
+          # Connection string should be in format: Host=...;Port=5432;Database=...;Username=...;Password=...;SSL Mode=Require;
           dotnet ef database update --connection "${{ secrets.DEV_DB_CONNECTION_STRING }}"
         env:
           ASPNETCORE_ENVIRONMENT: Development
+          # Ensure connection string is properly formatted
+          ConnectionStrings__DefaultConnection: ${{ secrets.DEV_DB_CONNECTION_STRING }}
 
       - name: Login to Amazon ECR
         id: login-ecr

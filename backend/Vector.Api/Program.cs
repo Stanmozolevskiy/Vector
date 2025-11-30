@@ -110,8 +110,8 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Add a simple health check endpoint
-app.MapGet("/", () => Results.Ok(new { 
+// Add health check endpoints
+app.MapGet("/health", () => Results.Ok(new { 
     message = "Vector API is running", 
     version = "1.0.0",
     environment = app.Environment.EnvironmentName,
@@ -119,6 +119,18 @@ app.MapGet("/", () => Results.Ok(new {
 }))
     .WithName("HealthCheck")
     .WithTags("Health");
+
+// API root endpoint
+app.MapGet("/api", () => Results.Ok(new { 
+    message = "Vector API", 
+    version = "1.0.0",
+    endpoints = new {
+        health = "/api/health",
+        swagger = "/swagger"
+    }
+}))
+    .WithName("ApiRoot")
+    .WithTags("API");
 
 // Run database migrations (only in development)
 if (app.Environment.IsDevelopment())

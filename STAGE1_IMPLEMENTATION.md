@@ -29,7 +29,7 @@ Before starting, ensure you have:
 - [x] GitHub account with repository created
 - [x] AWS account (for infrastructure)
 - [ ] Stripe account (for payments)
-- [ ] SendGrid account (for emails)
+- [x] SendGrid account (for emails) ✅
 
 ---
 
@@ -138,8 +138,13 @@ Before starting, ensure you have:
 - [ ] Store refresh tokens in Redis
 
 ### Day 12-13: Email Verification
-- [ ] Set up SendGrid account
-- [ ] Create email templates
+- [x] Set up SendGrid account ✅
+- [x] Configure SendGrid API key and sender email ✅
+- [x] Add SendGrid to Docker configuration ✅
+- [x] Add SendGrid to Terraform/ECS configuration ✅
+- [x] Add SendGrid secrets to GitHub ✅
+- [x] Deploy SendGrid configuration to Development ✅ (Terraform applied, ECS task definition updated)
+- [ ] Create email templates (basic templates already exist)
 - [ ] Implement email verification endpoint
 - [ ] Create verification page UI
 - [ ] Add resend verification functionality
@@ -287,7 +292,7 @@ Before starting, ensure you have:
 **In Progress:** 0 items  
 **Remaining:** 67+ items
 
-**Current Status:** Week 1, Day 6-7 (CI/CD Pipeline Setup) - ✅ COMPLETE
+**Current Status:** Week 2, Day 12-13 (Email Verification Setup) - ✅ SendGrid Deployed to Development
 - ✅ Backend project structure fully initialized
 - ✅ All controllers, services, DTOs, middleware, and helpers created
 - ✅ Models and DbContext configured
@@ -314,7 +319,12 @@ Before starting, ensure you have:
 - ✅ **AWS ECS deployment infrastructure** created (ECS, ALB, ECR modules)
 - ✅ **CI/CD pipeline tested** (triggered on push to develop)
 - ✅ **AWS deployment workflows** configured
-- ✅ **Database migrations pending** (requires EF Core tools installation)
+- ✅ **Database migrations** running automatically on container startup
+- ✅ **SendGrid account created and configured** ✅
+- ✅ **SendGrid added to Docker configuration** ✅
+- ✅ **SendGrid added to Terraform/ECS configuration** ✅
+- ✅ **SendGrid secrets added to GitHub** ✅
+- ✅ **SendGrid deployed to Development environment** ✅ (Terraform applied, ECS task definition updated)
 
 ---
 

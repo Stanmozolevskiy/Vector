@@ -50,6 +50,9 @@ services:
       - Jwt__Issuer=${JWT_ISSUER:-Vector}
       - Jwt__Audience=${JWT_AUDIENCE:-Vector}
       - Frontend__Url=http://localhost:3000
+      - SendGrid__ApiKey=${SENDGRID_API_KEY:-}
+      - SendGrid__FromEmail=${SENDGRID_FROM_EMAIL:-stanmozolevskiy90@gmail.com}
+      - SendGrid__FromName=${SENDGRID_FROM_NAME:-Vector}
     depends_on:
       postgres:
         condition: service_healthy

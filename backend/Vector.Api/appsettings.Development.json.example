@@ -4,8 +4,8 @@
     "Redis": "localhost:6379"
   },
   "SendGrid": {
-    "ApiKey": "",
-    "FromEmail": "stanmozolevskiy90@gmail.com",
+    "ApiKey": "SG.your_sendgrid_api_key_here",
+    "FromEmail": "noreply@yourdomain.com",
     "FromName": "Vector"
   },
   "Frontend": {
@@ -19,3 +19,4 @@
     }
   }
 }
+

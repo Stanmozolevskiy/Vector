@@ -90,10 +90,15 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
-if (app.Environment.IsDevelopment())
+// Enable Swagger for Development and non-Production environments
+if (app.Environment.IsDevelopment() || app.Environment.EnvironmentName == "Staging" || app.Environment.EnvironmentName == "Dev")
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Vector API v1");
+        c.RoutePrefix = "swagger";
+    });
 }
 
 // Only use HTTPS redirection if HTTPS is available (not in Docker HTTP-only setup)

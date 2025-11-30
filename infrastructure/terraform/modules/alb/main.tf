@@ -73,8 +73,10 @@ resource "aws_lb_target_group" "backend" {
   }
 }
 
-# ALB Listener for HTTP (redirects to HTTPS in production)
+# ALB Listener for HTTP (redirects to HTTPS in production, forwards in dev)
 resource "aws_lb_listener" "http" {
+  count = var.environment != "dev" ? 1 : 0
+
   load_balancer_arn = aws_lb.main.arn
   port              = "80"
   protocol          = "HTTP"
@@ -105,7 +107,33 @@ resource "aws_lb_listener" "https" {
   }
 }
 
-# For dev environment, use HTTP listener directly
+# Target Group for Frontend
+resource "aws_lb_target_group" "frontend" {
+  name        = "${var.environment}-vector-frontend-tg"
+  port        = 80
+  protocol    = "HTTP"
+  vpc_id      = var.vpc_id
+  target_type = "ip"
+
+  health_check {
+    enabled             = true
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+    timeout             = 5
+    interval            = 30
+    path                = "/health"
+    protocol            = "HTTP"
+    matcher             = "200"
+  }
+
+  deregistration_delay = 30
+
+  tags = {
+    Name = "${var.environment}-vector-frontend-tg"
+  }
+}
+
+# For dev environment, use HTTP listener with path-based routing
 resource "aws_lb_listener" "http_dev" {
   count = var.environment == "dev" ? 1 : 0
 
@@ -115,7 +143,25 @@ resource "aws_lb_listener" "http_dev" {
 
   default_action {
     type             = "forward"
+    target_group_arn = aws_lb_target_group.frontend.arn
+  }
+}
+
+# Listener rule for backend API (dev environment)
+resource "aws_lb_listener_rule" "backend_api" {
+  count        = var.environment == "dev" ? 1 : 0
+  listener_arn = aws_lb_listener.http_dev[0].arn
+  priority     = 100
+
+  action {
+    type             = "forward"
     target_group_arn = aws_lb_target_group.backend.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/api/*"]
+    }
   }
 }
 

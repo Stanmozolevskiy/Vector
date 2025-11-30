@@ -9,5 +9,7 @@ db_instance_class = "db.t3.micro"
 redis_node_type   = "cache.t3.micro"
 db_name           = "vector_db"
 db_username       = "postgres"
-db_password       = "CHANGE_THIS_TO_A_STRONG_PASSWORD"
-
+# IMPORTANT: Use single quotes in PowerShell to prevent variable expansion
+# Example: db_password = '$Memic1234'
+# Or escape with backtick: db_password = '`$Memic1234'
+db_password       = "$Memic1234"

@@ -118,27 +118,8 @@ resource "aws_security_group" "ecs_tasks" {
   }
 }
 
-# Security Group Rule: Allow ECS tasks to access RDS (egress from ECS)
-resource "aws_security_group_rule" "ecs_to_rds" {
-  type                     = "egress"
-  from_port                = 5432
-  to_port                  = 5432
-  protocol                 = "tcp"
-  source_security_group_id = var.rds_security_group_id
-  security_group_id        = aws_security_group.ecs_tasks.id
-  description              = "Allow ECS tasks to access RDS"
-}
-
-# Security Group Rule: Allow ECS tasks to access Redis (egress from ECS)
-resource "aws_security_group_rule" "ecs_to_redis" {
-  type                     = "egress"
-  from_port                = 6379
-  to_port                  = 6379
-  protocol                 = "tcp"
-  source_security_group_id = var.redis_security_group_id
-  security_group_id        = aws_security_group.ecs_tasks.id
-  description              = "Allow ECS tasks to access Redis"
-}
+# Note: Security group rules for RDS and Redis are handled in their respective modules
+# They will allow ingress from this ECS security group
 
 # Security Group Rule: Allow ALB to access ECS tasks
 resource "aws_security_group_rule" "alb_to_ecs" {

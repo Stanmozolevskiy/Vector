@@ -71,6 +71,17 @@ This document outlines the complete 4-stage implementation plan for building the
 - Subscription confirmation emails
 - Payment receipt emails
 
+#### 1.7 Infrastructure Setup
+- AWS VPC with public/private subnets
+- RDS PostgreSQL instance (db.t3.micro for dev)
+- ElastiCache Redis cluster for session management
+- S3 bucket for user uploads (profile pictures, documents)
+- Security groups for network isolation
+- IAM roles and policies for service access
+- Terraform infrastructure as code
+- Docker containerization for local development
+- CI/CD pipeline setup (GitHub Actions)
+
 ### Database Tables
 - `users`
 - `user_profiles`
@@ -82,6 +93,7 @@ This document outlines the complete 4-stage implementation plan for building the
 - `password_resets`
 
 ### Success Criteria
+- Infrastructure deployed and accessible (VPC, RDS, Redis, S3)
 - Users can register and log in
 - Email verification works
 - Password reset flow works
@@ -89,6 +101,8 @@ This document outlines the complete 4-stage implementation plan for building the
 - Subscription plans can be selected and paid for
 - Role-based access is enforced
 - All payment flows are secure and tested
+- Database migrations run successfully
+- CI/CD pipeline deploys to dev environment
 
 ---
 

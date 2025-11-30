@@ -135,6 +135,7 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          echo "Image pushed: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
       - name: Update ECS service
         run: |
@@ -146,9 +147,15 @@ jobs:
             --cluster $CLUSTER_NAME \
             --service $SERVICE_NAME \
             --force-new-deployment \
-            --region us-east-1 || echo "Service may not exist yet. Run 'terraform apply' to create infrastructure."
-          
+            --region us-east-1
           echo "Deployment initiated. Service will update to new image."
+          
+          # Wait for service to stabilize (optional, can be removed if too slow)
+          echo "Waiting for service to stabilize..."
+          aws ecs wait services-stable \
+            --cluster $CLUSTER_NAME \
+            --services $SERVICE_NAME \
+            --region us-east-1 || echo "Service stabilization check completed (may still be deploying)"
 
   deploy-staging:
     name: Deploy to Staging

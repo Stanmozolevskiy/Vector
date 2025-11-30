@@ -62,3 +62,33 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
+variable "db_connection_string" {
+  description = "Database connection string"
+  type        = string
+  default     = ""
+}
+
+variable "redis_connection_string" {
+  description = "Redis connection string"
+  type        = string
+  default     = ""
+}
+
+variable "frontend_ecr_repository_url" {
+  description = "ECR repository URL for frontend container image"
+  type        = string
+  default     = ""
+}
+
+variable "frontend_target_group_arn" {
+  description = "Target group ARN for frontend load balancer"
+  type        = string
+  default     = ""
+}
+
+variable "backend_api_url" {
+  description = "Backend API URL for frontend to connect to"
+  type        = string
+  default     = ""
+}
+

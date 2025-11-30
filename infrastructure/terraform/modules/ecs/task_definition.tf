@@ -33,17 +33,17 @@ resource "aws_ecs_task_definition" "backend" {
 
       # Connection strings will be set via task definition environment variables
       # These should be passed from Terraform variables or Secrets Manager
-
-      secrets = [
-        {
-          name      = "ConnectionStrings__DefaultConnection"
-          valueFrom = var.db_connection_secret_arn
-        },
-        {
-          name      = "ConnectionStrings__Redis"
-          valueFrom = var.redis_connection_secret_arn
-        }
-      ]
+      # For now, we'll use environment variables instead of secrets
+      # secrets = var.db_connection_secret_arn != "" ? [
+      #   {
+      #     name      = "ConnectionStrings__DefaultConnection"
+      #     valueFrom = var.db_connection_secret_arn
+      #   },
+      #   {
+      #     name      = "ConnectionStrings__Redis"
+      #     valueFrom = var.redis_connection_secret_arn
+      #   }
+      # ] : []
 
       logConfiguration = {
         logDriver = "awslogs"
@@ -89,10 +89,6 @@ resource "aws_ecs_service" "backend" {
     container_port   = 80
   }
 
-  deployment_configuration {
-    maximum_percent         = 200
-    minimum_healthy_percent = 100
-  }
 
   depends_on = [aws_iam_role_policy.ecs_task_s3]
 

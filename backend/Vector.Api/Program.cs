@@ -120,6 +120,16 @@ app.MapGet("/health", () => Results.Ok(new {
     .WithName("HealthCheck")
     .WithTags("Health");
 
+// API health endpoint (for ALB health checks)
+app.MapGet("/api/health", () => Results.Ok(new { 
+    message = "Vector API is running", 
+    version = "1.0.0",
+    environment = app.Environment.EnvironmentName,
+    timestamp = DateTime.UtcNow
+}))
+    .WithName("ApiHealthCheck")
+    .WithTags("Health");
+
 // API root endpoint
 app.MapGet("/api", () => Results.Ok(new { 
     message = "Vector API", 

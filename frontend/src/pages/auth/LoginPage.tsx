@@ -30,8 +30,11 @@ export const LoginPage = () => {
       setError('');
       await login(data);
       navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Login failed. Please try again.');
+    } catch (err) {
+      const errorMessage = err && typeof err === 'object' && 'response' in err
+        ? (err.response as { data?: { error?: string } })?.data?.error
+        : undefined;
+      setError(errorMessage || 'Login failed. Please try again.');
     }
   };
 

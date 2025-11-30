@@ -36,8 +36,11 @@ export const RegisterPage = () => {
       setTimeout(() => {
         navigate('/login');
       }, 3000);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Registration failed. Please try again.');
+    } catch (err) {
+      const errorMessage = err && typeof err === 'object' && 'response' in err
+        ? (err.response as { data?: { error?: string } })?.data?.error
+        : undefined;
+      setError(errorMessage || 'Registration failed. Please try again.');
     }
   };
 

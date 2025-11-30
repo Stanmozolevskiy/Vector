@@ -42,7 +42,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await api.get<User>('/users/me');
       setUser(response.data);
-    } catch (error) {
+    } catch {
+      // Clear invalid tokens on error
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
     } finally {
@@ -63,7 +64,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = async () => {
     try {
       await authService.logout();
-    } catch (error) {
+    } catch {
       // Even if API call fails, clear local storage
     } finally {
       setUser(null);
@@ -86,6 +87,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

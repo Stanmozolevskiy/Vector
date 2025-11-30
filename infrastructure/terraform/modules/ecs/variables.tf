@@ -92,3 +92,23 @@ variable "backend_api_url" {
   default     = ""
 }
 
+variable "sendgrid_api_key" {
+  description = "SendGrid API key for email service"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "sendgrid_from_email" {
+  description = "SendGrid verified sender email address"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "sendgrid_from_name" {
+  description = "SendGrid sender display name"
+  type        = string
+  default     = "Vector"
+}
+

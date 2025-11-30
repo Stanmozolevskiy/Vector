@@ -42,6 +42,24 @@ resource "aws_ecs_task_definition" "backend" {
             name  = "ConnectionStrings__Redis"
             value = var.redis_connection_string
           }
+        ] : [],
+        var.sendgrid_api_key != "" ? [
+          {
+            name  = "SendGrid__ApiKey"
+            value = var.sendgrid_api_key
+          }
+        ] : [],
+        var.sendgrid_from_email != "" ? [
+          {
+            name  = "SendGrid__FromEmail"
+            value = var.sendgrid_from_email
+          }
+        ] : [],
+        var.sendgrid_from_name != "" ? [
+          {
+            name  = "SendGrid__FromName"
+            value = var.sendgrid_from_name
+          }
         ] : []
       )
 

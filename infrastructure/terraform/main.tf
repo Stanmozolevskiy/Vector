@@ -106,6 +106,9 @@ module "ecs" {
   # Example: terraform apply -var='db_password=$Memic1234'
   db_connection_string       = "Host=${replace(module.database.endpoint, ":5432", "")};Port=5432;Database=${var.db_name};Username=${var.db_username};Password=${var.db_password};SSL Mode=Require;"
   redis_connection_string    = "${module.redis.primary_endpoint}:${module.redis.port}"
+  sendgrid_api_key           = var.sendgrid_api_key
+  sendgrid_from_email        = var.sendgrid_from_email
+  sendgrid_from_name         = var.sendgrid_from_name
 }
 
 # Security Group Rules: Allow ECS to access RDS and Redis

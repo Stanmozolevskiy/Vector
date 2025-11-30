@@ -45,6 +45,6 @@ variable "allowed_cidr_blocks" {
 variable "engine_version" {
   description = "PostgreSQL engine version"
   type        = string
-  default     = "15.5"
+  default     = "15.7" # Updated to match available AWS RDS versions
 }
 

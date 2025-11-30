@@ -49,3 +49,28 @@ output "s3_bucket_arn" {
   value       = module.storage.bucket_arn
 }
 
+output "alb_dns_name" {
+  description = "Application Load Balancer DNS name"
+  value       = module.alb.alb_dns_name
+}
+
+output "alb_arn" {
+  description = "Application Load Balancer ARN"
+  value       = module.alb.alb_arn
+}
+
+output "ecs_cluster_name" {
+  description = "ECS cluster name"
+  value       = module.ecs.cluster_name
+}
+
+output "ecs_cluster_arn" {
+  description = "ECS cluster ARN"
+  value       = module.ecs.cluster_arn
+}
+
+output "target_group_arn" {
+  description = "Target group ARN for backend"
+  value       = module.alb.target_group_arn
+}
+

@@ -22,6 +22,9 @@ resource "aws_security_group" "rds" {
     cidr_blocks     = var.allowed_cidr_blocks
   }
 
+  # Allow ECS tasks to access RDS (will be added by ECS module)
+  # This is handled via security group rules in the ECS module
+
   egress {
     from_port   = 0
     to_port     = 0

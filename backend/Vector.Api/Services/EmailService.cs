@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SendGrid;
 using SendGrid.Helpers.Mail;
+using System;
 
 namespace Vector.Api.Services;
 
@@ -17,26 +18,76 @@ public class EmailService : IEmailService
         _configuration = configuration;
         _logger = logger;
         
-        var apiKey = _configuration["SendGrid:ApiKey"];
+        // Try multiple ways to read the API key (environment variables use __ instead of :)
+        var apiKey = _configuration["SendGrid:ApiKey"] 
+                  ?? Environment.GetEnvironmentVariable("SendGrid__ApiKey")
+                  ?? _configuration["SendGrid__ApiKey"];
+        
+        // Also read FromEmail and FromName with fallbacks
+        var fromEmail = _configuration["SendGrid:FromEmail"] 
+                     ?? Environment.GetEnvironmentVariable("SendGrid__FromEmail")
+                     ?? _configuration["SendGrid__FromEmail"]
+                     ?? "noreply@vector.com";
+        
+        var fromName = _configuration["SendGrid:FromName"] 
+                    ?? Environment.GetEnvironmentVariable("SendGrid__FromName")
+                    ?? _configuration["SendGrid__FromName"]
+                    ?? "Vector";
+        
+        // Debug logging to see what we're getting - use Warning level so it always shows
+        _logger.LogWarning("=== SendGrid Configuration Debug ===");
+        _logger.LogWarning("ApiKey length: {Length}", apiKey?.Length ?? 0);
+        _logger.LogWarning("ApiKey IsNullOrEmpty: {IsEmpty}", string.IsNullOrEmpty(apiKey));
+        if (!string.IsNullOrEmpty(apiKey) && apiKey.Length > 10)
+        {
+            _logger.LogWarning("ApiKey first 10 chars: '{Prefix}'", apiKey.Substring(0, 10));
+        }
+        else
+        {
+            _logger.LogWarning("ApiKey value: '{ApiKey}'", apiKey ?? "(null)");
+        }
+        _logger.LogWarning("FromEmail: {FromEmail}", fromEmail);
+        _logger.LogWarning("FromName: {FromName}", fromName);
+        
         if (string.IsNullOrEmpty(apiKey) || apiKey == "your_sendgrid_api_key")
         {
             _isEnabled = false;
             _logger.LogWarning("SendGrid API Key is not configured. Email sending is disabled. Emails will be logged to console instead.");
+            _logger.LogWarning("ApiKey value: '{ApiKey}'", apiKey ?? "(null)");
         }
         else
         {
             _isEnabled = true;
-            _client = new SendGridClient(apiKey);
-            _logger.LogInformation("SendGrid email service initialized successfully.");
+            try
+            {
+                _client = new SendGridClient(apiKey);
+                _logger.LogWarning("SendGrid email service initialized successfully!");
+                _logger.LogWarning("FromEmail: {FromEmail}, FromName: {FromName}", fromEmail, fromName);
+            }
+            catch (Exception ex)
+            {
+                _isEnabled = false;
+                _logger.LogError(ex, "Failed to initialize SendGrid client: {Message}", ex.Message);
+            }
         }
+        _logger.LogWarning("=== End SendGrid Configuration Debug ===");
     }
 
     public async Task SendVerificationEmailAsync(string email, string token)
     {
         var frontendUrl = _configuration["Frontend:Url"] ?? "http://localhost:3000";
         var verificationUrl = $"{frontendUrl}/verify-email?token={token}";
-        var fromEmail = _configuration["SendGrid:FromEmail"] ?? "noreply@vector.com";
-        var fromName = _configuration["SendGrid:FromName"] ?? "Vector";
+        
+        // Read FromEmail and FromName with fallbacks (same logic as constructor)
+        var fromEmail = _configuration["SendGrid:FromEmail"] 
+                     ?? Environment.GetEnvironmentVariable("SendGrid__FromEmail")
+                     ?? _configuration["SendGrid__FromEmail"]
+                     ?? "noreply@vector.com";
+        
+        var fromName = _configuration["SendGrid:FromName"] 
+                    ?? Environment.GetEnvironmentVariable("SendGrid__FromName")
+                    ?? _configuration["SendGrid__FromName"]
+                    ?? "Vector";
 
         if (!_isEnabled || _client == null)
         {
@@ -65,12 +116,29 @@ public class EmailService : IEmailService
 
         try
         {
-            await _client.SendEmailAsync(msg);
-            _logger.LogInformation("Verification email sent to {Email}", email);
+            _logger.LogWarning("Sending email via SendGrid to {Email}", email);
+            _logger.LogWarning("From: {FromEmail} ({FromName})", fromEmail, fromName);
+            _logger.LogWarning("Subject: Verify your email address");
+            
+            var response = await _client.SendEmailAsync(msg);
+            
+            _logger.LogWarning("SendGrid response status code: {StatusCode}", response.StatusCode);
+            _logger.LogWarning("SendGrid response body: {Body}", await response.Body.ReadAsStringAsync());
+            
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogInformation("Verification email sent successfully to {Email}", email);
+            }
+            else
+            {
+                _logger.LogError("SendGrid returned error status {StatusCode} when sending to {Email}", response.StatusCode, email);
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send verification email to {Email}", email);
+            _logger.LogError(ex, "Failed to send verification email to {Email}. Error: {Message}", email, ex.Message);
+            _logger.LogError("Exception type: {ExceptionType}", ex.GetType().Name);
+            _logger.LogError("Stack trace: {StackTrace}", ex.StackTrace);
             // Don't throw - email sending failure shouldn't break registration
         }
     }
@@ -79,8 +147,16 @@ public class EmailService : IEmailService
     {
         var frontendUrl = _configuration["Frontend:Url"] ?? "http://localhost:3000";
         var resetUrl = $"{frontendUrl}/reset-password?token={token}";
-        var fromEmail = _configuration["SendGrid:FromEmail"] ?? "noreply@vector.com";
-        var fromName = _configuration["SendGrid:FromName"] ?? "Vector";
+        
+        var fromEmail = _configuration["SendGrid:FromEmail"] 
+                     ?? Environment.GetEnvironmentVariable("SendGrid__FromEmail")
+                     ?? _configuration["SendGrid__FromEmail"]
+                     ?? "noreply@vector.com";
+        
+        var fromName = _configuration["SendGrid:FromName"] 
+                    ?? Environment.GetEnvironmentVariable("SendGrid__FromName")
+                    ?? _configuration["SendGrid__FromName"]
+                    ?? "Vector";
 
         if (!_isEnabled || _client == null)
         {
@@ -130,8 +206,15 @@ public class EmailService : IEmailService
             return;
         }
 
-        var fromEmail = _configuration["SendGrid:FromEmail"] ?? "noreply@vector.com";
-        var fromName = _configuration["SendGrid:FromName"] ?? "Vector";
+        var fromEmail = _configuration["SendGrid:FromEmail"] 
+                     ?? Environment.GetEnvironmentVariable("SendGrid__FromEmail")
+                     ?? _configuration["SendGrid__FromEmail"]
+                     ?? "noreply@vector.com";
+        
+        var fromName = _configuration["SendGrid:FromName"] 
+                    ?? Environment.GetEnvironmentVariable("SendGrid__FromName")
+                    ?? _configuration["SendGrid__FromName"]
+                    ?? "Vector";
 
         var msg = new SendGridMessage
         {
@@ -168,8 +251,15 @@ public class EmailService : IEmailService
             return;
         }
 
-        var fromEmail = _configuration["SendGrid:FromEmail"] ?? "noreply@vector.com";
-        var fromName = _configuration["SendGrid:FromName"] ?? "Vector";
+        var fromEmail = _configuration["SendGrid:FromEmail"] 
+                     ?? Environment.GetEnvironmentVariable("SendGrid__FromEmail")
+                     ?? _configuration["SendGrid__FromEmail"]
+                     ?? "noreply@vector.com";
+        
+        var fromName = _configuration["SendGrid:FromName"] 
+                    ?? Environment.GetEnvironmentVariable("SendGrid__FromName")
+                    ?? _configuration["SendGrid__FromName"]
+                    ?? "Vector";
 
         var msg = new SendGridMessage
         {

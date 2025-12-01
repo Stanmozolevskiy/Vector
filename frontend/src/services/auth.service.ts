@@ -17,13 +17,18 @@ export interface AuthResponse {
   tokenType: string;
 }
 
+export interface LoginResponse {
+  accessToken: string;
+  tokenType: string;
+}
+
 export const authService = {
   async register(data: RegisterData): Promise<void> {
     await api.post('/auth/register', data);
   },
 
-  async login(data: LoginData): Promise<AuthResponse> {
-    const response = await api.post<AuthResponse>('/auth/login', data);
+  async login(data: LoginData): Promise<LoginResponse> {
+    const response = await api.post<LoginResponse>('/auth/login', data);
     return response.data;
   },
 

@@ -4,10 +4,12 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '../../hooks/useAuth.tsx';
+import { ROUTES } from '../../utils/constants';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(1, 'Password is required'),
+  remember: z.boolean().optional(),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -28,7 +30,7 @@ export const LoginPage = () => {
   const onSubmit = async (data: LoginFormData) => {
     try {
       setError('');
-      await login(data);
+      await login({ email: data.email, password: data.password });
       navigate('/dashboard');
     } catch (err) {
       const errorMessage = err && typeof err === 'object' && 'response' in err
@@ -38,85 +40,131 @@ export const LoginPage = () => {
     }
   };
 
+  const handleSocialLogin = (provider: 'google' | 'linkedin') => {
+    // TODO: Implement social login
+    console.log(`${provider} login clicked`);
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
-          </h2>
+    <div className="auth-container">
+      <div className="auth-wrapper">
+        <div className="auth-left">
+          <div className="auth-brand">
+            <Link to="/">
+              <i className="fas fa-vector-square"></i>
+              <span>Vector</span>
+            </Link>
+          </div>
+          <div className="auth-content">
+            <h1>Welcome back!</h1>
+            <p>Log in to continue your interview preparation journey</p>
+            
+            <form className="auth-form" onSubmit={handleSubmit(onSubmit)}>
+              {error && (
+                <div style={{ 
+                  background: '#fee2e2', 
+                  borderLeft: '4px solid #ef4444', 
+                  padding: '1rem', 
+                  borderRadius: '0.5rem',
+                  color: '#991b1b',
+                  fontSize: '0.875rem'
+                }}>
+                  {error}
+                </div>
+              )}
+
+              <div className="form-group">
+                <label htmlFor="email">Email Address</label>
+                <input
+                  {...register('email')}
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  required
+                />
+                {errors.email && (
+                  <span style={{ color: '#ef4444', fontSize: '0.875rem' }}>{errors.email.message}</span>
+                )}
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="password">Password</label>
+                <input
+                  {...register('password')}
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  placeholder="Enter your password"
+                  required
+                />
+                {errors.password && (
+                  <span style={{ color: '#ef4444', fontSize: '0.875rem' }}>{errors.password.message}</span>
+                )}
+              </div>
+              
+              <div className="form-options">
+                <label className="checkbox-label">
+                  <input {...register('remember')} type="checkbox" name="remember" />
+                  <span>Remember me</span>
+                </label>
+                <Link to={ROUTES.FORGOT_PASSWORD} className="forgot-link">Forgot password?</Link>
+              </div>
+              
+              <button type="submit" className="btn-primary btn-full" disabled={isSubmitting}>
+                {isSubmitting ? 'Logging in...' : 'Log In'}
+              </button>
+            </form>
+            
+            <div className="divider">
+              <span>or continue with</span>
+            </div>
+            
+            <div className="social-auth">
+              <button type="button" className="social-btn google-btn" onClick={() => handleSocialLogin('google')}>
+                <i className="fab fa-google"></i>
+                <span>Google</span>
+              </button>
+              <button type="button" className="social-btn linkedin-btn" onClick={() => handleSocialLogin('linkedin')}>
+                <i className="fab fa-linkedin"></i>
+                <span>LinkedIn</span>
+              </button>
+            </div>
+            
+            <p className="auth-footer">
+              Don't have an account? <Link to={ROUTES.REGISTER}>Sign up</Link>
+            </p>
+          </div>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
-          {error && (
-            <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded">
-              {error}
-            </div>
-          )}
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="email" className="sr-only">
-                Email address
-              </label>
-              <input
-                {...register('email')}
-                type="email"
-                autoComplete="email"
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
-              />
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
-              )}
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
-                {...register('password')}
-                type="password"
-                autoComplete="current-password"
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
-              />
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
-              )}
+        
+        <div className="auth-right">
+          <div className="auth-testimonial">
+            <i className="fas fa-quote-left"></i>
+            <p>"Vector helped me land my dream job at Google. The mock interviews were incredibly realistic and the feedback was invaluable!"</p>
+            <div className="testimonial-author">
+              <div className="author-avatar">JD</div>
+              <div className="author-info">
+                <div className="author-name">Jessica Davis</div>
+                <div className="author-title">Software Engineer at Google</div>
+              </div>
             </div>
           </div>
-
-          <div className="flex items-center justify-between">
-            <div className="text-sm">
-              <Link
-                to="/forgot-password"
-                className="font-medium text-indigo-600 hover:text-indigo-500"
-              >
-                Forgot your password?
-              </Link>
+          <div className="auth-stats">
+            <div className="stat-item">
+              <div className="stat-number">50K+</div>
+              <div className="stat-label">Students</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-number">10K+</div>
+              <div className="stat-label">Job Offers</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-number">4.9/5</div>
+              <div className="stat-label">Rating</div>
             </div>
           </div>
-
-          <div>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-            >
-              {isSubmitting ? 'Signing in...' : 'Sign in'}
-            </button>
-          </div>
-
-          <div className="text-center">
-            <span className="text-sm text-gray-600">
-              Don't have an account?{' '}
-              <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
-                Sign up
-              </Link>
-            </span>
-          </div>
-        </form>
+        </div>
       </div>
     </div>
   );
 };
-

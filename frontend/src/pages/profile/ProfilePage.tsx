@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { ROUTES } from '../../utils/constants';
 import api from '../../services/api';
+import '../../styles/profile.css';
 
 interface ProfileFormData {
   firstName: string;
@@ -17,10 +18,9 @@ interface PasswordFormData {
 }
 
 export const ProfilePage = () => {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
   const navigate = useNavigate();
-  const [isEditing, setIsEditing] = useState(false);
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [activeSection, setActiveSection] = useState('personal');
   const [profileData, setProfileData] = useState<ProfileFormData>({
     firstName: '',
     lastName: '',
@@ -31,7 +31,7 @@ export const ProfilePage = () => {
     newPassword: '',
     confirmPassword: '',
   });
-  const [profilePicture, setProfilePicture] = useState<File | null>(null);
+  const [, setProfilePicture] = useState<File | null>(null);
   const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -53,6 +53,21 @@ export const ProfilePage = () => {
     }
   }, [user]);
 
+  const getUserInitials = () => {
+    if (user?.firstName && user?.lastName) {
+      return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+    }
+    if (user?.email) {
+      return user.email.substring(0, 2).toUpperCase();
+    }
+    return 'U';
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate(ROUTES.HOME);
+  };
+
   const handleProfileInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setProfileData({
       ...profileData,
@@ -70,21 +85,18 @@ export const ProfilePage = () => {
   const handleProfilePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type
       if (!file.type.startsWith('image/')) {
         setErrorMessage('Please select an image file');
         return;
       }
-      
-      // Validate file size (max 5MB)
+
       if (file.size > 5 * 1024 * 1024) {
         setErrorMessage('Image size must be less than 5MB');
         return;
       }
 
       setProfilePicture(file);
-      
-      // Create preview
+
       const reader = new FileReader();
       reader.onloadend = () => {
         setProfilePicturePreview(reader.result as string);
@@ -103,10 +115,10 @@ export const ProfilePage = () => {
     try {
       await api.put('/users/me', profileData);
       setSuccessMessage('Profile updated successfully!');
-      setIsEditing(false);
-      
-      // Refresh user data
-      window.location.reload();
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     } catch (err) {
       const errorMsg = err && typeof err === 'object' && 'response' in err
         ? (err.response as { data?: { error?: string } })?.data?.error
@@ -119,7 +131,7 @@ export const ProfilePage = () => {
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       setErrorMessage('New passwords do not match');
       return;
@@ -140,9 +152,8 @@ export const ProfilePage = () => {
         newPassword: passwordData.newPassword,
         confirmPassword: passwordData.confirmPassword,
       });
-      
+
       setSuccessMessage('Password changed successfully!');
-      setIsChangingPassword(false);
       setPasswordData({
         currentPassword: '',
         newPassword: '',
@@ -170,365 +181,397 @@ export const ProfilePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Success/Error Messages */}
-        {successMessage && (
-          <div className="mb-4 bg-green-50 border-l-4 border-green-400 p-4 rounded">
-            <div className="flex">
-              <i className="fas fa-check-circle text-green-400 mt-0.5 mr-3"></i>
-              <p className="text-sm text-green-700">{successMessage}</p>
+    <div className="profile-page">
+      {/* Navigation */}
+      <nav className="navbar">
+        <div className="container">
+          <div className="nav-brand">
+            <Link to={ROUTES.HOME}>
+              <i className="fas fa-vector-square"></i>
+              <span>Vector</span>
+            </Link>
+          </div>
+          <div className="nav-menu">
+            <div className="user-menu">
+              <div className="user-avatar">{getUserInitials()}</div>
+              <span>{user?.firstName || user?.email?.split('@')[0] || 'User'}</span>
+              <i className="fas fa-chevron-down"></i>
+              <div className="dropdown-menu">
+                <Link to={ROUTES.DASHBOARD}><i className="fas fa-tachometer-alt"></i> Dashboard</Link>
+                <Link to={ROUTES.PROFILE} className="active"><i className="fas fa-user"></i> Profile</Link>
+                <button onClick={handleLogout} style={{
+                  width: '100%',
+                  background: 'none',
+                  border: 'none',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--spacing-sm)',
+                  padding: 'var(--spacing-sm) var(--spacing-md)',
+                  color: 'var(--text-secondary)',
+                  transition: 'var(--transition)',
+                  font: 'inherit'
+                }}>
+                  <i className="fas fa-sign-out-alt"></i> Logout
+                </button>
+              </div>
             </div>
           </div>
-        )}
-        
-        {errorMessage && (
-          <div className="mb-4 bg-red-50 border-l-4 border-red-400 p-4 rounded">
-            <div className="flex">
-              <i className="fas fa-exclamation-circle text-red-400 mt-0.5 mr-3"></i>
-              <p className="text-sm text-red-700">{errorMessage}</p>
-            </div>
-          </div>
-        )}
+        </div>
+      </nav>
 
-        {/* Profile Information Card */}
-        <div className="bg-white shadow rounded-lg mb-6">
-          <div className="px-6 py-5 border-b border-gray-200 flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Profile Information</h1>
-              <p className="mt-1 text-sm text-gray-500">Manage your account information</p>
-            </div>
-            {!isEditing && (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-              >
-                <i className="fas fa-edit mr-2"></i>
-                Edit Profile
-              </button>
-            )}
+      {/* Profile Content */}
+      <section className="profile-section">
+        <div className="container-wide">
+          <div className="profile-header">
+            <h1>Profile Settings</h1>
+            <p>Manage your account settings and preferences</p>
           </div>
 
-          <div className="px-6 py-5">
-            {isEditing ? (
-              <form onSubmit={handleSaveProfile}>
-                <div className="space-y-6">
-                  {/* Profile Picture Upload with Preview */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Profile Picture
-                    </label>
-                    <div className="flex items-center space-x-6">
-                      <div className="flex-shrink-0">
-                        <div className="h-24 w-24 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden">
-                          {profilePicturePreview ? (
-                            <img
-                              src={profilePicturePreview}
-                              alt="Profile preview"
-                              className="h-full w-full object-cover"
-                            />
-                          ) : user?.profilePictureUrl ? (
-                            <img
-                              src={user.profilePictureUrl}
-                              alt="Profile"
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <i className="fas fa-user text-4xl text-blue-600"></i>
-                          )}
-                        </div>
-                      </div>
-                      <div>
-                        <label className="cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                          <i className="fas fa-upload mr-2"></i>
-                          Choose Image
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleProfilePictureChange}
-                            className="hidden"
-                          />
-                        </label>
-                        <p className="mt-2 text-xs text-gray-500">
-                          JPG, PNG or GIF. Max size 5MB.
-                        </p>
-                        {profilePicture && (
-                          <p className="mt-1 text-sm text-green-600">
-                            <i className="fas fa-check mr-1"></i>
-                            {profilePicture.name} selected
-                          </p>
+          {/* Success/Error Messages */}
+          {successMessage && (
+            <div style={{
+              marginBottom: 'var(--spacing-lg)',
+              background: '#d1fae5',
+              borderLeft: '4px solid #10b981',
+              padding: 'var(--spacing-md)',
+              borderRadius: 'var(--radius-md)',
+              color: '#065f46'
+            }}>
+              <i className="fas fa-check-circle" style={{ marginRight: '0.5rem' }}></i>
+              {successMessage}
+            </div>
+          )}
+
+          {errorMessage && (
+            <div style={{
+              marginBottom: 'var(--spacing-lg)',
+              background: '#fee2e2',
+              borderLeft: '4px solid #ef4444',
+              padding: 'var(--spacing-md)',
+              borderRadius: 'var(--radius-md)',
+              color: '#991b1b'
+            }}>
+              <i className="fas fa-exclamation-circle" style={{ marginRight: '0.5rem' }}></i>
+              {errorMessage}
+            </div>
+          )}
+
+          <div className="profile-layout">
+            {/* Sidebar Navigation */}
+            <aside className="profile-sidebar">
+              <nav className="profile-nav">
+                <button
+                  className={`profile-nav-item ${activeSection === 'personal' ? 'active' : ''}`}
+                  onClick={() => setActiveSection('personal')}
+                >
+                  <i className="fas fa-user"></i>
+                  <span>Personal Information</span>
+                </button>
+                <button
+                  className={`profile-nav-item ${activeSection === 'security' ? 'active' : ''}`}
+                  onClick={() => setActiveSection('security')}
+                >
+                  <i className="fas fa-lock"></i>
+                  <span>Security</span>
+                </button>
+                <button
+                  className={`profile-nav-item ${activeSection === 'subscription' ? 'active' : ''}`}
+                  onClick={() => setActiveSection('subscription')}
+                >
+                  <i className="fas fa-credit-card"></i>
+                  <span>Subscription</span>
+                </button>
+              </nav>
+            </aside>
+
+            {/* Main Content */}
+            <div className="profile-content">
+              {/* Personal Information Section */}
+              <div className={`profile-section-content ${activeSection === 'personal' ? 'active' : ''}`}>
+                <div className="section-header">
+                  <h2>Personal Information</h2>
+                  <p>Update your personal details and profile picture</p>
+                </div>
+
+                {/* Profile Picture */}
+                <div className="profile-card">
+                  <h3>Profile Picture</h3>
+                  <div className="profile-picture-section">
+                    <div className="profile-picture-preview">
+                      <div className="profile-avatar-large">
+                        {profilePicturePreview ? (
+                          <img src={profilePicturePreview} alt="Profile preview" />
+                        ) : user?.profilePictureUrl ? (
+                          <img src={user.profilePictureUrl} alt="Profile" />
+                        ) : (
+                          getUserInitials()
                         )}
                       </div>
                     </div>
-                  </div>
-
-                  {/* First Name */}
-                  <div>
-                    <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
-                      First Name
-                    </label>
-                    <input
-                      type="text"
-                      name="firstName"
-                      id="firstName"
-                      value={profileData.firstName}
-                      onChange={handleProfileInputChange}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-
-                  {/* Last Name */}
-                  <div>
-                    <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
-                      Last Name
-                    </label>
-                    <input
-                      type="text"
-                      name="lastName"
-                      id="lastName"
-                      value={profileData.lastName}
-                      onChange={handleProfileInputChange}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-
-                  {/* Bio */}
-                  <div>
-                    <label htmlFor="bio" className="block text-sm font-medium text-gray-700">
-                      Bio
-                    </label>
-                    <textarea
-                      name="bio"
-                      id="bio"
-                      rows={4}
-                      value={profileData.bio}
-                      onChange={handleProfileInputChange}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Tell us about yourself..."
-                      maxLength={500}
-                    />
-                    <p className="mt-1 text-xs text-gray-500">
-                      {profileData.bio.length}/500 characters
-                    </p>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex justify-end space-x-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsEditing(false);
-                        setProfilePicture(null);
-                        setProfilePicturePreview(null);
-                        if (user) {
-                          setProfileData({
-                            firstName: user.firstName || '',
-                            lastName: user.lastName || '',
-                            bio: user.bio || '',
-                          });
-                        }
-                      }}
-                      className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                      disabled={isSaving}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={isSaving}
-                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
-                    >
-                      {isSaving ? (
-                        <>
-                          <i className="fas fa-spinner fa-spin mr-2"></i>
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <i className="fas fa-save mr-2"></i>
-                          Save Changes
-                        </>
-                      )}
-                    </button>
+                    <div className="profile-picture-actions">
+                      <input
+                        type="file"
+                        id="pictureUpload"
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        onChange={handleProfilePictureChange}
+                      />
+                      <button
+                        className="btn-primary"
+                        onClick={() => document.getElementById('pictureUpload')?.click()}
+                      >
+                        <i className="fas fa-upload"></i> Upload New Picture
+                      </button>
+                      <p className="helper-text">JPG, PNG or GIF. Max size 5MB.</p>
+                    </div>
                   </div>
                 </div>
-              </form>
-            ) : (
-              <div>
-                {/* Profile Display */}
-                <div className="flex items-center space-x-6 mb-8">
-                  <div className="flex-shrink-0">
-                    <div className="h-24 w-24 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden">
-                      {user?.profilePictureUrl ? (
-                        <img
-                          src={user.profilePictureUrl}
-                          alt="Profile"
-                          className="h-full w-full object-cover"
+
+                {/* Basic Information */}
+                <div className="profile-card">
+                  <h3>Basic Information</h3>
+                  <form onSubmit={handleSaveProfile}>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label htmlFor="firstName">First Name</label>
+                        <input
+                          type="text"
+                          id="firstName"
+                          name="firstName"
+                          value={profileData.firstName}
+                          onChange={handleProfileInputChange}
                         />
-                      ) : (
-                        <i className="fas fa-user text-4xl text-blue-600"></i>
-                      )}
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="lastName">Last Name</label>
+                        <input
+                          type="text"
+                          id="lastName"
+                          name="lastName"
+                          value={profileData.lastName}
+                          onChange={handleProfileInputChange}
+                        />
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-semibold text-gray-900">
-                      {user?.firstName && user?.lastName
-                        ? `${user.firstName} ${user.lastName}`
-                        : user?.email || 'User'}
-                    </h2>
-                    <p className="text-sm text-gray-500">{user?.email}</p>
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mt-2">
-                      {user?.role || 'student'}
-                    </span>
-                  </div>
-                </div>
 
-                <div className="border-t border-gray-200 pt-6">
-                  <dl className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
-                    <div className="sm:col-span-2">
-                      <dt className="text-sm font-medium text-gray-500">Bio</dt>
-                      <dd className="mt-1 text-sm text-gray-900">
-                        {user?.bio || <span className="text-gray-400 italic">No bio added yet</span>}
-                      </dd>
+                    <div className="form-group">
+                      <label htmlFor="email">Email Address</label>
+                      <input
+                        type="email"
+                        id="email"
+                        value={user?.email || ''}
+                        disabled
+                        style={{ background: 'var(--bg-gray-50)', cursor: 'not-allowed' }}
+                      />
+                      <small className="form-help">Your email is used for login and notifications</small>
                     </div>
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">Email</dt>
-                      <dd className="mt-1 text-sm text-gray-900">{user?.email || 'Not set'}</dd>
+
+                    <div className="form-group">
+                      <label htmlFor="bio">Bio</label>
+                      <textarea
+                        id="bio"
+                        name="bio"
+                        rows={4}
+                        value={profileData.bio}
+                        onChange={handleProfileInputChange}
+                        placeholder="Tell us about yourself..."
+                        maxLength={500}
+                      />
+                      <small className="form-help">{profileData.bio.length}/500 characters</small>
                     </div>
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">First Name</dt>
-                      <dd className="mt-1 text-sm text-gray-900">{user?.firstName || 'Not set'}</dd>
+
+                    <div className="form-actions">
+                      <button
+                        type="button"
+                        className="btn-outline"
+                        onClick={() => {
+                          if (user) {
+                            setProfileData({
+                              firstName: user.firstName || '',
+                              lastName: user.lastName || '',
+                              bio: user.bio || '',
+                            });
+                          }
+                        }}
+                        disabled={isSaving}
+                      >
+                        Cancel
+                      </button>
+                      <button type="submit" className="btn-primary" disabled={isSaving}>
+                        {isSaving ? 'Saving...' : 'Save Changes'}
+                      </button>
                     </div>
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">Last Name</dt>
-                      <dd className="mt-1 text-sm text-gray-900">{user?.lastName || 'Not set'}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">Role</dt>
-                      <dd className="mt-1 text-sm text-gray-900 capitalize">{user?.role || 'student'}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">Email Verified</dt>
-                      <dd className="mt-1">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          <i className="fas fa-check-circle mr-1"></i>
-                          Verified
-                        </span>
-                      </dd>
-                    </div>
-                  </dl>
+                  </form>
                 </div>
               </div>
-            )}
+
+              {/* Security Section */}
+              <div className={`profile-section-content ${activeSection === 'security' ? 'active' : ''}`}>
+                <div className="section-header">
+                  <h2>Security Settings</h2>
+                  <p>Manage your password and security preferences</p>
+                </div>
+
+                {/* Change Password */}
+                <div className="profile-card">
+                  <h3>Change Password</h3>
+                  <form onSubmit={handleChangePassword}>
+                    <div className="form-group">
+                      <label htmlFor="currentPassword">Current Password</label>
+                      <input
+                        type="password"
+                        id="currentPassword"
+                        name="currentPassword"
+                        value={passwordData.currentPassword}
+                        onChange={handlePasswordInputChange}
+                        placeholder="Enter current password"
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="newPassword">New Password</label>
+                      <input
+                        type="password"
+                        id="newPassword"
+                        name="newPassword"
+                        value={passwordData.newPassword}
+                        onChange={handlePasswordInputChange}
+                        placeholder="Enter new password"
+                        required
+                        minLength={8}
+                      />
+                      <small className="form-help">Must be at least 8 characters with letters and numbers</small>
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="confirmPassword">Confirm New Password</label>
+                      <input
+                        type="password"
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        value={passwordData.confirmPassword}
+                        onChange={handlePasswordInputChange}
+                        placeholder="Confirm new password"
+                        required
+                        minLength={8}
+                      />
+                    </div>
+
+                    <div className="form-actions">
+                      <button
+                        type="button"
+                        className="btn-outline"
+                        onClick={() => {
+                          setPasswordData({
+                            currentPassword: '',
+                            newPassword: '',
+                            confirmPassword: '',
+                          });
+                        }}
+                        disabled={isSaving}
+                      >
+                        Cancel
+                      </button>
+                      <button type="submit" className="btn-primary" disabled={isSaving}>
+                        {isSaving ? 'Updating...' : 'Update Password'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                {/* Active Sessions */}
+                <div className="profile-card">
+                  <h3>Active Sessions</h3>
+                  <div className="sessions-list">
+                    <div className="session-item">
+                      <div className="session-icon">
+                        <i className="fas fa-desktop"></i>
+                      </div>
+                      <div className="session-info">
+                        <h4>Current Browser</h4>
+                        <p>Last active: Now</p>
+                      </div>
+                      <span className="session-badge current">Current Session</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Subscription Section */}
+              <div className={`profile-section-content ${activeSection === 'subscription' ? 'active' : ''}`}>
+                <div className="section-header">
+                  <h2>Subscription & Billing</h2>
+                  <p>Manage your subscription plan and payment methods</p>
+                </div>
+
+                {/* Current Plan */}
+                <div className="profile-card">
+                  <h3>Current Plan</h3>
+                  <div className="current-plan">
+                    <div className="plan-badge free">
+                      <i className="fas fa-user"></i>
+                      <span>Free Plan</span>
+                    </div>
+                    <div className="plan-details">
+                      <div className="plan-info">
+                        <h4>Vector Free</h4>
+                        <p>$0.00 / month</p>
+                        <p className="renewal-date">Upgrade to unlock premium features</p>
+                      </div>
+                      <div className="plan-actions">
+                        <Link to={ROUTES.DASHBOARD} className="btn-primary">Upgrade Plan</Link>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+      </section>
 
-        {/* Change Password Card */}
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-6 py-5 border-b border-gray-200">
-            <h2 className="text-xl font-bold text-gray-900">Change Password</h2>
-            <p className="mt-1 text-sm text-gray-500">Update your password to keep your account secure</p>
+      {/* Footer */}
+      <footer className="footer">
+        <div className="container">
+          <div className="footer-grid">
+            <div className="footer-col">
+              <div className="footer-brand">
+                <i className="fas fa-vector-square"></i>
+                <span>Vector</span>
+              </div>
+              <p>Master your interview skills.</p>
+            </div>
+            <div className="footer-col">
+              <h4>Product</h4>
+              <ul>
+                <li><a href="#courses">Courses</a></li>
+                <li><a href="#questions">Questions</a></li>
+                <li><a href="#interviews">Mock Interviews</a></li>
+              </ul>
+            </div>
+            <div className="footer-col">
+              <h4>Company</h4>
+              <ul>
+                <li><a href="#about">About</a></li>
+                <li><a href="#careers">Careers</a></li>
+              </ul>
+            </div>
+            <div className="footer-col">
+              <h4>Support</h4>
+              <ul>
+                <li><a href="#help">Help Center</a></li>
+                <li><a href="#terms">Terms</a></li>
+              </ul>
+            </div>
           </div>
-
-          <div className="px-6 py-5">
-            {!isChangingPassword ? (
-              <button
-                onClick={() => setIsChangingPassword(true)}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-              >
-                <i className="fas fa-key mr-2"></i>
-                Change Password
-              </button>
-            ) : (
-              <form onSubmit={handleChangePassword} className="space-y-6">
-                <div>
-                  <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700">
-                    Current Password
-                  </label>
-                  <input
-                    type="password"
-                    name="currentPassword"
-                    id="currentPassword"
-                    value={passwordData.currentPassword}
-                    onChange={handlePasswordInputChange}
-                    required
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
-                    New Password
-                  </label>
-                  <input
-                    type="password"
-                    name="newPassword"
-                    id="newPassword"
-                    value={passwordData.newPassword}
-                    onChange={handlePasswordInputChange}
-                    required
-                    minLength={8}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                  <p className="mt-1 text-xs text-gray-500">Must be at least 8 characters</p>
-                </div>
-
-                <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                    Confirm New Password
-                  </label>
-                  <input
-                    type="password"
-                    name="confirmPassword"
-                    id="confirmPassword"
-                    value={passwordData.confirmPassword}
-                    onChange={handlePasswordInputChange}
-                    required
-                    minLength={8}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                <div className="flex justify-end space-x-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsChangingPassword(false);
-                      setPasswordData({
-                        currentPassword: '',
-                        newPassword: '',
-                        confirmPassword: '',
-                      });
-                      setErrorMessage('');
-                    }}
-                    className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                    disabled={isSaving}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSaving}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    {isSaving ? (
-                      <>
-                        <i className="fas fa-spinner fa-spin mr-2"></i>
-                        Changing...
-                      </>
-                    ) : (
-                      <>
-                        <i className="fas fa-save mr-2"></i>
-                        Change Password
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-            )}
+          <div className="footer-bottom">
+            <p>&copy; 2025 Vector. All rights reserved.</p>
           </div>
         </div>
-      </div>
+      </footer>
     </div>
   );
 };

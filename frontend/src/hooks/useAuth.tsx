@@ -71,7 +71,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch {
       // Even if API call fails, clear local storage
     } finally {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
       setUser(null);
+      setIsAuthenticated(false);
+      setIsLoading(false);
     }
   };
 

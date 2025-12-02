@@ -139,9 +139,10 @@ Before starting, ensure you have:
 - [x] Add Inter font ✅ (Google Fonts integration)
 - [x] Implement password verification ✅ (PasswordHasher.VerifyPassword)
 - [x] Implement email verification check ✅ (Requires verified email to login)
-- [ ] Implement protected routes
-- [ ] Implement refresh token rotation
-- [ ] Store refresh tokens in Redis
+- [x] Implement protected routes ✅ (ProtectedRoute component for requireAuth/requireUnauth)
+- [x] Implement refresh token storage ✅ (RefreshTokens table, stored on login)
+- [ ] Implement refresh token rotation (TODO: Complete rotation logic in RefreshTokenAsync)
+- [ ] Store refresh tokens in Redis (TODO: Planned for Day 21)
 
 ### Day 12-13: Email Verification ✅ COMPLETE
 - [x] Set up SendGrid account ✅
@@ -154,7 +155,7 @@ Before starting, ensure you have:
 - [x] Implement email verification endpoint ✅ (GET /api/auth/verify-email?token=xxx)
 - [x] Create verification page UI ✅ (VerifyEmailPage component created and deployed)
 - [x] Test email verification flow ✅ (End-to-end flow tested and working)
-- [ ] Add resend verification functionality
+- [x] Add resend verification functionality ✅ (POST /api/auth/resend-verification, ResendVerificationPage)
 
 ### Day 14: Password Reset ✅ COMPLETE
 - [x] Create forgot password page UI ✅ (ForgotPasswordPage redesigned to match HTML reference)
@@ -196,7 +197,32 @@ Before starting, ensure you have:
 - [ ] Create admin dashboard structure
 - [ ] Test role permissions
 
-### Day 19-20: Coach Application
+### Day 19-20: Automated Testing (Phase 1 - Quick Wins)
+- [ ] Set up Playwright for E2E testing
+- [ ] Install and configure Playwright
+- [ ] Create test utilities and helpers
+- [ ] Write critical path tests:
+  - [ ] Registration flow test (register → email → verify → login)
+  - [ ] Login flow test (login → dashboard → logout)
+  - [ ] Password reset flow test (forgot → email → reset → login)
+  - [ ] Protected route access test (unauthenticated redirect)
+  - [ ] Form validation tests
+- [ ] Integrate Playwright into CI/CD pipeline
+- [ ] Add test reports and screenshots on failure
+- [ ] Configure test database for E2E tests
+
+### Day 21: Redis Implementation for Token Management
+- [ ] Create Redis service wrapper (IRedisService)
+- [ ] Implement Redis connection pooling
+- [ ] Store refresh tokens in Redis instead of PostgreSQL
+- [ ] Implement token blacklisting for logout (add to Redis on logout)
+- [ ] Add Redis-based rate limiting (login attempts, API calls)
+- [ ] Cache user sessions in Redis (reduce database queries)
+- [ ] Add Redis health checks (monitor Redis availability)
+- [ ] Implement Redis failover handling
+- [ ] Test Redis performance vs PostgreSQL
+
+### Day 22: Coach Application
 - [ ] Create coach application endpoint
 - [ ] Create coach approval endpoint
 - [ ] Create application form UI
@@ -205,23 +231,25 @@ Before starting, ensure you have:
 
 ---
 
+---
+
 ## Week 4: Subscription System
 
-### Day 21-22: Subscription Plans
+### Day 23-24: Subscription Plans
 - [ ] Define subscription plans
 - [ ] Create plans API endpoint
 - [ ] Create subscription management page
 - [ ] Design plan selection UI
 - [ ] Add plan comparison
 
-### Day 23-24: Stripe Integration
+### Day 25-26: Stripe Integration
 - [ ] Set up Stripe account
 - [ ] Create Stripe products and prices
 - [ ] Implement subscription creation
 - [ ] Set up webhook endpoint
 - [ ] Test webhook handling
 
-### Day 25-26: Payment Processing
+### Day 27-28: Payment Processing
 - [ ] Create subscription endpoint
 - [ ] Implement payment method collection
 - [ ] Create payment form UI

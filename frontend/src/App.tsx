@@ -16,9 +16,9 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* Public routes */}
-          <Route path="/" element={<Navigate to={ROUTES.DASHBOARD} replace />} />
-          <Route path={ROUTES.VERIFY_EMAIL} element={<VerifyEmailPage />} />
+        {/* Public routes */}
+        <Route path="/" element={<Navigate to={ROUTES.LOGIN} replace />} />
+        <Route path={ROUTES.VERIFY_EMAIL} element={<VerifyEmailPage />} />
           
           {/* Auth routes (redirect to dashboard if already logged in) */}
           <Route path={ROUTES.LOGIN} element={

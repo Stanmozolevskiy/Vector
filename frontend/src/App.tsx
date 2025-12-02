@@ -1,6 +1,7 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './hooks/useAuth.tsx';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { IndexPage } from './pages/home/IndexPage';
 import { LoginPage } from './pages/auth/LoginPage';
 import { RegisterPage } from './pages/auth/RegisterPage';
 import { VerifyEmailPage } from './pages/auth/VerifyEmailPage';
@@ -17,7 +18,7 @@ function App() {
       <BrowserRouter>
         <Routes>
         {/* Public routes - no protection */}
-        <Route path="/" element={<Navigate to={ROUTES.LOGIN} replace />} />
+        <Route path={ROUTES.HOME} element={<IndexPage />} />
         <Route path={ROUTES.VERIFY_EMAIL} element={<VerifyEmailPage />} />
         
         {/* Auth routes - accessible to everyone, but redirect if already logged in */}

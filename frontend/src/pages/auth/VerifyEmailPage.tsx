@@ -122,17 +122,17 @@ export const VerifyEmailPage = () => {
             {status === 'error' && (
               <div className="space-y-2">
                 <Link
+                  to={ROUTES.RESEND_VERIFICATION}
+                  className="font-medium text-indigo-600 hover:text-indigo-500"
+                >
+                  Resend Verification Email
+                </Link>
+                <span className="mx-2 text-gray-400">|</span>
+                <Link
                   to={ROUTES.LOGIN}
                   className="font-medium text-indigo-600 hover:text-indigo-500"
                 >
                   Go to Login
-                </Link>
-                <span className="mx-2 text-gray-400">|</span>
-                <Link
-                  to={ROUTES.REGISTER}
-                  className="font-medium text-indigo-600 hover:text-indigo-500"
-                >
-                  Register Again
                 </Link>
               </div>
             )}

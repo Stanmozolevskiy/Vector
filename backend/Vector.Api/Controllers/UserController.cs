@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Vector.Api.DTOs.User;
 using Vector.Api.Services;
 using System.Security.Claims;
 
@@ -56,6 +57,7 @@ public class UserController : ControllerBase
             email = user.Email,
             firstName = user.FirstName,
             lastName = user.LastName,
+            bio = user.Bio,
             role = user.Role,
             profilePictureUrl = user.ProfilePictureUrl,
             emailVerified = user.EmailVerified,
@@ -63,12 +65,98 @@ public class UserController : ControllerBase
         });
     }
 
+    /// <summary>
+    /// Update current user's profile information
+    /// </summary>
+    /// <param name="dto">Profile update data</param>
+    /// <returns>Updated user information</returns>
+    [HttpPut("me")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto dto)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+        {
+            return Unauthorized(new { error = "Invalid token" });
+        }
+
+        try
+        {
+            var user = await _userService.UpdateProfileAsync(userId, dto);
+            
+            return Ok(new
+            {
+                id = user.Id.ToString(),
+                email = user.Email,
+                firstName = user.FirstName,
+                lastName = user.LastName,
+                bio = user.Bio,
+                role = user.Role,
+                profilePictureUrl = user.ProfilePictureUrl,
+                emailVerified = user.EmailVerified,
+                updatedAt = user.UpdatedAt
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "An error occurred while updating profile" });
+        }
+    }
+
+    /// <summary>
+    /// Change user's password
+    /// </summary>
+    /// <param name="dto">Password change data</param>
+    /// <returns>Success message</returns>
+    [HttpPut("me/password")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+        {
+            return Unauthorized(new { error = "Invalid token" });
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            await _userService.ChangePasswordAsync(userId, dto.CurrentPassword, dto.NewPassword);
+            
+            return Ok(new { message = "Password changed successfully" });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, new { error = "An error occurred while changing password" });
+        }
+    }
+
     // TODO: Implement remaining endpoints
-    // - PUT /api/users/me
     // - DELETE /api/users/me
     // - GET /api/users/:id (public profile)
-    // - PUT /api/users/me/password
-    // - POST /api/users/me/profile-picture
-    // - DELETE /api/users/me/profile-picture
+    // - POST /api/users/me/profile-picture (requires S3 integration)
+    // - DELETE /api/users/me/profile-picture (requires S3 integration)
 }
 

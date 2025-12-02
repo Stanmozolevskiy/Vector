@@ -9,8 +9,11 @@ interface User {
   email: string;
   firstName?: string;
   lastName?: string;
+  bio?: string;
   role: string;
   profilePictureUrl?: string;
+  emailVerified: boolean;
+  createdAt: string;
 }
 
 interface AuthContextType {

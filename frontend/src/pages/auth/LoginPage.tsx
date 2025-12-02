@@ -36,7 +36,13 @@ export const LoginPage = () => {
       const errorMessage = err && typeof err === 'object' && 'response' in err
         ? (err.response as { data?: { error?: string } })?.data?.error
         : undefined;
-      setError(errorMessage || 'Login failed. Please try again.');
+      
+      // Check if error is email not verified
+      if (errorMessage?.toLowerCase().includes('verify your email')) {
+        setError(errorMessage);
+      } else {
+        setError(errorMessage || 'Login failed. Please try again.');
+      }
     }
   };
 
@@ -70,6 +76,13 @@ export const LoginPage = () => {
                   fontSize: '0.875rem'
                 }}>
                   {error}
+                  {error.toLowerCase().includes('verify your email') && (
+                    <div style={{ marginTop: '0.5rem' }}>
+                      <Link to={ROUTES.RESEND_VERIFICATION} style={{ color: '#6366f1', textDecoration: 'underline' }}>
+                        Resend verification email
+                      </Link>
+                    </div>
+                  )}
                 </div>
               )}
 

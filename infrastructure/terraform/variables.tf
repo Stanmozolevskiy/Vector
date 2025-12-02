@@ -52,6 +52,23 @@ variable "redis_node_type" {
   default     = "cache.t3.micro"
 }
 
+variable "bastion_ssh_public_key" {
+  description = "SSH public key for bastion host access (e.g., contents of ~/.ssh/id_rsa.pub)"
+  type        = string
+}
+
+variable "bastion_allowed_ssh_cidr_blocks" {
+  description = "CIDR blocks allowed to SSH into bastion (use your IP for security)"
+  type        = list(string)
+  default     = ["0.0.0.0/0"]  # CHANGE THIS to your specific IP!
+}
+
+variable "bastion_instance_type" {
+  description = "EC2 instance type for bastion host"
+  type        = string
+  default     = "t3.micro"
+}
+
 variable "sendgrid_api_key" {
   description = "SendGrid API key for email service"
   type        = string

@@ -69,6 +69,21 @@ module "storage" {
   environment = var.environment
 }
 
+# Bastion Host Module
+module "bastion" {
+  source = "./modules/bastion"
+
+  environment              = var.environment
+  vpc_id                   = module.vpc.vpc_id
+  public_subnet_ids        = module.vpc.public_subnet_ids
+  rds_security_group_id    = module.database.security_group_id
+  redis_security_group_id  = module.redis.security_group_id
+  ssh_public_key           = var.bastion_ssh_public_key
+  allowed_ssh_cidr_blocks  = var.bastion_allowed_ssh_cidr_blocks
+  instance_type            = var.bastion_instance_type
+  use_elastic_ip           = true
+}
+
 # ECR Module
 module "ecr" {
   source = "./modules/ecr"

@@ -74,3 +74,65 @@ output "target_group_arn" {
   value       = module.alb.target_group_arn
 }
 
+# Bastion Host Outputs
+output "bastion_public_ip" {
+  description = "Public IP address of the bastion host"
+  value       = module.bastion.bastion_public_ip
+}
+
+output "bastion_ssh_command" {
+  description = "SSH command to connect to bastion host"
+  value       = module.bastion.ssh_command
+}
+
+output "bastion_ssm_command" {
+  description = "SSM Session Manager command to connect to bastion"
+  value       = module.bastion.ssm_command
+}
+
+# Database Connection via Bastion
+output "db_connection_via_bastion" {
+  description = "Instructions to connect to database via bastion"
+  value = <<-EOT
+    To connect to PostgreSQL via bastion:
+    1. SSH into bastion: ${module.bastion.ssh_command}
+    2. From bastion, connect to PostgreSQL: psql -h ${split(":", module.database.endpoint)[0]} -U ${var.db_username} -d ${var.db_name}
+    
+    Or use SSH tunnel with pgAdmin:
+    ssh -i ~/.ssh/${var.environment}-bastion-key.pem -L 5433:${split(":", module.database.endpoint)[0]}:5432 ec2-user@${module.bastion.bastion_public_ip}
+    Then connect pgAdmin to: localhost:5433
+  EOT
+  sensitive = false
+}
+
+# Bastion Host Outputs
+output "bastion_public_ip" {
+  description = "Public IP address of the bastion host"
+  value       = module.bastion.bastion_public_ip
+}
+
+output "bastion_ssh_command" {
+  description = "SSH command to connect to bastion host"
+  value       = module.bastion.ssh_command
+}
+
+output "bastion_ssm_command" {
+  description = "SSM Session Manager command to connect to bastion"
+  value       = module.bastion.ssm_command
+}
+
+# Database Connection via Bastion
+output "db_connection_via_bastion" {
+  description = "Instructions to connect to database via bastion"
+  value = <<-EOT
+    To connect to PostgreSQL via bastion:
+    1. SSH into bastion: ${module.bastion.ssh_command}
+    2. From bastion, connect to PostgreSQL: psql -h ${split(":", module.database.endpoint)[0]} -U ${var.db_username} -d ${var.db_name}
+    
+    Or use SSH tunnel with pgAdmin:
+    ssh -i ~/.ssh/${var.environment}-bastion-key.pem -L 5433:${split(":", module.database.endpoint)[0]}:5432 ec2-user@${module.bastion.bastion_public_ip}
+    Then connect pgAdmin to: localhost:5433
+  EOT
+  sensitive = false
+}
+

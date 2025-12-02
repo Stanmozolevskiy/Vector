@@ -97,6 +97,15 @@ redis_node_type   = "cache.t3.micro"
 db_name           = "vector_db"
 db_username       = "postgres"
 db_password       = "CHANGE_THIS_TO_SECURE_PASSWORD"
+
+# Bastion Host Configuration (for PostgreSQL access)
+bastion_ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQD... your-public-key-here"
+bastion_allowed_ssh_cidr_blocks = ["YOUR_IP_ADDRESS/32"]  # Replace with your actual IP
+bastion_instance_type = "db.t3.micro"
+redis_node_type   = "cache.t3.micro"
+db_name           = "vector_db"
+db_username       = "postgres"
+db_password       = "CHANGE_THIS_TO_SECURE_PASSWORD"
 ```
 
 **Important:** Use a strong password for `db_password`!

@@ -48,6 +48,49 @@ useEffect(() => {
 }, [token]);
 ```
 
+## Deployment Rules
+
+### AWS Deployment Requirements
+
+When deploying to AWS (dev, staging, or production), ensure ALL of the following are deployed:
+
+1. **Database Changes:**
+   - Create EF Core migrations for any model changes
+   - Migrations run automatically on container startup
+   - Verify migration files are committed to git
+
+2. **Backend Changes:**
+   - All controller, service, and model changes
+   - Configuration updates (appsettings, environment variables)
+   - New dependencies in `.csproj` file
+
+3. **Frontend Changes:**
+   - UI/UX changes
+   - API integration changes
+   - New npm dependencies in `package.json`
+
+### Deployment Checklist
+
+Before pushing to `develop`, `staging`, or `main`:
+
+- [ ] Database migrations created (if DB schema changed)
+- [ ] All migration files committed
+- [ ] Backend code committed
+- [ ] Frontend code committed
+- [ ] Unit tests pass: `dotnet test`
+- [ ] Linting passes: `npm run lint`
+- [ ] Local Docker build succeeds
+- [ ] No secrets in code or documentation
+- [ ] Environment variables configured in GitHub Secrets
+
+### Verification After Deployment
+
+After CI/CD completes:
+1. Check that backend deployed: `curl https://dev-api-url/health`
+2. Check that frontend deployed: Visit frontend URL
+3. Verify database migration ran: Check ECS logs
+4. Test all changed functionality end-to-end
+
 ## Code Quality
 
 - All ESLint errors must be fixed before committing
@@ -55,3 +98,25 @@ useEffect(() => {
 - Unit tests must pass before deployment
 - No secrets in code or documentation
 
+## Database Migrations
+
+### Creating Migrations
+```powershell
+cd backend/Vector.Api
+dotnet ef migrations add MigrationName --output-dir Data/Migrations
+```
+
+### Verifying Migrations
+```powershell
+# List pending migrations
+dotnet ef migrations list
+
+# Check migration SQL
+dotnet ef migrations script
+```
+
+### Important Notes
+- Migrations run automatically on container startup (`Program.cs`)
+- Always test migrations locally first
+- Never modify existing migration files
+- Use descriptive migration names

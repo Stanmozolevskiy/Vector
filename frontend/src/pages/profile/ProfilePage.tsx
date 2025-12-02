@@ -9,6 +9,8 @@ interface ProfileFormData {
   firstName: string;
   lastName: string;
   bio: string;
+  phoneNumber: string;
+  location: string;
 }
 
 interface PasswordFormData {
@@ -25,6 +27,8 @@ export const ProfilePage = () => {
     firstName: '',
     lastName: '',
     bio: '',
+    phoneNumber: '',
+    location: '',
   });
   const [passwordData, setPasswordData] = useState<PasswordFormData>({
     currentPassword: '',
@@ -49,6 +53,8 @@ export const ProfilePage = () => {
         firstName: user.firstName || '',
         lastName: user.lastName || '',
         bio: user.bio || '',
+        phoneNumber: user.phoneNumber || '',
+        location: user.location || '',
       });
     }
   }, [user]);
@@ -283,6 +289,20 @@ export const ProfilePage = () => {
                   <i className="fas fa-credit-card"></i>
                   <span>Subscription</span>
                 </button>
+                <button
+                  className={`profile-nav-item ${activeSection === 'notifications' ? 'active' : ''}`}
+                  onClick={() => setActiveSection('notifications')}
+                >
+                  <i className="fas fa-bell"></i>
+                  <span>Notifications</span>
+                </button>
+                <button
+                  className={`profile-nav-item ${activeSection === 'privacy' ? 'active' : ''}`}
+                  onClick={() => setActiveSection('privacy')}
+                >
+                  <i className="fas fa-shield-alt"></i>
+                  <span>Privacy</span>
+                </button>
               </nav>
             </aside>
 
@@ -382,6 +402,31 @@ export const ProfilePage = () => {
                       <small className="form-help">{profileData.bio.length}/500 characters</small>
                     </div>
 
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label htmlFor="phoneNumber">Phone Number</label>
+                        <input
+                          type="tel"
+                          id="phoneNumber"
+                          name="phoneNumber"
+                          value={profileData.phoneNumber}
+                          onChange={handleProfileInputChange}
+                          placeholder="+1 (555) 123-4567"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="location">Location</label>
+                        <input
+                          type="text"
+                          id="location"
+                          name="location"
+                          value={profileData.location}
+                          onChange={handleProfileInputChange}
+                          placeholder="City, Country"
+                        />
+                      </div>
+                    </div>
+
                     <div className="form-actions">
                       <button
                         type="button"
@@ -392,6 +437,8 @@ export const ProfilePage = () => {
                               firstName: user.firstName || '',
                               lastName: user.lastName || '',
                               bio: user.bio || '',
+                              phoneNumber: user.phoneNumber || '',
+                              location: user.location || '',
                             });
                           }
                         }}
@@ -524,6 +571,124 @@ export const ProfilePage = () => {
                       <div className="plan-actions">
                         <Link to={ROUTES.DASHBOARD} className="btn-primary">Upgrade Plan</Link>
                       </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Notifications Section */}
+              <div className={`profile-section-content ${activeSection === 'notifications' ? 'active' : ''}`}>
+                <div className="section-header">
+                  <h2>Notification Preferences</h2>
+                  <p>Choose what notifications you want to receive</p>
+                </div>
+
+                <div className="profile-card">
+                  <h3>Email Notifications</h3>
+                  <div className="notification-settings">
+                    <div className="notification-item">
+                      <div className="notification-info">
+                        <h4>Course Updates</h4>
+                        <p>Get notified when new lessons are added to your enrolled courses</p>
+                      </div>
+                      <label className="toggle-switch">
+                        <input type="checkbox" defaultChecked />
+                        <span className="toggle-slider"></span>
+                      </label>
+                    </div>
+                    <div className="notification-item">
+                      <div className="notification-info">
+                        <h4>Mock Interview Reminders</h4>
+                        <p>Receive reminders 24 hours before your scheduled mock interviews</p>
+                      </div>
+                      <label className="toggle-switch">
+                        <input type="checkbox" defaultChecked />
+                        <span className="toggle-slider"></span>
+                      </label>
+                    </div>
+                    <div className="notification-item">
+                      <div className="notification-info">
+                        <h4>Weekly Progress Report</h4>
+                        <p>Get a summary of your learning progress every week</p>
+                      </div>
+                      <label className="toggle-switch">
+                        <input type="checkbox" defaultChecked />
+                        <span className="toggle-slider"></span>
+                      </label>
+                    </div>
+                    <div className="notification-item">
+                      <div className="notification-info">
+                        <h4>New Question Alerts</h4>
+                        <p>Get notified when new interview questions are added</p>
+                      </div>
+                      <label className="toggle-switch">
+                        <input type="checkbox" />
+                        <span className="toggle-slider"></span>
+                      </label>
+                    </div>
+                    <div className="notification-item">
+                      <div className="notification-info">
+                        <h4>Marketing Emails</h4>
+                        <p>Receive updates about new features, tips, and special offers</p>
+                      </div>
+                      <label className="toggle-switch">
+                        <input type="checkbox" />
+                        <span className="toggle-slider"></span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Privacy Section */}
+              <div className={`profile-section-content ${activeSection === 'privacy' ? 'active' : ''}`}>
+                <div className="section-header">
+                  <h2>Privacy Settings</h2>
+                  <p>Control your data and privacy preferences</p>
+                </div>
+
+                <div className="profile-card">
+                  <h3>Profile Visibility</h3>
+                  <div className="privacy-settings">
+                    <div className="privacy-item">
+                      <div className="privacy-info">
+                        <h4>Public Profile</h4>
+                        <p>Allow others to view your profile and progress</p>
+                      </div>
+                      <label className="toggle-switch">
+                        <input type="checkbox" defaultChecked />
+                        <span className="toggle-slider"></span>
+                      </label>
+                    </div>
+                    <div className="privacy-item">
+                      <div className="privacy-info">
+                        <h4>Show Learning Stats</h4>
+                        <p>Display your solved problems and course completions publicly</p>
+                      </div>
+                      <label className="toggle-switch">
+                        <input type="checkbox" defaultChecked />
+                        <span className="toggle-slider"></span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="profile-card danger-zone">
+                  <h3>Danger Zone</h3>
+                  <div className="danger-actions">
+                    <div className="danger-item">
+                      <div className="danger-info">
+                        <h4>Download Your Data</h4>
+                        <p>Request a copy of all your data including progress, notes, and account information</p>
+                      </div>
+                      <button className="btn-outline">Request Data</button>
+                    </div>
+                    <div className="danger-item">
+                      <div className="danger-info">
+                        <h4>Delete Account</h4>
+                        <p>Permanently delete your account and all associated data. This action cannot be undone.</p>
+                      </div>
+                      <button className="btn-danger">Delete Account</button>
                     </div>
                   </div>
                 </div>

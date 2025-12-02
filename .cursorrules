@@ -98,6 +98,15 @@ After CI/CD completes:
 - Unit tests must pass before deployment
 - No secrets in code or documentation
 
+## Docker Deployment
+
+- **ALWAYS rebuild frontend without cache** to avoid serving stale assets
+- **REQUIRED for every frontend deployment to Docker**
+- Command: `docker-compose build --no-cache frontend`
+- After rebuild, restart container: `docker-compose up -d frontend`
+- Verify container is running: `docker ps --filter "name=vector-frontend"`
+- **DO NOT use regular `docker-compose build frontend`** - it caches old assets
+
 ## Database Migrations
 
 ### Creating Migrations

@@ -10,6 +10,8 @@ interface User {
   firstName?: string;
   lastName?: string;
   bio?: string;
+  phoneNumber?: string;
+  location?: string;
   role: string;
   profilePictureUrl?: string;
   emailVerified: boolean;

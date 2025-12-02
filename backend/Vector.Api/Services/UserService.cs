@@ -55,6 +55,16 @@ public class UserService : IUserService
             user.Bio = dto.Bio.Trim();
         }
 
+        if (dto.PhoneNumber != null)
+        {
+            user.PhoneNumber = string.IsNullOrWhiteSpace(dto.PhoneNumber) ? null : dto.PhoneNumber.Trim();
+        }
+
+        if (dto.Location != null)
+        {
+            user.Location = string.IsNullOrWhiteSpace(dto.Location) ? null : dto.Location.Trim();
+        }
+
         user.UpdatedAt = DateTime.UtcNow;
         
         await _context.SaveChangesAsync();

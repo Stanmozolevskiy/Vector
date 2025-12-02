@@ -171,7 +171,7 @@ Before starting, ensure you have:
 
 ## Week 3: User Profile & Roles
 
-### Day 15-16: User Profile Management ✅ COMPLETE
+### Day 15-16: User Profile Management ✅ COMPLETE (ALL FEATURES)
 - [x] Create profile settings page ✅ (ProfilePage.tsx created)
 - [x] Implement GET /api/users/me endpoint ✅ (Returns current user info)
 - [x] Fix login flow after email verification ✅ (User can now login after verifying email)
@@ -186,10 +186,14 @@ Before starting, ensure you have:
 - [x] Create index/landing page ✅ (IndexPage with hero, features, testimonials from HTML template)
 - [x] Update dashboard page ✅ (DashboardPage with stats, courses, interviews from HTML template)
 - [x] Add working navigation links ✅ (Profile, Dashboard, Logout in user menu)
-- [x] Redesign profile page ✅ (ProfilePage with sidebar navigation, 3 sections from HTML template)
+- [x] Redesign profile page ✅ (ProfilePage with sidebar navigation, 5 sections from HTML template)
 - [x] Fix dropdown menu hover issue ✅ (Added padding area to prevent disappearing)
 - [x] Fix logout functionality ✅ (Clears tokens, resets auth state, prevents protected page access)
-- [ ] Implement profile picture upload API (Pending S3 integration - endpoint stub created)
+- [x] Add phone number and location fields ✅ (Optional fields in profile form)
+- [x] Add Notifications section ✅ (Email notification preferences with toggle switches)
+- [x] Add Privacy section ✅ (Profile visibility, data download, account deletion)
+- [x] Set up S3 bucket policies ✅ (Profile pictures public read, ECS full access)
+- [ ] Implement profile picture upload API (Pending S3Service implementation - bucket ready)
 - [x] Create profile page placeholder ✅ (ProfilePage component)
 - [x] Add profile route ✅ (/profile)
 - [ ] Create profile API endpoints

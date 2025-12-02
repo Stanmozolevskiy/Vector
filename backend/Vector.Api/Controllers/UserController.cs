@@ -51,18 +51,20 @@ public class UserController : ControllerBase
         }
 
         // Return user data (exclude sensitive information)
-        return Ok(new
-        {
-            id = user.Id.ToString(),
-            email = user.Email,
-            firstName = user.FirstName,
-            lastName = user.LastName,
-            bio = user.Bio,
-            role = user.Role,
-            profilePictureUrl = user.ProfilePictureUrl,
-            emailVerified = user.EmailVerified,
-            createdAt = user.CreatedAt
-        });
+            return Ok(new
+            {
+                id = user.Id.ToString(),
+                email = user.Email,
+                firstName = user.FirstName,
+                lastName = user.LastName,
+                bio = user.Bio,
+                phoneNumber = user.PhoneNumber,
+                location = user.Location,
+                role = user.Role,
+                profilePictureUrl = user.ProfilePictureUrl,
+                emailVerified = user.EmailVerified,
+                createdAt = user.CreatedAt
+            });
     }
 
     /// <summary>
@@ -94,6 +96,8 @@ public class UserController : ControllerBase
                 firstName = user.FirstName,
                 lastName = user.LastName,
                 bio = user.Bio,
+                phoneNumber = user.PhoneNumber,
+                location = user.Location,
                 role = user.Role,
                 profilePictureUrl = user.ProfilePictureUrl,
                 emailVerified = user.EmailVerified,

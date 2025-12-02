@@ -16,48 +16,28 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-        {/* Public routes */}
+        {/* Public routes - no protection */}
         <Route path="/" element={<Navigate to={ROUTES.LOGIN} replace />} />
         <Route path={ROUTES.VERIFY_EMAIL} element={<VerifyEmailPage />} />
-          
-          {/* Auth routes (redirect to dashboard if already logged in) */}
-          <Route path={ROUTES.LOGIN} element={
-            <ProtectedRoute requireUnauth>
-              <LoginPage />
-            </ProtectedRoute>
-          } />
-          <Route path={ROUTES.REGISTER} element={
-            <ProtectedRoute requireUnauth>
-              <RegisterPage />
-            </ProtectedRoute>
-          } />
-          <Route path={ROUTES.FORGOT_PASSWORD} element={
-            <ProtectedRoute requireUnauth>
-              <ForgotPasswordPage />
-            </ProtectedRoute>
-          } />
-          <Route path={ROUTES.RESET_PASSWORD} element={
-            <ProtectedRoute requireUnauth>
-              <ResetPasswordPage />
-            </ProtectedRoute>
-          } />
-          <Route path={ROUTES.RESEND_VERIFICATION} element={
-            <ProtectedRoute requireUnauth>
-              <ResendVerificationPage />
-            </ProtectedRoute>
-          } />
-          
-          {/* Protected routes (require authentication) */}
-          <Route path={ROUTES.DASHBOARD} element={
-            <ProtectedRoute requireAuth>
-              <DashboardPage />
-            </ProtectedRoute>
-          } />
-          <Route path={ROUTES.PROFILE} element={
-            <ProtectedRoute requireAuth>
-              <ProfilePage />
-            </ProtectedRoute>
-          } />
+        
+        {/* Auth routes - accessible to everyone, but redirect if already logged in */}
+        <Route path={ROUTES.LOGIN} element={<LoginPage />} />
+        <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
+        <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
+        <Route path={ROUTES.RESET_PASSWORD} element={<ResetPasswordPage />} />
+        <Route path={ROUTES.RESEND_VERIFICATION} element={<ResendVerificationPage />} />
+        
+        {/* Protected routes (require authentication) */}
+        <Route path={ROUTES.DASHBOARD} element={
+          <ProtectedRoute requireAuth>
+            <DashboardPage />
+          </ProtectedRoute>
+        } />
+        <Route path={ROUTES.PROFILE} element={
+          <ProtectedRoute requireAuth>
+            <ProfilePage />
+          </ProtectedRoute>
+        } />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

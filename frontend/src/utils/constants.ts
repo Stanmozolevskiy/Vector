@@ -5,15 +5,9 @@ export const ROUTES = {
   LOGIN: '/login',
   REGISTER: '/register',
   DASHBOARD: '/dashboard',
-  PROFILE: '/profile',
-  VERIFY_EMAIL: '/verify-email',
   FORGOT_PASSWORD: '/forgot-password',
+  VERIFY_EMAIL: '/verify-email',
   RESET_PASSWORD: '/reset-password',
-} as const;
-
-export const USER_ROLES = {
-  STUDENT: 'student',
-  COACH: 'coach',
-  ADMIN: 'admin',
-} as const;
-
+  RESEND_VERIFICATION: '/resend-verification',
+  PROFILE: '/profile',
+};

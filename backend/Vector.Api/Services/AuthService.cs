@@ -127,8 +127,23 @@ public class AuthService : IAuthService
             throw new InvalidOperationException("Please verify your email address before logging in.");
         }
 
-        // Generate JWT access token
+        // Generate JWT access token and refresh token
         var accessToken = _jwtService.GenerateAccessToken(user.Id, user.Role);
+        var refreshToken = _jwtService.GenerateRefreshToken(user.Id);
+
+        // Store refresh token in database
+        var refreshTokenRecord = new RefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            Token = refreshToken,
+            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            CreatedAt = DateTime.UtcNow,
+            IsRevoked = false
+        };
+
+        _context.RefreshTokens.Add(refreshTokenRecord);
+        await _context.SaveChangesAsync();
 
         _logger.LogInformation("User logged in successfully: {Email}, UserId: {UserId}", user.Email, user.Id);
 
@@ -311,6 +326,72 @@ public class AuthService : IAuthService
         return true;
     }
 
+    public async Task<bool> ResendVerificationEmailAsync(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            _logger.LogWarning("Resend verification attempted with empty email");
+            return false;
+        }
+
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
+
+        if (user == null)
+        {
+            _logger.LogWarning("Resend verification attempted for non-existent email: {Email}", email);
+            return false; // Don't reveal if email exists
+        }
+
+        if (user.EmailVerified)
+        {
+            _logger.LogWarning("Resend verification attempted for already verified email: {Email}", email);
+            return false; // Already verified
+        }
+
+        // Invalidate existing verification tokens
+        var existingVerifications = await _context.EmailVerifications
+            .Where(ev => ev.UserId == user.Id && !ev.IsUsed && ev.ExpiresAt > DateTime.UtcNow)
+            .ToListAsync();
+
+        foreach (var existing in existingVerifications)
+        {
+            existing.IsUsed = true;
+        }
+
+        // Generate new verification token
+        var verificationToken = Guid.NewGuid().ToString() + Guid.NewGuid().ToString();
+        var emailVerification = new EmailVerification
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            Token = verificationToken,
+            ExpiresAt = DateTime.UtcNow.AddHours(24),
+            IsUsed = false,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _context.EmailVerifications.Add(emailVerification);
+        await _context.SaveChangesAsync();
+
+        // Send verification email (fire and forget)
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                _logger.LogInformation("Resending verification email to {Email}", user.Email);
+                await _emailService.SendVerificationEmailAsync(user.Email, verificationToken);
+                _logger.LogInformation("Verification email resent successfully to {Email}", user.Email);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to resend verification email to {Email}", user.Email);
+            }
+        });
+
+        return true;
+    }
+
     public Task<bool> LogoutAsync(Guid userId)
     {
         // TODO: Implement logout
@@ -322,5 +403,12 @@ public class AuthService : IAuthService
         // TODO: Implement refresh token
         throw new NotImplementedException();
     }
+
+    public Task<string> GetLatestRefreshTokenAsync(string oldRefreshToken)
+    {
+        // TODO: Implement getting latest refresh token from Redis
+        throw new NotImplementedException();
+    }
 }
+
 

@@ -49,5 +49,22 @@ export const authService = {
   async resetPassword(token: string, email: string, newPassword: string): Promise<void> {
     await api.post('/auth/reset-password', { token, email, newPassword });
   },
+
+  async resendVerification(email: string): Promise<void> {
+    await api.post('/auth/resend-verification', { email });
+  },
+
+  async refreshToken(): Promise<{ accessToken: string }> {
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (!refreshToken) {
+      throw new Error('No refresh token available');
+    }
+    const response = await api.post<{ accessToken: string; refreshToken: string }>('/auth/refresh', { refreshToken });
+    localStorage.setItem('accessToken', response.data.accessToken);
+    if (response.data.refreshToken) {
+      localStorage.setItem('refreshToken', response.data.refreshToken);
+    }
+    return response.data;
+  },
 };
 

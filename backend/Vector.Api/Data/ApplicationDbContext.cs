@@ -15,6 +15,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Payment> Payments { get; set; }
     public DbSet<EmailVerification> EmailVerifications { get; set; }
     public DbSet<PasswordReset> PasswordResets { get; set; }
+    public DbSet<RefreshToken> RefreshTokens { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -69,6 +70,17 @@ public class ApplicationDbContext : DbContext
 
         // Configure PasswordReset entity
         modelBuilder.Entity<PasswordReset>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(e => e.Token).IsUnique();
+        });
+
+        // Configure RefreshToken entity
+        modelBuilder.Entity<RefreshToken>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.HasOne(e => e.User)

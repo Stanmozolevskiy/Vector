@@ -48,7 +48,7 @@ public class AuthController : ControllerBase
                 user.EmailVerified,
                 user.CreatedAt
             };
-
+            
             return CreatedAtAction(nameof(Register), new { id = user.Id }, response);
         }
         catch (InvalidOperationException ex)
@@ -87,7 +87,7 @@ public class AuthController : ControllerBase
             
             if (result)
             {
-                return Ok(new { message = "Email verified successfully." });
+                return Ok(new { message = "Email verified successfully. You can now log in." });
             }
             else
             {
@@ -96,8 +96,38 @@ public class AuthController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error verifying email with token: {Token}", token);
+            _logger.LogError(ex, "Error during email verification for token: {Token}", token);
             return StatusCode(500, new { error = "An error occurred while verifying the email." });
+        }
+    }
+
+    /// <summary>
+    /// Resend email verification link
+    /// </summary>
+    /// <param name="dto">Email address to resend verification to</param>
+    /// <returns>Success message</returns>
+    /// <response code="200">Verification email sent (or email not found for security)</response>
+    /// <response code="400">Invalid email format</response>
+    [HttpPost("resend-verification")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ResendVerification([FromBody] ForgotPasswordDto dto)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            await _authService.ResendVerificationEmailAsync(dto.Email);
+            // Always return success for security (don't reveal if email exists)
+            return Ok(new { message = "If your account exists and is not verified, a new verification email has been sent." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during resend verification for email: {Email}", dto.Email);
+            return StatusCode(500, new { error = "An error occurred while resending verification email." });
         }
     }
 
@@ -143,18 +173,22 @@ public class AuthController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during login for email: {Email}", dto.Email);
-            return StatusCode(500, new { error = "An error occurred while logging in." });
+            return StatusCode(500, new { error = "An error occurred during login." });
         }
     }
 
     /// <summary>
-    /// Request password reset email
+    /// Request a password reset link to be sent to the user's email.
     /// </summary>
-    /// <param name="dto">Email address</param>
-    /// <returns>Success message (always returns success to prevent email enumeration)</returns>
-    /// <response code="200">If email exists, reset link sent. Always returns success.</response>
+    /// <param name="dto">Email address for password reset</param>
+    /// <returns>Success message</returns>
+    /// <response code="200">Password reset link sent successfully (or email not found for security reasons)</response>
+    /// <response code="400">Invalid email format</response>
+    /// <response code="500">Internal server error</response>
     [HttpPost("forgot-password")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
     {
         if (!ModelState.IsValid)
@@ -165,27 +199,28 @@ public class AuthController : ControllerBase
         try
         {
             await _authService.ForgotPasswordAsync(dto.Email);
-            // Always return success to prevent email enumeration
+            // Always return 200 OK for security reasons, even if email not found
             return Ok(new { message = "If an account with that email exists, a password reset link has been sent." });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing forgot password request for email: {Email}", dto.Email);
-            // Still return success to prevent email enumeration
-            return Ok(new { message = "If an account with that email exists, a password reset link has been sent." });
+            _logger.LogError(ex, "Error during forgot password request for email: {Email}", dto.Email);
+            return StatusCode(500, new { error = "An error occurred while processing your request." });
         }
     }
 
     /// <summary>
-    /// Reset password using reset token
+    /// Reset user password using a valid reset token.
     /// </summary>
     /// <param name="dto">Reset password data (token, email, new password)</param>
-    /// <returns>Success message if password reset successful</returns>
-    /// <response code="200">Password reset successful</response>
-    /// <response code="400">Invalid or expired reset token</response>
+    /// <returns>Success message</returns>
+    /// <response code="200">Password reset successfully</response>
+    /// <response code="400">Invalid or expired token, or invalid email</response>
+    /// <response code="500">Internal server error</response>
     [HttpPost("reset-password")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
     {
         if (!ModelState.IsValid)
@@ -196,25 +231,19 @@ public class AuthController : ControllerBase
         try
         {
             var result = await _authService.ResetPasswordAsync(dto);
-            
             if (result)
             {
-                return Ok(new { message = "Password reset successful. You can now login with your new password." });
+                return Ok(new { message = "Password has been reset successfully." });
             }
             else
             {
-                return BadRequest(new { error = "Invalid or expired reset token." });
+                return BadRequest(new { error = "Invalid or expired password reset token, or email mismatch." });
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error resetting password with token: {Token}", dto.Token);
+            _logger.LogError(ex, "Error during password reset for email: {Email}", dto.Email);
             return StatusCode(500, new { error = "An error occurred while resetting the password." });
         }
     }
-
-    // TODO: Implement remaining endpoints
-    // - POST /api/auth/logout
-    // - POST /api/auth/refresh-token
 }
-

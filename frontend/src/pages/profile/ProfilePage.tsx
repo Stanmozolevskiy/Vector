@@ -11,9 +11,13 @@ export const ProfilePage = () => {
   useEffect(() => {
     if (!isAuthenticated) {
       navigate(ROUTES.LOGIN);
-    } else {
-      setLoading(false);
+      return;
     }
+    // Use setTimeout to avoid calling setState synchronously in effect
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [isAuthenticated, navigate]);
 
   if (loading) {

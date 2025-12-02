@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -20,9 +20,11 @@ type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 export const ResetPasswordPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [error, setError] = useState<string>('');
-  const [success, setSuccess] = useState(false);
   const token = searchParams.get('token');
+  const [error, setError] = useState<string>(() => 
+    !token ? 'Invalid reset link. Please request a new password reset.' : ''
+  );
+  const [success, setSuccess] = useState(false);
 
   const {
     register,
@@ -31,12 +33,6 @@ export const ResetPasswordPage = () => {
   } = useForm<ResetPasswordFormData>({
     resolver: zodResolver(resetPasswordSchema),
   });
-
-  useEffect(() => {
-    if (!token) {
-      setError('Invalid reset link. Please request a new password reset.');
-    }
-  }, [token]);
 
   const onSubmit = async (data: ResetPasswordFormData) => {
     if (!token) {

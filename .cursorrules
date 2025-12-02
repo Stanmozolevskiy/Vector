@@ -1,0 +1,57 @@
+# Cursor Rules for Vector Project
+
+## Build Failure Auto-Fix
+
+When a CI/CD build fails, the `.github/workflows/auto-fix-issues.yml` workflow will:
+1. Create a GitHub issue with error details
+2. Create a `.cursor-fix-tasks.md` file in the repository root
+
+**If you see `.cursor-fix-tasks.md` in the repository:**
+- Review the file for build failure details
+- Fix the issues mentioned
+- Delete the file after fixing
+- Push changes to trigger a new build
+
+## React Best Practices
+
+### useEffect Rules
+- **DO NOT** call setState synchronously in useEffect body
+- **DO** use useState initializer function for initial state based on props/params
+- **DO** use setTimeout/requestAnimationFrame if state update is needed in effect
+- **DO** use cleanup functions for timers/subscriptions
+
+### Example - Correct Pattern:
+```typescript
+// ✅ Good: Initialize state based on prop/param
+const [error, setError] = useState(() => 
+  !token ? 'Error message' : ''
+);
+
+// ✅ Good: Use existing hook state
+const { isLoading } = useAuth();
+if (isLoading) return <Loading />;
+
+// ✅ Good: Async state update in effect
+useEffect(() => {
+  const timer = setTimeout(() => {
+    setState(value);
+  }, 0);
+  return () => clearTimeout(timer);
+}, [dependency]);
+```
+
+### Example - Incorrect Pattern:
+```typescript
+// ❌ Bad: Synchronous setState in effect
+useEffect(() => {
+  setError('Error message'); // Triggers cascading renders
+}, [token]);
+```
+
+## Code Quality
+
+- All ESLint errors must be fixed before committing
+- Run `npm run lint` locally before pushing
+- Unit tests must pass before deployment
+- No secrets in code or documentation
+

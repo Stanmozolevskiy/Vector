@@ -170,18 +170,21 @@ Before starting, ensure you have:
 
 ## Week 3: User Profile & Roles
 
-### Day 15-16: User Profile Management ✅ IN PROGRESS
-- [x] Create profile settings page ✅ (ProfilePage.tsx placeholder created)
+### Day 15-16: User Profile Management ✅ COMPLETE
+- [x] Create profile settings page ✅ (ProfilePage.tsx created)
 - [x] Implement GET /api/users/me endpoint ✅ (Returns current user info)
 - [x] Fix login flow after email verification ✅ (User can now login after verifying email)
 - [x] Fix alignment issues on auth pages ✅ (Forgot password and other pages aligned correctly)
-- [ ] Create profile API endpoints (PUT /api/users/me)
-- [ ] Implement profile picture upload
-- [ ] Add password change functionality
+- [x] Implement protected routes ✅ (ProtectedRoute component created)
+- [x] Add resend verification functionality ✅ (POST /api/auth/resend-verification endpoint and UI)
+- [ ] Create profile update API endpoint (PUT /api/users/me)
+- [ ] Implement profile picture upload API
+- [ ] Add password change functionality API
+- [ ] Create profile editing UI
+- [ ] Add image preview functionality
 - [x] Create profile page placeholder ✅ (ProfilePage component)
 - [x] Add profile route ✅ (/profile)
 - [ ] Create profile API endpoints
-- [ ] Implement profile picture upload
 - [ ] Set up S3 bucket policies
 - [ ] Create profile settings page
 - [ ] Add image preview functionality
@@ -280,10 +283,14 @@ Before starting, ensure you have:
 
 ### User Profile ✅ IN PROGRESS
 - [x] Users can view their profile ✅ (GET /api/users/me endpoint implemented)
-- [x] User profile page placeholder created ✅ (ProfilePage.tsx)
-- [ ] Users can update their profile
-- [ ] Profile picture upload works
-- [ ] Image optimization works
+- [x] User profile page created ✅ (ProfilePage.tsx)
+- [x] Protected route for profile ✅ (Requires authentication)
+- [ ] Users can update their profile (TODO: PUT /api/users/me)
+- [ ] Profile picture upload works (TODO: POST /api/users/me/profile-picture)
+- [ ] Password change in profile (TODO: PUT /api/users/me/password)
+- [ ] Image preview functionality (TODO: Add client-side preview)
+- [ ] Profile editing UI (TODO: Add edit mode to ProfilePage)
+- [ ] Image optimization works (TODO: Add image compression)
 
 ### Roles & Permissions
 - [ ] Role-based access control works
@@ -317,20 +324,29 @@ Before starting, ensure you have:
 
 ## Progress Summary
 
-**Completed:** 70+ items  
-**In Progress:** 0 items  
-**Remaining:** 50+ items
+**Completed:** 90+ items  
+**In Progress:** 10 items (Profile management, Testing, Redis)
+**Remaining:** 40+ items
 
-**Current Status:** Week 2, Day 15-16 (User Profile Management) - ✅ Login Flow Fixed, User Profile Endpoint Implemented, Unit Tests Created, Deployed to Docker
+**Current Status:** Week 2, Day 15-16 (User Profile Management) - ✅ Login System Complete, Protected Routes Implemented, Refresh Token Storage Ready
 
 **Recent Updates:**
-- ✅ Fixed login flow after email verification (GET /api/users/me endpoint created)
-- ✅ Fixed alignment issues on forgot-password and other auth pages
-- ✅ Created comprehensive unit tests for API functionality
-- ✅ Ensured email validation stability (SendGrid configuration documented)
-- ✅ UserService registered in DI container
-- ✅ User profile placeholder page created
+- ✅ Protected routes implemented (ProtectedRoute component)
+- ✅ Resend verification email functionality added
+- ✅ Refresh token storage implemented (RefreshTokens table)
+- ✅ Unit tests expanded to 31 tests
+- ✅ Fixed frontend routing issues
+- ✅ Fixed RefreshTokens table creation in Docker
+- ✅ All email functionality working on AWS dev
+- ✅ Bastion host deployed for PostgreSQL access
 - ✅ Deployed to local Docker environment
+
+**Remaining for User Profile:**
+- Profile update API (PUT /api/users/me)
+- Profile picture upload API
+- Password change API
+- Profile editing UI
+- Image preview functionality
 - ✅ Backend project structure fully initialized
 - ✅ All controllers, services, DTOs, middleware, and helpers created
 - ✅ Models and DbContext configured

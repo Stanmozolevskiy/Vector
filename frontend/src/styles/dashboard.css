@@ -328,94 +328,35 @@
 }
 
 .dropdown-menu {
-  display: none;
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 0.25rem;
-  background: var(--bg-white);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
-  min-width: 200px;
-  z-index: 1000;
-  padding: 0.5rem 0;
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 0.5rem;
+    background: var(--bg-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    min-width: 200px;
+    z-index: 100;
 }
 
-/* Add padding area to prevent dropdown from disappearing */
-.user-menu::before {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  height: 0.5rem;
-  z-index: 999;
+.user-menu:hover .dropdown-menu {
+    display: block;
 }
 
-.user-menu:hover .dropdown-menu,
-.dropdown-menu:hover {
-  display: block;
+.dropdown-menu a {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    color: var(--text-secondary);
+    transition: var(--transition);
 }
 
-.dropdown-menu a,
-.dropdown-menu button {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
-  color: var(--text-secondary);
-  transition: var(--transition);
-  text-decoration: none;
-}
-
-.dropdown-menu a:hover,
-.dropdown-menu button:hover {
-  background: var(--bg-gray-50);
-  color: var(--primary-color);
-}
-
-.difficulty-badge {
-  padding: 0.25rem 0.75rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-.difficulty-badge.easy {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.difficulty-badge.medium {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.difficulty-badge.hard {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.stat-card {
-  background: var(--bg-white);
-  padding: var(--spacing-lg);
-  border-radius: var(--radius-lg);
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  box-shadow: var(--shadow-sm);
-}
-
-.empty-state {
-  text-align: center;
-  padding: var(--spacing-xl) var(--spacing-md);
-}
-
-.empty-state-small {
-  text-align: center;
-  padding: var(--spacing-md);
-  margin-bottom: var(--spacing-md);
+.dropdown-menu a:hover {
+    background: var(--bg-gray-50);
+    color: var(--primary-color);
 }
 
 @media (max-width: 968px) {

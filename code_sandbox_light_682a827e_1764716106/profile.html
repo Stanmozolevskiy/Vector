@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile Settings - Vector</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/profile.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="index.html">
+                    <i class="fas fa-vector-square"></i>
+                    <span>Vector</span>
+                </a>
+            </div>
+            <div class="nav-menu" id="navMenu">
+                <a href="courses.html">Courses</a>
+                <a href="questions.html">Questions</a>
+                <a href="mock-interviews.html">Mock Interviews</a>
+                <div class="user-menu">
+                    <div class="user-avatar">JS</div>
+                    <span>John Smith</span>
+                    <i class="fas fa-chevron-down"></i>
+                    <div class="dropdown-menu">
+                        <a href="dashboard.html"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                        <a href="profile.html" class="active"><i class="fas fa-user"></i> Profile</a>
+                        <a href="#"><i class="fas fa-cog"></i> Settings</a>
+                        <a href="index.html"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-toggle" id="navToggle">
+                <i class="fas fa-bars"></i>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Profile Content -->
+    <section class="profile-section">
+        <div class="container-wide">
+            <div class="profile-header">
+                <h1>Profile Settings</h1>
+                <p>Manage your account settings and preferences</p>
+            </div>
+
+            <div class="profile-layout">
+                <!-- Sidebar Navigation -->
+                <aside class="profile-sidebar">
+                    <nav class="profile-nav">
+                        <a href="#" class="profile-nav-item active" data-section="personal">
+                            <i class="fas fa-user"></i>
+                            <span>Personal Information</span>
+                        </a>
+                        <a href="#" class="profile-nav-item" data-section="security">
+                            <i class="fas fa-lock"></i>
+                            <span>Security</span>
+                        </a>
+                        <a href="#" class="profile-nav-item" data-section="subscription">
+                            <i class="fas fa-credit-card"></i>
+                            <span>Subscription</span>
+                        </a>
+                        <a href="#" class="profile-nav-item" data-section="notifications">
+                            <i class="fas fa-bell"></i>
+                            <span>Notifications</span>
+                        </a>
+                        <a href="#" class="profile-nav-item" data-section="privacy">
+                            <i class="fas fa-shield-alt"></i>
+                            <span>Privacy</span>
+                        </a>
+                    </nav>
+                </aside>
+
+                <!-- Main Content -->
+                <div class="profile-content">
+                    <!-- Personal Information Section -->
+                    <div class="profile-section-content active" id="personal">
+                        <div class="section-header">
+                            <h2>Personal Information</h2>
+                            <p>Update your personal details and profile picture</p>
+                        </div>
+
+                        <!-- Profile Picture -->
+                        <div class="profile-card">
+                            <h3>Profile Picture</h3>
+                            <div class="profile-picture-section">
+                                <div class="profile-picture-preview">
+                                    <div class="profile-avatar-large">JS</div>
+                                    <button class="remove-picture" id="removePicture">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                <div class="profile-picture-actions">
+                                    <input type="file" id="pictureUpload" accept="image/*" style="display: none;">
+                                    <button class="btn-primary" id="uploadPictureBtn">
+                                        <i class="fas fa-upload"></i> Upload New Picture
+                                    </button>
+                                    <p class="helper-text">JPG, PNG or GIF. Max size 5MB.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Basic Information -->
+                        <div class="profile-card">
+                            <h3>Basic Information</h3>
+                            <form id="personalInfoForm">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="firstName">First Name</label>
+                                        <input type="text" id="firstName" name="firstName" value="John" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="lastName">Last Name</label>
+                                        <input type="text" id="lastName" name="lastName" value="Smith" required>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="email">Email Address</label>
+                                    <input type="email" id="email" name="email" value="john.smith@example.com" required>
+                                    <small class="form-help">Your email is used for login and notifications</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="username">Username</label>
+                                    <input type="text" id="username" name="username" value="johnsmith" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="bio">Bio</label>
+                                    <textarea id="bio" name="bio" rows="4" placeholder="Tell us about yourself...">Software engineer passionate about learning and preparing for interviews at top tech companies.</textarea>
+                                    <small class="form-help">Brief description for your profile. Maximum 200 characters.</small>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="phone">Phone Number</label>
+                                        <input type="tel" id="phone" name="phone" value="+1 (555) 123-4567">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="location">Location</label>
+                                        <input type="text" id="location" name="location" value="San Francisco, CA" placeholder="City, Country">
+                                    </div>
+                                </div>
+
+                                <div class="form-actions">
+                                    <button type="button" class="btn-outline" id="cancelPersonalInfo">Cancel</button>
+                                    <button type="submit" class="btn-primary">Save Changes</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Security Section -->
+                    <div class="profile-section-content" id="security">
+                        <div class="section-header">
+                            <h2>Security Settings</h2>
+                            <p>Manage your password and security preferences</p>
+                        </div>
+
+                        <!-- Change Password -->
+                        <div class="profile-card">
+                            <h3>Change Password</h3>
+                            <form id="changePasswordForm">
+                                <div class="form-group">
+                                    <label for="currentPassword">Current Password</label>
+                                    <input type="password" id="currentPassword" name="currentPassword" placeholder="Enter current password" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="newPassword">New Password</label>
+                                    <input type="password" id="newPassword" name="newPassword" placeholder="Enter new password" required>
+                                    <small class="form-help">Must be at least 8 characters with letters and numbers</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="confirmNewPassword">Confirm New Password</label>
+                                    <input type="password" id="confirmNewPassword" name="confirmNewPassword" placeholder="Confirm new password" required>
+                                </div>
+
+                                <div class="form-actions">
+                                    <button type="button" class="btn-outline" id="cancelPassword">Cancel</button>
+                                    <button type="submit" class="btn-primary">Update Password</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Two-Factor Authentication -->
+                        <div class="profile-card">
+                            <h3>Two-Factor Authentication</h3>
+                            <div class="security-option">
+                                <div class="security-option-info">
+                                    <h4>Enhance your account security</h4>
+                                    <p>Add an extra layer of protection by enabling two-factor authentication</p>
+                                </div>
+                                <button class="btn-primary" id="enable2FA">Enable 2FA</button>
+                            </div>
+                        </div>
+
+                        <!-- Active Sessions -->
+                        <div class="profile-card">
+                            <h3>Active Sessions</h3>
+                            <div class="sessions-list">
+                                <div class="session-item">
+                                    <div class="session-icon">
+                                        <i class="fas fa-desktop"></i>
+                                    </div>
+                                    <div class="session-info">
+                                        <h4>Chrome on MacOS</h4>
+                                        <p>San Francisco, CA • Last active: Now</p>
+                                    </div>
+                                    <span class="session-badge current">Current Session</span>
+                                </div>
+                                <div class="session-item">
+                                    <div class="session-icon">
+                                        <i class="fas fa-mobile-alt"></i>
+                                    </div>
+                                    <div class="session-info">
+                                        <h4>Safari on iPhone</h4>
+                                        <p>San Francisco, CA • Last active: 2 hours ago</p>
+                                    </div>
+                                    <button class="btn-outline btn-sm">Revoke</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Subscription Section -->
+                    <div class="profile-section-content" id="subscription">
+                        <div class="section-header">
+                            <h2>Subscription & Billing</h2>
+                            <p>Manage your subscription plan and payment methods</p>
+                        </div>
+
+                        <!-- Current Plan -->
+                        <div class="profile-card">
+                            <h3>Current Plan</h3>
+                            <div class="current-plan">
+                                <div class="plan-badge pro">
+                                    <i class="fas fa-star"></i>
+                                    <span>Pro Plan</span>
+                                </div>
+                                <div class="plan-details">
+                                    <div class="plan-info">
+                                        <h4>Vector Pro</h4>
+                                        <p>$29.00 / month</p>
+                                        <p class="renewal-date">Next billing date: February 15, 2025</p>
+                                    </div>
+                                    <div class="plan-actions">
+                                        <a href="pricing.html" class="btn-outline">Change Plan</a>
+                                        <button class="btn-danger" id="cancelSubscription">Cancel Subscription</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Plan Benefits -->
+                            <div class="plan-benefits">
+                                <h4>Your Plan Includes:</h4>
+                                <ul>
+                                    <li><i class="fas fa-check"></i> Access to 1000+ interview questions</li>
+                                    <li><i class="fas fa-check"></i> All premium courses</li>
+                                    <li><i class="fas fa-check"></i> 2 mock interviews per month</li>
+                                    <li><i class="fas fa-check"></i> Code execution environment</li>
+                                    <li><i class="fas fa-check"></i> Advanced analytics</li>
+                                    <li><i class="fas fa-check"></i> Priority support</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Payment Method -->
+                        <div class="profile-card">
+                            <h3>Payment Method</h3>
+                            <div class="payment-method">
+                                <div class="card-info">
+                                    <div class="card-icon">
+                                        <i class="fab fa-cc-visa"></i>
+                                    </div>
+                                    <div class="card-details">
+                                        <h4>Visa ending in 4242</h4>
+                                        <p>Expires 12/2025</p>
+                                    </div>
+                                </div>
+                                <button class="btn-outline" id="updatePayment">Update Payment Method</button>
+                            </div>
+                        </div>
+
+                        <!-- Billing History -->
+                        <div class="profile-card">
+                            <h3>Billing History</h3>
+                            <div class="billing-table">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Description</th>
+                                            <th>Amount</th>
+                                            <th>Status</th>
+                                            <th>Invoice</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Jan 15, 2025</td>
+                                            <td>Pro Plan - Monthly</td>
+                                            <td>$29.00</td>
+                                            <td><span class="status-badge paid">Paid</span></td>
+                                            <td><a href="#" class="invoice-link"><i class="fas fa-download"></i> Download</a></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Dec 15, 2024</td>
+                                            <td>Pro Plan - Monthly</td>
+                                            <td>$29.00</td>
+                                            <td><span class="status-badge paid">Paid</span></td>
+                                            <td><a href="#" class="invoice-link"><i class="fas fa-download"></i> Download</a></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Nov 15, 2024</td>
+                                            <td>Pro Plan - Monthly</td>
+                                            <td>$29.00</td>
+                                            <td><span class="status-badge paid">Paid</span></td>
+                                            <td><a href="#" class="invoice-link"><i class="fas fa-download"></i> Download</a></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notifications Section -->
+                    <div class="profile-section-content" id="notifications">
+                        <div class="section-header">
+                            <h2>Notification Preferences</h2>
+                            <p>Choose what notifications you want to receive</p>
+                        </div>
+
+                        <div class="profile-card">
+                            <h3>Email Notifications</h3>
+                            <div class="notification-settings">
+                                <div class="notification-item">
+                                    <div class="notification-info">
+                                        <h4>Course Updates</h4>
+                                        <p>Get notified when new lessons are added to your enrolled courses</p>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="notification-item">
+                                    <div class="notification-info">
+                                        <h4>Mock Interview Reminders</h4>
+                                        <p>Receive reminders 24 hours before your scheduled mock interviews</p>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="notification-item">
+                                    <div class="notification-info">
+                                        <h4>Weekly Progress Report</h4>
+                                        <p>Get a summary of your learning progress every week</p>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="notification-item">
+                                    <div class="notification-info">
+                                        <h4>New Question Alerts</h4>
+                                        <p>Get notified when new interview questions are added</p>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="notification-item">
+                                    <div class="notification-info">
+                                        <h4>Marketing Emails</h4>
+                                        <p>Receive updates about new features, tips, and special offers</p>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Privacy Section -->
+                    <div class="profile-section-content" id="privacy">
+                        <div class="section-header">
+                            <h2>Privacy Settings</h2>
+                            <p>Control your data and privacy preferences</p>
+                        </div>
+
+                        <div class="profile-card">
+                            <h3>Profile Visibility</h3>
+                            <div class="privacy-settings">
+                                <div class="privacy-item">
+                                    <div class="privacy-info">
+                                        <h4>Public Profile</h4>
+                                        <p>Allow others to view your profile and progress</p>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="privacy-item">
+                                    <div class="privacy-info">
+                                        <h4>Show Learning Stats</h4>
+                                        <p>Display your solved problems and course completions publicly</p>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="profile-card danger-zone">
+                            <h3>Danger Zone</h3>
+                            <div class="danger-actions">
+                                <div class="danger-item">
+                                    <div class="danger-info">
+                                        <h4>Download Your Data</h4>
+                                        <p>Request a copy of all your data including progress, notes, and account information</p>
+                                    </div>
+                                    <button class="btn-outline">Request Data</button>
+                                </div>
+                                <div class="danger-item">
+                                    <div class="danger-info">
+                                        <h4>Delete Account</h4>
+                                        <p>Permanently delete your account and all associated data. This action cannot be undone.</p>
+                                    </div>
+                                    <button class="btn-danger" id="deleteAccount">Delete Account</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Cancel Subscription Modal -->
+    <div class="modal" id="cancelSubscriptionModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Cancel Subscription</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to cancel your Pro subscription?</p>
+                <p>You will lose access to:</p>
+                <ul class="cancel-reasons">
+                    <li>1000+ premium interview questions</li>
+                    <li>All premium courses</li>
+                    <li>Mock interview sessions</li>
+                    <li>Code execution environment</li>
+                    <li>Advanced analytics</li>
+                </ul>
+                <p><strong>Your subscription will remain active until February 15, 2025.</strong></p>
+                
+                <div class="feedback-section">
+                    <label>Help us improve (optional):</label>
+                    <textarea placeholder="Why are you canceling?"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-outline modal-cancel">Keep Subscription</button>
+                <button class="btn-danger" id="confirmCancel">Cancel Subscription</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <div class="footer-brand">
+                        <i class="fas fa-vector-square"></i>
+                        <span>Vector</span>
+                    </div>
+                    <p>Master your interview skills.</p>
+                </div>
+                <div class="footer-col">
+                    <h4>Product</h4>
+                    <ul>
+                        <li><a href="courses.html">Courses</a></li>
+                        <li><a href="questions.html">Questions</a></li>
+                        <li><a href="mock-interviews.html">Mock Interviews</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Company</h4>
+                    <ul>
+                        <li><a href="#">About</a></li>
+                        <li><a href="#">Careers</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Terms</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Vector. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+    <script src="js/profile.js"></script>
+</body>
+</html>

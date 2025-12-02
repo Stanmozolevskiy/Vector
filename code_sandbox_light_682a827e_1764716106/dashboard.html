@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Vector</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="index.html">
+                    <i class="fas fa-vector-square"></i>
+                    <span>Vector</span>
+                </a>
+            </div>
+            <div class="nav-menu" id="navMenu">
+                <a href="courses.html">Courses</a>
+                <a href="questions.html">Questions</a>
+                <a href="mock-interviews.html">Mock Interviews</a>
+                <div class="user-menu">
+                    <div class="user-avatar">JS</div>
+                    <span>John Smith</span>
+                    <i class="fas fa-chevron-down"></i>
+                    <div class="dropdown-menu">
+                        <a href="dashboard.html"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                        <a href="profile.html"><i class="fas fa-user"></i> Profile</a>
+                        <a href="#"><i class="fas fa-cog"></i> Settings</a>
+                        <a href="index.html"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-toggle" id="navToggle">
+                <i class="fas fa-bars"></i>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Dashboard Content -->
+    <section class="dashboard-section">
+        <div class="container-wide">
+            <div class="dashboard-header">
+                <div>
+                    <h1>Welcome back, John!</h1>
+                    <p>Here's your learning progress</p>
+                </div>
+                <a href="courses.html" class="btn-primary">Explore Courses</a>
+            </div>
+
+            <!-- Stats Overview -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-graduation-cap"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">12</div>
+                        <div class="stat-label">Courses Enrolled</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">234</div>
+                        <div class="stat-label">Problems Solved</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-video"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">8</div>
+                        <div class="stat-label">Mock Interviews</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-fire"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">45</div>
+                        <div class="stat-label">Day Streak</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Dashboard Grid -->
+            <div class="dashboard-grid">
+                <!-- Left Column -->
+                <div class="dashboard-main">
+                    <!-- Continue Learning -->
+                    <div class="dashboard-card">
+                        <h2>Continue Learning</h2>
+                        <div class="course-progress-list">
+                            <div class="course-progress-item">
+                                <div class="course-progress-image"></div>
+                                <div class="course-progress-info">
+                                    <h3>Software Engineer Interview Prep</h3>
+                                    <div class="progress-bar-container">
+                                        <div class="progress-bar-fill" style="width: 65%"></div>
+                                    </div>
+                                    <div class="progress-text">65% Complete • 14 lessons left</div>
+                                </div>
+                                <a href="lesson-player.html" class="btn-outline">Continue</a>
+                            </div>
+                            <div class="course-progress-item">
+                                <div class="course-progress-image"></div>
+                                <div class="course-progress-info">
+                                    <h3>System Design Interview Course</h3>
+                                    <div class="progress-bar-container">
+                                        <div class="progress-bar-fill" style="width: 30%"></div>
+                                    </div>
+                                    <div class="progress-text">30% Complete • 35 lessons left</div>
+                                </div>
+                                <a href="lesson-player.html" class="btn-outline">Continue</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Activity Chart -->
+                    <div class="dashboard-card">
+                        <h2>Learning Activity</h2>
+                        <div class="chart-container" style="height: 300px;">
+                            <canvas id="activityChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Problem Solving Progress -->
+                    <div class="dashboard-card">
+                        <h2>Problem Solving Progress</h2>
+                        <div class="problem-stats">
+                            <div class="problem-stat-item">
+                                <div class="problem-stat-header">
+                                    <span class="difficulty-badge easy">Easy</span>
+                                    <span>145/234</span>
+                                </div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill easy" style="width: 62%"></div>
+                                </div>
+                            </div>
+                            <div class="problem-stat-item">
+                                <div class="problem-stat-header">
+                                    <span class="difficulty-badge medium">Medium</span>
+                                    <span>67/456</span>
+                                </div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill medium" style="width: 15%"></div>
+                                </div>
+                            </div>
+                            <div class="problem-stat-item">
+                                <div class="problem-stat-header">
+                                    <span class="difficulty-badge hard">Hard</span>
+                                    <span>22/310</span>
+                                </div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill hard" style="width: 7%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div class="dashboard-sidebar">
+                    <!-- Upcoming Mock Interviews -->
+                    <div class="dashboard-card">
+                        <h2>Upcoming Interviews</h2>
+                        <div class="upcoming-interviews">
+                            <div class="interview-item">
+                                <div class="interview-date">
+                                    <div class="date-day">15</div>
+                                    <div class="date-month">JAN</div>
+                                </div>
+                                <div class="interview-details">
+                                    <h4>Technical Interview</h4>
+                                    <p>with Alex Johnson</p>
+                                    <span class="interview-time"><i class="fas fa-clock"></i> 11:00 AM</span>
+                                </div>
+                            </div>
+                            <div class="interview-item">
+                                <div class="interview-date">
+                                    <div class="date-day">22</div>
+                                    <div class="date-month">JAN</div>
+                                </div>
+                                <div class="interview-details">
+                                    <h4>System Design</h4>
+                                    <p>with David Kim</p>
+                                    <span class="interview-time"><i class="fas fa-clock"></i> 2:00 PM</span>
+                                </div>
+                            </div>
+                        </div>
+                        <a href="mock-interviews.html" class="btn-outline btn-full">Schedule Interview</a>
+                    </div>
+
+                    <!-- Recent Achievements -->
+                    <div class="dashboard-card">
+                        <h2>Recent Achievements</h2>
+                        <div class="achievements-list">
+                            <div class="achievement-item">
+                                <div class="achievement-icon">
+                                    <i class="fas fa-trophy"></i>
+                                </div>
+                                <div class="achievement-info">
+                                    <h4>Problem Solver</h4>
+                                    <p>Solved 200 problems</p>
+                                </div>
+                            </div>
+                            <div class="achievement-item">
+                                <div class="achievement-icon">
+                                    <i class="fas fa-medal"></i>
+                                </div>
+                                <div class="achievement-info">
+                                    <h4>Course Completer</h4>
+                                    <p>Completed 3 courses</p>
+                                </div>
+                            </div>
+                            <div class="achievement-item">
+                                <div class="achievement-icon">
+                                    <i class="fas fa-fire"></i>
+                                </div>
+                                <div class="achievement-info">
+                                    <h4>Streak Master</h4>
+                                    <p>45 day streak</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Learning Goals -->
+                    <div class="dashboard-card">
+                        <h2>This Week's Goals</h2>
+                        <div class="goals-list">
+                            <div class="goal-item">
+                                <div class="goal-checkbox"><i class="fas fa-check"></i></div>
+                                <span class="goal-text completed">Complete 10 problems</span>
+                            </div>
+                            <div class="goal-item">
+                                <div class="goal-checkbox"><i class="fas fa-check"></i></div>
+                                <span class="goal-text completed">Watch 5 lessons</span>
+                            </div>
+                            <div class="goal-item">
+                                <div class="goal-checkbox"></div>
+                                <span class="goal-text">Attend 1 mock interview</span>
+                            </div>
+                            <div class="goal-item">
+                                <div class="goal-checkbox"></div>
+                                <span class="goal-text">Review 3 system designs</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <div class="footer-brand">
+                        <i class="fas fa-vector-square"></i>
+                        <span>Vector</span>
+                    </div>
+                    <p>Master your interview skills.</p>
+                </div>
+                <div class="footer-col">
+                    <h4>Product</h4>
+                    <ul>
+                        <li><a href="courses.html">Courses</a></li>
+                        <li><a href="questions.html">Questions</a></li>
+                        <li><a href="mock-interviews.html">Mock Interviews</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Company</h4>
+                    <ul>
+                        <li><a href="#">About</a></li>
+                        <li><a href="#">Careers</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Terms</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Vector. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+    <script src="js/dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Two Sum - Vector</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/question-detail.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="index.html">
+                    <i class="fas fa-vector-square"></i>
+                    <span>Vector</span>
+                </a>
+            </div>
+            <div class="nav-menu">
+                <a href="courses.html">Courses</a>
+                <a href="questions.html" class="active">Questions</a>
+                <a href="mock-interviews.html">Mock Interviews</a>
+                <a href="dashboard.html" class="btn-secondary">Dashboard</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Question Content -->
+    <div class="question-layout">
+        <!-- Problem Description -->
+        <div class="problem-section">
+            <div class="problem-header">
+                <a href="questions.html" class="back-link"><i class="fas fa-arrow-left"></i> Back to Questions</a>
+                <div class="problem-title">
+                    <h1>1. Two Sum</h1>
+                    <span class="difficulty-badge easy">Easy</span>
+                </div>
+                <div class="problem-tags">
+                    <span class="tag">Array</span>
+                    <span class="tag">Hash Table</span>
+                </div>
+            </div>
+
+            <div class="problem-description">
+                <h2>Problem</h2>
+                <p>Given an array of integers <code>nums</code> and an integer <code>target</code>, return <em>indices of the two numbers such that they add up to <code>target</code></em>.</p>
+                <p>You may assume that each input would have <strong>exactly one solution</strong>, and you may not use the <em>same</em> element twice.</p>
+                <p>You can return the answer in any order.</p>
+
+                <h3>Example 1:</h3>
+                <pre><code>Input: nums = [2,7,11,15], target = 9
+Output: [0,1]
+Explanation: Because nums[0] + nums[1] == 9, we return [0, 1].</code></pre>
+
+                <h3>Example 2:</h3>
+                <pre><code>Input: nums = [3,2,4], target = 6
+Output: [1,2]</code></pre>
+
+                <h3>Example 3:</h3>
+                <pre><code>Input: nums = [3,3], target = 6
+Output: [0,1]</code></pre>
+
+                <h3>Constraints:</h3>
+                <ul>
+                    <li><code>2 <= nums.length <= 10<sup>4</sup></code></li>
+                    <li><code>-10<sup>9</sup> <= nums[i] <= 10<sup>9</sup></code></li>
+                    <li><code>-10<sup>9</sup> <= target <= 10<sup>9</sup></code></li>
+                    <li>Only one valid answer exists.</li>
+                </ul>
+            </div>
+
+            <div class="solution-tabs">
+                <button class="solution-tab active">Solution</button>
+                <button class="solution-tab">Approach</button>
+                <button class="solution-tab">Companies</button>
+            </div>
+
+            <div class="solution-content">
+                <h2>Solution Approach</h2>
+                <h3>1. Brute Force (O(n²))</h3>
+                <p>The naive approach is to use two nested loops to check every pair of numbers.</p>
+                <pre><code>function twoSum(nums, target) {
+    for (let i = 0; i < nums.length; i++) {
+        for (let j = i + 1; j < nums.length; j++) {
+            if (nums[i] + nums[j] === target) {
+                return [i, j];
+            }
+        }
+    }
+    return [];
+}</code></pre>
+                <p><strong>Time Complexity:</strong> O(n²)<br><strong>Space Complexity:</strong> O(1)</p>
+
+                <h3>2. Hash Map (O(n)) - Optimal</h3>
+                <p>Use a hash map to store seen numbers and their indices for O(1) lookup.</p>
+                <pre><code>function twoSum(nums, target) {
+    const map = new Map();
+    
+    for (let i = 0; i < nums.length; i++) {
+        const complement = target - nums[i];
+        
+        if (map.has(complement)) {
+            return [map.get(complement), i];
+        }
+        
+        map.set(nums[i], i);
+    }
+    
+    return [];
+}</code></pre>
+                <p><strong>Time Complexity:</strong> O(n)<br><strong>Space Complexity:</strong> O(n)</p>
+            </div>
+        </div>
+
+        <!-- Code Editor -->
+        <div class="editor-section">
+            <div class="editor-header">
+                <select class="language-select">
+                    <option>JavaScript</option>
+                    <option>Python</option>
+                    <option>Java</option>
+                    <option>C++</option>
+                </select>
+                <button class="btn-outline btn-sm">Reset</button>
+            </div>
+            <div class="code-editor">
+                <textarea id="codeEditor" spellcheck="false">function twoSum(nums, target) {
+    // Write your code here
+    
+}</textarea>
+            </div>
+            <div class="editor-footer">
+                <button class="btn-secondary">Run Code</button>
+                <button class="btn-primary">Submit</button>
+            </div>
+
+            <!-- Test Cases -->
+            <div class="test-cases">
+                <h3>Test Cases</h3>
+                <div class="test-case">
+                    <div class="test-case-header">
+                        <span>Case 1</span>
+                        <span class="test-status passed"><i class="fas fa-check-circle"></i> Passed</span>
+                    </div>
+                    <div class="test-case-content">
+                        <p><strong>Input:</strong> nums = [2,7,11,15], target = 9</p>
+                        <p><strong>Expected:</strong> [0,1]</p>
+                        <p><strong>Output:</strong> [0,1]</p>
+                    </div>
+                </div>
+                <div class="test-case">
+                    <div class="test-case-header">
+                        <span>Case 2</span>
+                        <span class="test-status pending"><i class="fas fa-circle"></i> Not Run</span>
+                    </div>
+                    <div class="test-case-content">
+                        <p><strong>Input:</strong> nums = [3,2,4], target = 6</p>
+                        <p><strong>Expected:</strong> [1,2]</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script src="js/question-detail.js"></script>
+</body>
+</html>

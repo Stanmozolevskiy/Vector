@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { ROUTES } from '../../utils/constants';
+import '../../styles/style.css';
 import '../../styles/dashboard.css';
 
 export const DashboardPage = () => {

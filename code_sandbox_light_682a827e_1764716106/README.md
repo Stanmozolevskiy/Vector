@@ -1,0 +1,357 @@
+# Vector - Interview Preparation Platform
+
+Vector is a comprehensive frontend website for live mock interview preparation, similar to Exponent. The platform helps candidates prepare for technical, behavioral, and system design interviews with expert guidance and realistic practice.
+
+## 🌟 Project Overview
+
+**Project Name:** Vector  
+**Type:** Static Website (HTML, CSS, JavaScript)  
+**Purpose:** Live mock interview preparation platform for tech industry candidates
+
+## ✅ Completed Features
+
+### 1. User Authentication & Authorization
+- ✅ **Login Page** (`login.html`) - Email/password login with social auth options (Google, LinkedIn)
+- ✅ **Registration Page** (`register.html`) - New user signup with form validation
+- ✅ **Password Recovery** (`forgot-password.html`) - Password reset flow
+- ✅ **Form Validation** - Client-side email and password validation
+- ✅ **Session Management** - LocalStorage-based authentication state (simulated)
+- ✅ **Protected Routes** - Route protection logic for authenticated pages
+
+### 2. Course Catalog & Enrollment
+- ✅ **Course Listing** (`courses.html`) - Browse courses by category with filters
+- ✅ **Course Details** (`course-detail.html`) - Comprehensive course information with:
+  - Course curriculum with expandable sections
+  - Instructor profiles and ratings
+  - Student reviews and testimonials
+  - Learning objectives and requirements
+  - Enrollment CTA and pricing
+- ✅ **Filters & Search** - Filter by category, level, and price
+- ✅ **Course Cards** - Display pricing, ratings, duration, and enrollment count
+- ✅ **Progress Tracking** - Visual progress indicators for enrolled courses
+
+### 3. Video Streaming for Lessons
+- ✅ **Video Player** (`lesson-player.html`) - Full-featured video lesson interface with:
+  - Video controls (play, pause, volume, speed, fullscreen)
+  - Progress bar with seek functionality
+  - Lesson navigation sidebar
+  - Playback speed controls (0.5x - 2x)
+- ✅ **Lesson Content Tabs** - Overview, Notes, Q&A, Resources
+- ✅ **Note Taking** - Students can add timestamped notes
+- ✅ **Practice Problems** - Integrated coding exercises
+- ✅ **Curriculum Navigation** - Expandable section tree with completion status
+
+### 4. Interview Question Bank
+- ✅ **Question Browser** (`questions.html`) - Searchable database with:
+  - 1000+ curated interview questions
+  - Filter by difficulty (Easy, Medium, Hard)
+  - Filter by topic/category
+  - Filter by company (Google, Meta, Amazon, etc.)
+  - Status tracking (Solved, Attempted, To Do)
+- ✅ **Question Table** - Display with title, difficulty, acceptance rate, tags
+- ✅ **Statistics Dashboard** - Track solved/attempted problems
+- ✅ **Search Functionality** - Real-time question search
+
+### 5. Mock Interview Scheduling
+- ✅ **Booking Interface** (`mock-interviews.html`) - Complete scheduling system with:
+  - Interview type selection (Technical, System Design, Behavioral, Product)
+  - Interviewer profiles with ratings and specialties
+  - Interactive calendar for date selection
+  - Available time slot picker
+  - Booking summary with pricing
+- ✅ **Interviewer Selection** - Choose from experienced interviewers from FAANG companies
+- ✅ **Calendar Interface** - Month view with available dates
+- ✅ **Time Slots** - Display and select available time slots
+
+### 6. Payment Processing
+- ✅ **Pricing Page** (`pricing.html`) - Three-tier pricing structure:
+  - **Free Plan** - Access to 50 questions, 3 courses, community support
+  - **Pro Plan** - $29/month - 1000+ questions, all courses, 2 mock interviews/month
+  - **Enterprise Plan** - $99/month - Unlimited interviews, team management, SSO
+- ✅ **Billing Toggle** - Switch between monthly and annual pricing (30% discount)
+- ✅ **Feature Comparison** - Detailed feature lists for each plan
+- ✅ **FAQ Section** - Collapsible accordion with common questions
+- ✅ **Checkout Flow UI** - Payment form styling (Stripe-style design)
+
+### 7. User Profiles & Dashboard
+- ✅ **Dashboard** (`dashboard.html`) - Comprehensive user overview with:
+  - Learning statistics (courses enrolled, problems solved, streak)
+  - Continue learning section with course progress
+  - Activity chart (Chart.js integration)
+  - Problem-solving progress by difficulty
+  - Upcoming mock interviews
+  - Recent achievements and badges
+  - Weekly learning goals with checkboxes
+- ✅ **Profile Settings** (`profile.html`) - Complete profile management with:
+  - Personal information editor (name, email, bio, location)
+  - Profile picture upload and management
+  - Password change functionality
+  - Two-factor authentication setup
+  - Active session management
+  - Subscription management with cancel option
+  - Payment method updates
+  - Billing history table
+  - Notification preferences with toggles
+  - Privacy settings
+  - Data export and account deletion
+- ✅ **User Menu** - Avatar, profile dropdown, logout functionality
+- ✅ **Progress Visualization** - Charts and progress bars for learning metrics
+
+## 🎨 Design Features
+
+### Modern, Professional Aesthetic
+- **Color Scheme:** 
+  - Primary: Indigo (#6366f1) to Purple (#8b5cf6) gradients
+  - Clean, minimalist design with excellent readability
+  - Professional tech industry aesthetic
+- **Typography:** Inter font family for modern, clean look
+- **Responsive Design:** Mobile-first approach, works on all devices
+- **UI Components:** Cards, modals, dropdowns, tabs, accordions
+- **Icons:** Font Awesome 6.4.0 for consistent iconography
+- **Animations:** Smooth transitions and hover effects
+
+### Navigation & Layout
+- **Sticky Navigation Bar** - Persistent header with branding and main menu
+- **Breadcrumbs** - Clear navigation hierarchy on detail pages
+- **Footer** - Company info, product links, social media links
+- **User-Friendly** - Intuitive navigation and clear CTAs throughout
+
+## 📁 Project Structure
+
+```
+vector/
+├── index.html                 # Landing page with hero, features, testimonials
+├── login.html                 # User login page
+├── register.html              # User registration page
+├── forgot-password.html       # Password recovery page
+├── courses.html               # Course catalog with filters
+├── course-detail.html         # Individual course details
+├── lesson-player.html         # Video lesson player
+├── questions.html             # Interview question bank
+├── question-detail.html       # Individual question with code editor
+├── mock-interviews.html       # Mock interview booking
+├── pricing.html               # Pricing plans and FAQ
+├── dashboard.html             # User dashboard
+├── profile.html               # User profile settings
+├── css/
+│   ├── style.css             # Global styles and components
+│   ├── auth.css              # Authentication page styles
+│   ├── courses.css           # Course page styles
+│   ├── player.css            # Video player styles
+│   ├── questions.css         # Question bank styles
+│   ├── question-detail.css   # Question detail and code editor styles
+│   ├── mock.css              # Mock interview styles
+│   ├── pricing.css           # Pricing page styles
+│   ├── dashboard.css         # Dashboard styles
+│   └── profile.css           # Profile page styles
+├── js/
+│   ├── main.js               # Core functionality, navigation, utilities
+│   ├── auth.js               # Authentication logic
+│   ├── courses.js            # Course page interactions
+│   ├── player.js             # Video player controls
+│   ├── questions.js          # Question filtering and search
+│   ├── question-detail.js    # Code editor and test execution
+│   ├── mock.js               # Mock interview booking logic
+│   ├── pricing.js            # Pricing toggle and FAQ
+│   ├── dashboard.js          # Dashboard charts and interactions
+│   └── profile.js            # Profile settings and account management
+└── README.md                 # Project documentation
+```
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Modern web browser (Chrome, Firefox, Safari, Edge)
+- No server or build tools required - pure static HTML/CSS/JS
+
+### Installation & Running
+
+1. **Download/Clone the project files**
+
+2. **Open in browser**
+   - Simply open `index.html` in your web browser
+   - Or use a local server (recommended):
+     ```bash
+     # Using Python 3
+     python -m http.server 8000
+     
+     # Using Node.js http-server
+     npx http-server
+     ```
+
+3. **Navigate the site**
+   - Start at the landing page (index.html)
+   - Click "Get Started" to view registration
+   - Explore courses, questions, and mock interviews
+   - "Log in" to access the dashboard
+
+### Demo Credentials
+Since this is a frontend demo, any email/password combination will work:
+- Email: `demo@vector.com`
+- Password: `password123` (minimum 8 characters)
+
+## 🔗 Functional Entry Points
+
+### Public Pages (No Authentication Required)
+- **/** (`index.html`) - Landing page with platform overview
+- **/courses** (`courses.html`) - Browse all available courses
+- **/questions** (`questions.html`) - View question bank (limited access)
+- **/mock-interviews** (`mock-interviews.html`) - View mock interview options
+- **/pricing** (`pricing.html`) - View pricing plans and FAQ
+- **/login** (`login.html`) - User login
+- **/register** (`register.html`) - New user signup
+- **/forgot-password** (`forgot-password.html`) - Password recovery
+
+### Protected Pages (Authentication Required)
+- **/dashboard** (`dashboard.html`) - User dashboard with statistics and progress
+- **/profile** (`profile.html`) - User profile settings and account management
+- **/lesson-player** (`lesson-player.html`) - Video lesson player for enrolled courses
+- **/course-detail** (`course-detail.html`) - Full course details and enrollment
+
+## 🎯 Key User Flows
+
+### 1. New User Registration Flow
+1. Land on homepage → Click "Get Started"
+2. Fill registration form with name, email, password
+3. Accept terms of service
+4. Submit → Auto-login → Redirect to dashboard
+
+### 2. Course Enrollment Flow
+1. Browse courses → Click on course card
+2. View course details, curriculum, reviews
+3. Click "Enroll Now" → Process enrollment
+4. Access course from dashboard → Start learning
+
+### 3. Mock Interview Booking Flow
+1. Navigate to Mock Interviews page
+2. Select interview type (Technical, System Design, etc.)
+3. Choose interviewer from available professionals
+4. Pick date from calendar
+5. Select time slot
+6. Review booking summary → Confirm booking
+7. Receive confirmation
+
+### 4. Problem Solving Flow
+1. Go to Questions page
+2. Filter by difficulty, topic, or company
+3. Search for specific questions
+4. Click "Solve" → Open question detail
+5. View problem description and examples
+6. Write solution in code editor
+7. Submit and receive feedback
+
+## 🎨 Technologies Used
+
+### Frontend
+- **HTML5** - Semantic markup
+- **CSS3** - Modern styling with CSS Grid and Flexbox
+- **JavaScript (ES6+)** - Interactive functionality
+- **Chart.js** - Data visualization for dashboard
+- **Font Awesome 6.4.0** - Icon library
+- **Google Fonts (Inter)** - Typography
+
+### Design Patterns
+- **Mobile-first responsive design**
+- **Component-based CSS architecture**
+- **BEM-like naming conventions**
+- **CSS custom properties (variables)**
+- **Modular JavaScript**
+
+## ⚠️ Important Notes
+
+### Frontend-Only Limitations
+This is a **static frontend website** without backend functionality:
+- **No real authentication** - Uses localStorage simulation
+- **No database** - Data is hardcoded or simulated
+- **No video streaming** - Video players are UI placeholders
+- **No payment processing** - Payment forms are UI only
+- **No API calls** - All data is client-side
+
+### For Production Deployment
+To make this a fully functional application, you would need to:
+1. **Backend API** - Node.js/Python/Ruby server for business logic
+2. **Database** - PostgreSQL/MongoDB for data persistence
+3. **Authentication** - JWT tokens, OAuth2, or session management
+4. **Video Hosting** - AWS S3, Vimeo, or custom video CDN
+5. **Payment Integration** - Stripe, PayPal API integration
+6. **Email Service** - SendGrid, AWS SES for notifications
+7. **Hosting** - Deploy to Vercel, Netlify, AWS, or similar
+
+## 📋 Features Not Yet Implemented
+
+### Phase 2 Features (Recommended)
+- [ ] Question detail page with code editor
+- [ ] Live mock interview video interface
+- [ ] User profile edit functionality
+- [ ] Course review submission
+- [ ] Discussion forums/Q&A boards
+- [ ] Certificate generation
+- [ ] Email notifications
+- [ ] Calendar integration (Google Calendar, Outlook)
+- [ ] Payment gateway integration
+- [ ] Admin dashboard for content management
+- [ ] Progress export and reporting
+- [ ] Mobile app (React Native/Flutter)
+
+## 🎓 Development Best Practices Used
+
+- ✅ Semantic HTML5 structure
+- ✅ Accessible design (ARIA labels, proper heading hierarchy)
+- ✅ Responsive design (mobile, tablet, desktop)
+- ✅ Cross-browser compatibility
+- ✅ Performance optimization (minimal external dependencies)
+- ✅ Clean, maintainable code
+- ✅ Consistent naming conventions
+- ✅ Modular CSS architecture
+- ✅ Progressive enhancement
+- ✅ User feedback (toasts, loading states)
+
+## 🛠️ Customization Guide
+
+### Changing Colors
+Edit CSS variables in `css/style.css`:
+```css
+:root {
+    --primary-color: #6366f1;
+    --secondary-color: #8b5cf6;
+    --accent-color: #ec4899;
+    /* ... */
+}
+```
+
+### Adding New Pages
+1. Create new HTML file
+2. Copy header/footer from existing page
+3. Link appropriate CSS files
+4. Add navigation link
+5. Create corresponding JS file if needed
+
+### Modifying Course Content
+Edit course data in `courses.html` and `course-detail.html`:
+- Course titles, descriptions, pricing
+- Instructor information
+- Curriculum sections and lessons
+
+## 📞 Support & Contact
+
+For questions or issues:
+- Email: support@vector.com (placeholder)
+- Documentation: This README file
+- Community: Forum link (to be implemented)
+
+## 📄 License
+
+This is a demonstration project. All rights reserved.
+
+## 🙏 Acknowledgments
+
+- Inspired by Exponent and similar interview preparation platforms
+- Icons by Font Awesome
+- Fonts by Google Fonts
+- Design patterns from modern web best practices
+
+---
+
+**Vector** - Master Your Interviews, Land Your Dream Job
+
+*Built with ❤️ for aspiring software engineers and tech professionals*

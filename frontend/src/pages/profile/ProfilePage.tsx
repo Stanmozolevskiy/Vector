@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { ROUTES } from '../../utils/constants';
 import api from '../../services/api';
+import '../../styles/style.css';
+import '../../styles/dashboard.css';
 import '../../styles/profile.css';
 
 interface ProfileFormData {

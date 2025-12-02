@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Courses - Vector</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/courses.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="index.html">
+                    <i class="fas fa-vector-square"></i>
+                    <span>Vector</span>
+                </a>
+            </div>
+            <div class="nav-menu" id="navMenu">
+                <a href="courses.html" class="active">Courses</a>
+                <a href="questions.html">Questions</a>
+                <a href="mock-interviews.html">Mock Interviews</a>
+                <a href="pricing.html">Pricing</a>
+                <a href="login.html" class="btn-secondary">Log In</a>
+                <a href="register.html" class="btn-primary">Get Started</a>
+            </div>
+            <div class="nav-toggle" id="navToggle">
+                <i class="fas fa-bars"></i>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Header -->
+    <section class="page-header">
+        <div class="container">
+            <h1>Explore Courses</h1>
+            <p>Master interview skills with expert-led courses tailored for your dream job</p>
+        </div>
+    </section>
+
+    <!-- Courses Content -->
+    <section class="courses-section">
+        <div class="container">
+            <div class="courses-layout">
+                <!-- Filters Sidebar -->
+                <aside class="filters-sidebar">
+                    <div class="filter-group">
+                        <h3>Category</h3>
+                        <label class="filter-option">
+                            <input type="checkbox" name="category" value="all" checked>
+                            <span>All Courses</span>
+                        </label>
+                        <label class="filter-option">
+                            <input type="checkbox" name="category" value="technical">
+                            <span>Technical Interview</span>
+                        </label>
+                        <label class="filter-option">
+                            <input type="checkbox" name="category" value="product">
+                            <span>Product Management</span>
+                        </label>
+                        <label class="filter-option">
+                            <input type="checkbox" name="category" value="system-design">
+                            <span>System Design</span>
+                        </label>
+                        <label class="filter-option">
+                            <input type="checkbox" name="category" value="behavioral">
+                            <span>Behavioral Interview</span>
+                        </label>
+                        <label class="filter-option">
+                            <input type="checkbox" name="category" value="data-science">
+                            <span>Data Science</span>
+                        </label>
+                    </div>
+
+                    <div class="filter-group">
+                        <h3>Level</h3>
+                        <label class="filter-option">
+                            <input type="checkbox" name="level" value="beginner">
+                            <span>Beginner</span>
+                        </label>
+                        <label class="filter-option">
+                            <input type="checkbox" name="level" value="intermediate">
+                            <span>Intermediate</span>
+                        </label>
+                        <label class="filter-option">
+                            <input type="checkbox" name="level" value="advanced">
+                            <span>Advanced</span>
+                        </label>
+                    </div>
+
+                    <div class="filter-group">
+                        <h3>Price</h3>
+                        <label class="filter-option">
+                            <input type="checkbox" name="price" value="free">
+                            <span>Free</span>
+                        </label>
+                        <label class="filter-option">
+                            <input type="checkbox" name="price" value="paid">
+                            <span>Paid</span>
+                        </label>
+                    </div>
+
+                    <button class="btn-outline btn-full">Clear Filters</button>
+                </aside>
+
+                <!-- Courses Grid -->
+                <div class="courses-content">
+                    <div class="courses-header">
+                        <div class="results-info">
+                            <span>Showing <strong>24</strong> courses</span>
+                        </div>
+                        <div class="sort-options">
+                            <label for="sort">Sort by:</label>
+                            <select id="sort" name="sort">
+                                <option value="popular">Most Popular</option>
+                                <option value="newest">Newest</option>
+                                <option value="rating">Highest Rated</option>
+                                <option value="price-low">Price: Low to High</option>
+                                <option value="price-high">Price: High to Low</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="courses-grid">
+                        <!-- Course 1 -->
+                        <div class="course-card" data-category="technical">
+                            <div class="course-image">
+                                <span class="course-badge">Bestseller</span>
+                            </div>
+                            <div class="course-content">
+                                <div class="course-category">Technical Interview</div>
+                                <h3><a href="course-detail.html">Software Engineer Interview Prep</a></h3>
+                                <p>Master data structures, algorithms, and system design for top tech companies.</p>
+                                <div class="course-instructor">
+                                    <div class="instructor-avatar">AJ</div>
+                                    <span>Alex Johnson</span>
+                                </div>
+                                <div class="course-stats">
+                                    <span><i class="fas fa-users"></i> 12,450</span>
+                                    <span><i class="fas fa-clock"></i> 40 hours</span>
+                                    <span><i class="fas fa-signal"></i> Intermediate</span>
+                                </div>
+                                <div class="course-footer">
+                                    <div class="course-rating">
+                                        <i class="fas fa-star"></i> 4.9 (2,340)
+                                    </div>
+                                    <div class="course-price">$299</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Course 2 -->
+                        <div class="course-card" data-category="product">
+                            <div class="course-image">
+                                <span class="course-badge new">New</span>
+                            </div>
+                            <div class="course-content">
+                                <div class="course-category">Product Management</div>
+                                <h3><a href="course-detail.html">Product Manager Interview Mastery</a></h3>
+                                <p>Learn product sense, strategy, and execution to ace PM interviews.</p>
+                                <div class="course-instructor">
+                                    <div class="instructor-avatar">SC</div>
+                                    <span>Sarah Chen</span>
+                                </div>
+                                <div class="course-stats">
+                                    <span><i class="fas fa-users"></i> 8,920</span>
+                                    <span><i class="fas fa-clock"></i> 35 hours</span>
+                                    <span><i class="fas fa-signal"></i> Advanced</span>
+                                </div>
+                                <div class="course-footer">
+                                    <div class="course-rating">
+                                        <i class="fas fa-star"></i> 4.8 (1,890)
+                                    </div>
+                                    <div class="course-price">$349</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Course 3 -->
+                        <div class="course-card" data-category="system-design">
+                            <div class="course-image">
+                                <span class="course-badge">Popular</span>
+                            </div>
+                            <div class="course-content">
+                                <div class="course-category">System Design</div>
+                                <h3><a href="course-detail.html">System Design Interview Course</a></h3>
+                                <p>Design scalable systems like Netflix, Uber, and Twitter with hands-on examples.</p>
+                                <div class="course-instructor">
+                                    <div class="instructor-avatar">DK</div>
+                                    <span>David Kim</span>
+                                </div>
+                                <div class="course-stats">
+                                    <span><i class="fas fa-users"></i> 15,230</span>
+                                    <span><i class="fas fa-clock"></i> 50 hours</span>
+                                    <span><i class="fas fa-signal"></i> Advanced</span>
+                                </div>
+                                <div class="course-footer">
+                                    <div class="course-rating">
+                                        <i class="fas fa-star"></i> 4.9 (3,120)
+                                    </div>
+                                    <div class="course-price">$399</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Course 4 -->
+                        <div class="course-card" data-category="behavioral">
+                            <div class="course-image"></div>
+                            <div class="course-content">
+                                <div class="course-category">Behavioral Interview</div>
+                                <h3><a href="course-detail.html">Behavioral Interview Masterclass</a></h3>
+                                <p>Master the STAR method and ace behavioral questions at any company.</p>
+                                <div class="course-instructor">
+                                    <div class="instructor-avatar">ER</div>
+                                    <span>Emily Rodriguez</span>
+                                </div>
+                                <div class="course-stats">
+                                    <span><i class="fas fa-users"></i> 9,340</span>
+                                    <span><i class="fas fa-clock"></i> 25 hours</span>
+                                    <span><i class="fas fa-signal"></i> Beginner</span>
+                                </div>
+                                <div class="course-footer">
+                                    <div class="course-rating">
+                                        <i class="fas fa-star"></i> 4.7 (1,560)
+                                    </div>
+                                    <div class="course-price">$199</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Course 5 -->
+                        <div class="course-card" data-category="data-science">
+                            <div class="course-image"></div>
+                            <div class="course-content">
+                                <div class="course-category">Data Science</div>
+                                <h3><a href="course-detail.html">Data Science Interview Preparation</a></h3>
+                                <p>Master statistics, ML algorithms, and coding for data science roles.</p>
+                                <div class="course-instructor">
+                                    <div class="instructor-avatar">ML</div>
+                                    <span>Michael Lee</span>
+                                </div>
+                                <div class="course-stats">
+                                    <span><i class="fas fa-users"></i> 7,680</span>
+                                    <span><i class="fas fa-clock"></i> 45 hours</span>
+                                    <span><i class="fas fa-signal"></i> Intermediate</span>
+                                </div>
+                                <div class="course-footer">
+                                    <div class="course-rating">
+                                        <i class="fas fa-star"></i> 4.8 (1,290)
+                                    </div>
+                                    <div class="course-price">$329</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Course 6 -->
+                        <div class="course-card" data-category="technical">
+                            <div class="course-image">
+                                <span class="course-badge free">Free</span>
+                            </div>
+                            <div class="course-content">
+                                <div class="course-category">Technical Interview</div>
+                                <h3><a href="course-detail.html">Coding Interview Fundamentals</a></h3>
+                                <p>Learn the basics of data structures and algorithms to start your journey.</p>
+                                <div class="course-instructor">
+                                    <div class="instructor-avatar">JP</div>
+                                    <span>Jessica Park</span>
+                                </div>
+                                <div class="course-stats">
+                                    <span><i class="fas fa-users"></i> 24,560</span>
+                                    <span><i class="fas fa-clock"></i> 20 hours</span>
+                                    <span><i class="fas fa-signal"></i> Beginner</span>
+                                </div>
+                                <div class="course-footer">
+                                    <div class="course-rating">
+                                        <i class="fas fa-star"></i> 4.6 (4,230)
+                                    </div>
+                                    <div class="course-price">Free</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="pagination">
+                        <button class="page-btn disabled"><i class="fas fa-chevron-left"></i></button>
+                        <button class="page-btn active">1</button>
+                        <button class="page-btn">2</button>
+                        <button class="page-btn">3</button>
+                        <button class="page-btn">4</button>
+                        <button class="page-btn"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <div class="footer-brand">
+                        <i class="fas fa-vector-square"></i>
+                        <span>Vector</span>
+                    </div>
+                    <p>Master your interview skills and land your dream job with expert guidance and realistic practice.</p>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-linkedin"></i></a>
+                        <a href="#"><i class="fab fa-youtube"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+                <div class="footer-col">
+                    <h4>Product</h4>
+                    <ul>
+                        <li><a href="courses.html">Courses</a></li>
+                        <li><a href="questions.html">Question Bank</a></li>
+                        <li><a href="mock-interviews.html">Mock Interviews</a></li>
+                        <li><a href="pricing.html">Pricing</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Company</h4>
+                    <ul>
+                        <li><a href="#">About Us</a></li>
+                        <li><a href="#">Careers</a></li>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Cookie Policy</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Vector. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+    <script src="js/courses.js"></script>
+</body>
+</html>

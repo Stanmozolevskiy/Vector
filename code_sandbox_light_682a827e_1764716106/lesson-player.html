@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lesson: Big O Notation Explained - Vector</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/player.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="player-body">
+    <!-- Top Navigation -->
+    <nav class="player-navbar">
+        <div class="player-nav-left">
+            <a href="course-detail.html" class="back-btn"><i class="fas fa-arrow-left"></i> Back to Course</a>
+            <div class="course-title">Software Engineer Interview Prep</div>
+        </div>
+        <div class="player-nav-right">
+            <button class="nav-btn" title="Take Notes"><i class="fas fa-pencil-alt"></i></button>
+            <button class="nav-btn" title="Resources"><i class="fas fa-file-download"></i></button>
+            <a href="dashboard.html" class="btn-secondary">Dashboard</a>
+        </div>
+    </nav>
+
+    <!-- Player Layout -->
+    <div class="player-layout">
+        <!-- Video Player -->
+        <div class="player-main">
+            <div class="video-container">
+                <div class="video-player">
+                    <!-- Placeholder for video -->
+                    <div class="video-placeholder-full">
+                        <i class="fas fa-play-circle"></i>
+                        <p>Video Player</p>
+                    </div>
+                </div>
+                <div class="video-controls">
+                    <div class="progress-bar">
+                        <div class="progress-filled" style="width: 35%"></div>
+                    </div>
+                    <div class="controls-wrapper">
+                        <div class="controls-left">
+                            <button class="control-btn"><i class="fas fa-play"></i></button>
+                            <button class="control-btn"><i class="fas fa-volume-up"></i></button>
+                            <span class="time-display">10:45 / 30:20</span>
+                        </div>
+                        <div class="controls-right">
+                            <div class="speed-control">
+                                <select>
+                                    <option value="0.5">0.5x</option>
+                                    <option value="0.75">0.75x</option>
+                                    <option value="1" selected>1x</option>
+                                    <option value="1.25">1.25x</option>
+                                    <option value="1.5">1.5x</option>
+                                    <option value="2">2x</option>
+                                </select>
+                            </div>
+                            <button class="control-btn"><i class="fas fa-closed-captioning"></i></button>
+                            <button class="control-btn"><i class="fas fa-cog"></i></button>
+                            <button class="control-btn"><i class="fas fa-expand"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lesson Content -->
+            <div class="lesson-content">
+                <div class="lesson-header">
+                    <h1>Big O Notation Explained</h1>
+                    <div class="lesson-actions">
+                        <button class="action-btn"><i class="fas fa-bookmark"></i> Bookmark</button>
+                        <button class="action-btn"><i class="fas fa-share-alt"></i> Share</button>
+                    </div>
+                </div>
+
+                <!-- Tabs -->
+                <div class="content-tabs">
+                    <button class="tab-btn active" data-tab="overview">Overview</button>
+                    <button class="tab-btn" data-tab="notes">My Notes</button>
+                    <button class="tab-btn" data-tab="qa">Q&A</button>
+                    <button class="tab-btn" data-tab="resources">Resources</button>
+                </div>
+
+                <!-- Tab Content -->
+                <div class="tab-content active" id="overview">
+                    <h2>Lesson Overview</h2>
+                    <p>In this lesson, you'll learn about Big O notation, which is essential for analyzing the time and space complexity of algorithms. Understanding Big O will help you evaluate the efficiency of your code and make better decisions during technical interviews.</p>
+                    
+                    <h3>Key Topics Covered:</h3>
+                    <ul>
+                        <li>What is Big O notation?</li>
+                        <li>Common time complexities: O(1), O(log n), O(n), O(n log n), O(n²)</li>
+                        <li>Space complexity analysis</li>
+                        <li>Best, average, and worst case scenarios</li>
+                        <li>Practical examples and code walkthroughs</li>
+                    </ul>
+
+                    <h3>Practice Problems</h3>
+                    <div class="practice-problems">
+                        <div class="problem-card">
+                            <div class="problem-header">
+                                <h4>Problem 1: Analyze Time Complexity</h4>
+                                <span class="difficulty easy">Easy</span>
+                            </div>
+                            <p>Given a code snippet, identify its time complexity and explain your reasoning.</p>
+                            <a href="questions.html" class="btn-outline">Start Problem</a>
+                        </div>
+                        <div class="problem-card">
+                            <div class="problem-header">
+                                <h4>Problem 2: Optimize Algorithm</h4>
+                                <span class="difficulty medium">Medium</span>
+                            </div>
+                            <p>Improve the time complexity of a given algorithm from O(n²) to O(n log n).</p>
+                            <a href="questions.html" class="btn-outline">Start Problem</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="notes">
+                    <div class="notes-section">
+                        <h2>My Notes</h2>
+                        <div class="note-editor">
+                            <textarea placeholder="Add your notes here..."></textarea>
+                            <button class="btn-primary">Save Note</button>
+                        </div>
+                        <div class="saved-notes">
+                            <div class="note-item">
+                                <div class="note-header">
+                                    <span class="note-time">5:30</span>
+                                    <button class="delete-note"><i class="fas fa-trash"></i></button>
+                                </div>
+                                <p>Big O notation describes the upper bound of algorithm complexity. It helps us understand how the runtime scales with input size.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="qa">
+                    <h2>Questions & Answers</h2>
+                    <div class="qa-section">
+                        <div class="qa-item">
+                            <div class="qa-header">
+                                <div class="qa-user">
+                                    <div class="user-avatar">JD</div>
+                                    <div class="user-info">
+                                        <div class="user-name">John Doe</div>
+                                        <div class="qa-time">2 days ago</div>
+                                    </div>
+                                </div>
+                                <button class="qa-vote"><i class="fas fa-thumbs-up"></i> 12</button>
+                            </div>
+                            <p class="qa-question">Can you explain the difference between O(n) and O(n log n) with a practical example?</p>
+                            <div class="qa-answer">
+                                <div class="answer-label">Instructor Answer:</div>
+                                <p>Great question! O(n) means the time grows linearly with input size (like iterating through an array once). O(n log n) means for each element, you do log n work (like merge sort dividing and conquering).</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="resources">
+                    <h2>Downloadable Resources</h2>
+                    <div class="resources-list">
+                        <div class="resource-item">
+                            <i class="fas fa-file-pdf"></i>
+                            <div class="resource-info">
+                                <h4>Big O Cheat Sheet</h4>
+                                <span>PDF • 2.5 MB</span>
+                            </div>
+                            <button class="btn-outline">Download</button>
+                        </div>
+                        <div class="resource-item">
+                            <i class="fas fa-file-code"></i>
+                            <div class="resource-info">
+                                <h4>Code Examples</h4>
+                                <span>ZIP • 1.2 MB</span>
+                            </div>
+                            <button class="btn-outline">Download</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Curriculum Sidebar -->
+        <aside class="player-sidebar">
+            <div class="sidebar-header">
+                <h3>Course Content</h3>
+                <div class="progress-indicator">
+                    <div class="progress-circle">35%</div>
+                </div>
+            </div>
+            
+            <div class="curriculum-list">
+                <div class="curriculum-section">
+                    <div class="section-title">
+                        <i class="fas fa-chevron-down"></i>
+                        <span>Section 1: Introduction & Fundamentals</span>
+                    </div>
+                    <div class="lessons-list">
+                        <div class="lesson-item completed">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Welcome to the Course</span>
+                            <span class="duration">10:30</span>
+                        </div>
+                        <div class="lesson-item completed">
+                            <i class="fas fa-check-circle"></i>
+                            <span>How to Approach Technical Interviews</span>
+                            <span class="duration">25:45</span>
+                        </div>
+                        <div class="lesson-item active">
+                            <i class="fas fa-play-circle"></i>
+                            <span>Big O Notation Explained</span>
+                            <span class="duration">30:20</span>
+                        </div>
+                        <div class="lesson-item">
+                            <i class="fas fa-circle"></i>
+                            <span>Time Complexity Practice</span>
+                            <span class="duration">15:10</span>
+                        </div>
+                        <div class="lesson-item locked">
+                            <i class="fas fa-lock"></i>
+                            <span>Space Complexity Analysis</span>
+                            <span class="duration">20:15</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="curriculum-section collapsed">
+                    <div class="section-title">
+                        <i class="fas fa-chevron-right"></i>
+                        <span>Section 2: Arrays & Strings</span>
+                    </div>
+                </div>
+
+                <div class="curriculum-section collapsed">
+                    <div class="section-title">
+                        <i class="fas fa-chevron-right"></i>
+                        <span>Section 3: Linked Lists</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <button class="btn-outline btn-full"><i class="fas fa-arrow-left"></i> Previous Lesson</button>
+                <button class="btn-primary btn-full">Next Lesson <i class="fas fa-arrow-right"></i></button>
+            </div>
+        </aside>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script src="js/player.js"></script>
+</body>
+</html>

@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mock Interviews - Vector</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/mock.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="index.html">
+                    <i class="fas fa-vector-square"></i>
+                    <span>Vector</span>
+                </a>
+            </div>
+            <div class="nav-menu" id="navMenu">
+                <a href="courses.html">Courses</a>
+                <a href="questions.html">Questions</a>
+                <a href="mock-interviews.html" class="active">Mock Interviews</a>
+                <a href="pricing.html">Pricing</a>
+                <a href="dashboard.html" class="btn-secondary">Dashboard</a>
+            </div>
+            <div class="nav-toggle" id="navToggle">
+                <i class="fas fa-bars"></i>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Header -->
+    <section class="page-header">
+        <div class="container">
+            <h1>Mock Interviews</h1>
+            <p>Practice with real interviewers from top tech companies</p>
+        </div>
+    </section>
+
+    <!-- Mock Interviews Content -->
+    <section class="mock-section">
+        <div class="container">
+            <!-- Booking Interface -->
+            <div class="booking-layout">
+                <!-- Interview Types -->
+                <div class="interview-types">
+                    <h2>Select Interview Type</h2>
+                    <div class="type-cards">
+                        <div class="type-card active" data-type="technical">
+                            <div class="type-icon">
+                                <i class="fas fa-code"></i>
+                            </div>
+                            <h3>Technical Interview</h3>
+                            <p>Data structures, algorithms, and coding challenges</p>
+                            <div class="type-price">$79 / session</div>
+                        </div>
+                        <div class="type-card" data-type="system-design">
+                            <div class="type-icon">
+                                <i class="fas fa-sitemap"></i>
+                            </div>
+                            <h3>System Design</h3>
+                            <p>Design scalable systems and architectures</p>
+                            <div class="type-price">$99 / session</div>
+                        </div>
+                        <div class="type-card" data-type="behavioral">
+                            <div class="type-icon">
+                                <i class="fas fa-comments"></i>
+                            </div>
+                            <h3>Behavioral</h3>
+                            <p>Leadership, teamwork, and soft skills</p>
+                            <div class="type-price">$69 / session</div>
+                        </div>
+                        <div class="type-card" data-type="product">
+                            <div class="type-icon">
+                                <i class="fas fa-lightbulb"></i>
+                            </div>
+                            <h3>Product Management</h3>
+                            <p>Product sense, strategy, and execution</p>
+                            <div class="type-price">$89 / session</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interviewer Selection -->
+                <div class="interviewer-selection">
+                    <h2>Choose Your Interviewer</h2>
+                    <div class="interviewers-grid">
+                        <div class="interviewer-card">
+                            <div class="interviewer-avatar-large">AJ</div>
+                            <div class="interviewer-info">
+                                <h3>Alex Johnson</h3>
+                                <div class="interviewer-company">Senior Engineer at Google</div>
+                                <div class="interviewer-experience">8 years experience</div>
+                                <div class="interviewer-rating">
+                                    <i class="fas fa-star"></i>
+                                    <span>4.9 (230 reviews)</span>
+                                </div>
+                                <div class="interviewer-specialties">
+                                    <span class="specialty">Algorithms</span>
+                                    <span class="specialty">Data Structures</span>
+                                    <span class="specialty">System Design</span>
+                                </div>
+                            </div>
+                            <button class="btn-primary btn-full">Select</button>
+                        </div>
+
+                        <div class="interviewer-card">
+                            <div class="interviewer-avatar-large">SC</div>
+                            <div class="interviewer-info">
+                                <h3>Sarah Chen</h3>
+                                <div class="interviewer-company">PM at Meta</div>
+                                <div class="interviewer-experience">6 years experience</div>
+                                <div class="interviewer-rating">
+                                    <i class="fas fa-star"></i>
+                                    <span>4.8 (189 reviews)</span>
+                                </div>
+                                <div class="interviewer-specialties">
+                                    <span class="specialty">Product Strategy</span>
+                                    <span class="specialty">Behavioral</span>
+                                </div>
+                            </div>
+                            <button class="btn-primary btn-full">Select</button>
+                        </div>
+
+                        <div class="interviewer-card">
+                            <div class="interviewer-avatar-large">DK</div>
+                            <div class="interviewer-info">
+                                <h3>David Kim</h3>
+                                <div class="interviewer-company">Staff Engineer at Amazon</div>
+                                <div class="interviewer-experience">10 years experience</div>
+                                <div class="interviewer-rating">
+                                    <i class="fas fa-star"></i>
+                                    <span>5.0 (156 reviews)</span>
+                                </div>
+                                <div class="interviewer-specialties">
+                                    <span class="specialty">System Design</span>
+                                    <span class="specialty">Distributed Systems</span>
+                                </div>
+                            </div>
+                            <button class="btn-primary btn-full">Select</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Calendar Booking -->
+                <div class="calendar-booking">
+                    <h2>Schedule Your Interview</h2>
+                    <div class="calendar-container">
+                        <div class="calendar-header">
+                            <button class="calendar-nav"><i class="fas fa-chevron-left"></i></button>
+                            <div class="calendar-month">January 2025</div>
+                            <button class="calendar-nav"><i class="fas fa-chevron-right"></i></button>
+                        </div>
+                        <div class="calendar-grid">
+                            <div class="calendar-day-header">Sun</div>
+                            <div class="calendar-day-header">Mon</div>
+                            <div class="calendar-day-header">Tue</div>
+                            <div class="calendar-day-header">Wed</div>
+                            <div class="calendar-day-header">Thu</div>
+                            <div class="calendar-day-header">Fri</div>
+                            <div class="calendar-day-header">Sat</div>
+                            
+                            <div class="calendar-day disabled">29</div>
+                            <div class="calendar-day disabled">30</div>
+                            <div class="calendar-day disabled">31</div>
+                            <div class="calendar-day">1</div>
+                            <div class="calendar-day">2</div>
+                            <div class="calendar-day">3</div>
+                            <div class="calendar-day">4</div>
+                            <div class="calendar-day">5</div>
+                            <div class="calendar-day">6</div>
+                            <div class="calendar-day">7</div>
+                            <div class="calendar-day">8</div>
+                            <div class="calendar-day">9</div>
+                            <div class="calendar-day">10</div>
+                            <div class="calendar-day">11</div>
+                            <div class="calendar-day">12</div>
+                            <div class="calendar-day">13</div>
+                            <div class="calendar-day">14</div>
+                            <div class="calendar-day active">15</div>
+                            <div class="calendar-day">16</div>
+                            <div class="calendar-day">17</div>
+                            <div class="calendar-day">18</div>
+                            <div class="calendar-day">19</div>
+                            <div class="calendar-day">20</div>
+                            <div class="calendar-day">21</div>
+                            <div class="calendar-day">22</div>
+                            <div class="calendar-day">23</div>
+                            <div class="calendar-day">24</div>
+                            <div class="calendar-day">25</div>
+                            <div class="calendar-day">26</div>
+                            <div class="calendar-day">27</div>
+                            <div class="calendar-day">28</div>
+                            <div class="calendar-day">29</div>
+                            <div class="calendar-day">30</div>
+                            <div class="calendar-day">31</div>
+                        </div>
+                    </div>
+
+                    <div class="time-slots">
+                        <h3>Available Time Slots (Jan 15)</h3>
+                        <div class="slots-grid">
+                            <button class="time-slot">09:00 AM</button>
+                            <button class="time-slot">10:00 AM</button>
+                            <button class="time-slot active">11:00 AM</button>
+                            <button class="time-slot">01:00 PM</button>
+                            <button class="time-slot">02:00 PM</button>
+                            <button class="time-slot">03:00 PM</button>
+                            <button class="time-slot disabled">04:00 PM</button>
+                            <button class="time-slot">05:00 PM</button>
+                        </div>
+                    </div>
+
+                    <div class="booking-summary">
+                        <h3>Booking Summary</h3>
+                        <div class="summary-item">
+                            <span>Interview Type:</span>
+                            <strong>Technical Interview</strong>
+                        </div>
+                        <div class="summary-item">
+                            <span>Interviewer:</span>
+                            <strong>Alex Johnson</strong>
+                        </div>
+                        <div class="summary-item">
+                            <span>Date & Time:</span>
+                            <strong>Jan 15, 2025 at 11:00 AM</strong>
+                        </div>
+                        <div class="summary-item">
+                            <span>Duration:</span>
+                            <strong>60 minutes</strong>
+                        </div>
+                        <div class="summary-item total">
+                            <span>Total:</span>
+                            <strong>$79</strong>
+                        </div>
+                        <button class="btn-primary btn-full btn-large">Confirm Booking</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <div class="footer-brand">
+                        <i class="fas fa-vector-square"></i>
+                        <span>Vector</span>
+                    </div>
+                    <p>Master your interview skills and land your dream job.</p>
+                </div>
+                <div class="footer-col">
+                    <h4>Product</h4>
+                    <ul>
+                        <li><a href="courses.html">Courses</a></li>
+                        <li><a href="questions.html">Questions</a></li>
+                        <li><a href="mock-interviews.html">Mock Interviews</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Company</h4>
+                    <ul>
+                        <li><a href="#">About</a></li>
+                        <li><a href="#">Careers</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Terms</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Vector. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+    <script src="js/mock.js"></script>
+</body>
+</html>

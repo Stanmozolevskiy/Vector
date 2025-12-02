@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ROUTES } from '../../utils/constants';
-import '../../styles/landing.css';
+import '../../styles/style.css';
 
 export const IndexPage = () => {
   return (

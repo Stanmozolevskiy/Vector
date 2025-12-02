@@ -177,12 +177,13 @@ Before starting, ensure you have:
 - [x] Fix login flow after email verification ✅ (User can now login after verifying email)
 - [x] Fix alignment issues on auth pages ✅ (Forgot password and other pages aligned correctly)
 - [x] Implement protected routes ✅ (ProtectedRoute component created)
-- [x] Add resend verification functionality ✅ (POST /api/auth/resend-verification endpoint and UI)
-- [ ] Create profile update API endpoint (PUT /api/users/me)
-- [ ] Implement profile picture upload API
-- [ ] Add password change functionality API
-- [ ] Create profile editing UI
-- [ ] Add image preview functionality
+- [x] Add resend verification functionality ✅ (POST /api/auth/resend-verification endpoint and ResendVerificationPage)
+- [x] Add resend verification UI links ✅ (LoginPage and VerifyEmailPage)
+- [x] Create profile update API endpoint ✅ (PUT /api/users/me - updates firstName, lastName, bio)
+- [x] Add password change functionality API ✅ (PUT /api/users/me/password with current password verification)
+- [x] Create profile editing UI ✅ (Edit mode with save/cancel, form validation)
+- [x] Add image preview functionality ✅ (Client-side preview with FileReader, validation)
+- [ ] Implement profile picture upload API (Pending S3 integration - endpoint stub created)
 - [x] Create profile page placeholder ✅ (ProfilePage component)
 - [x] Add profile route ✅ (/profile)
 - [ ] Create profile API endpoints
@@ -309,16 +310,16 @@ Before starting, ensure you have:
 - [ ] JWT tokens are properly managed
 - [ ] Refresh token rotation works
 
-### User Profile ✅ IN PROGRESS
+### User Profile ✅ COMPLETE (6/7 features)
 - [x] Users can view their profile ✅ (GET /api/users/me endpoint implemented)
-- [x] User profile page created ✅ (ProfilePage.tsx)
+- [x] User profile page created ✅ (ProfilePage.tsx with view/edit modes)
 - [x] Protected route for profile ✅ (Requires authentication)
-- [ ] Users can update their profile (TODO: PUT /api/users/me)
-- [ ] Profile picture upload works (TODO: POST /api/users/me/profile-picture)
-- [ ] Password change in profile (TODO: PUT /api/users/me/password)
-- [ ] Image preview functionality (TODO: Add client-side preview)
-- [ ] Profile editing UI (TODO: Add edit mode to ProfilePage)
-- [ ] Image optimization works (TODO: Add image compression)
+- [x] Users can update their profile ✅ (PUT /api/users/me - firstName, lastName, bio)
+- [x] Password change in profile ✅ (PUT /api/users/me/password with current password check)
+- [x] Image preview functionality ✅ (Client-side preview with FileReader)
+- [x] Profile editing UI ✅ (Edit mode with save/cancel, form validation)
+- [ ] Profile picture upload works (⏳ Pending S3 integration)
+- [ ] Image optimization works (⏳ Pending S3 integration)
 
 ### Roles & Permissions
 - [ ] Role-based access control works
@@ -352,29 +353,24 @@ Before starting, ensure you have:
 
 ## Progress Summary
 
-**Completed:** 90+ items  
-**In Progress:** 10 items (Profile management, Testing, Redis)
-**Remaining:** 40+ items
+**Completed:** 95+ items  
+**In Progress:** 1 item (S3 profile picture upload)
+**Remaining:** 35+ items
 
-**Current Status:** Week 2, Day 15-16 (User Profile Management) - ✅ Login System Complete, Protected Routes Implemented, Refresh Token Storage Ready
+**Current Status:** Week 2, Day 15-16 (User Profile Management) - ✅ COMPLETE (6/7 features)
 
 **Recent Updates:**
-- ✅ Protected routes implemented (ProtectedRoute component)
-- ✅ Resend verification email functionality added
-- ✅ Refresh token storage implemented (RefreshTokens table)
-- ✅ Unit tests expanded to 31 tests
-- ✅ Fixed frontend routing issues
-- ✅ Fixed RefreshTokens table creation in Docker
-- ✅ All email functionality working on AWS dev
-- ✅ Bastion host deployed for PostgreSQL access
+- ✅ Profile update API implemented (PUT /api/users/me)
+- ✅ Password change API implemented (PUT /api/users/me/password)
+- ✅ Profile editing UI with edit mode
+- ✅ Image preview functionality (client-side)
+- ✅ Resend verification UI links (login and verify pages)
+- ✅ ChangePasswordDto created
+- ✅ Form validation and error handling
 - ✅ Deployed to local Docker environment
 
-**Remaining for User Profile:**
-- Profile update API (PUT /api/users/me)
-- Profile picture upload API
-- Password change API
-- Profile editing UI
-- Image preview functionality
+**Pending:**
+- ⏳ Profile picture upload to S3 (endpoint stub created, awaiting S3Service)
 - ✅ Backend project structure fully initialized
 - ✅ All controllers, services, DTOs, middleware, and helpers created
 - ✅ Models and DbContext configured

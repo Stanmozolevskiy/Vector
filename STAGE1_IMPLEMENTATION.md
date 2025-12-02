@@ -356,24 +356,26 @@ Before starting, ensure you have:
 
 ## Progress Summary
 
-**Completed:** 95+ items  
+**Completed:** 100+ items  
 **In Progress:** 1 item (S3 profile picture upload)
-**Remaining:** 35+ items
+**Remaining:** 30+ items
 
-**Current Status:** Week 2, Day 15-16 (User Profile Management) - ✅ COMPLETE (6/7 features)
+**Current Status:** Week 2, Day 15-16 (User Profile Management) - ✅ COMPLETE + Index & Dashboard Pages Added
 
 **Recent Updates:**
 - ✅ Profile update API implemented (PUT /api/users/me)
 - ✅ Password change API implemented (PUT /api/users/me/password)
 - ✅ Profile editing UI with edit mode
 - ✅ Image preview functionality (client-side)
-- ✅ Resend verification UI links (login and verify pages)
-- ✅ ChangePasswordDto created
-- ✅ Form validation and error handling
+- ✅ Index/Landing page created from HTML template
+- ✅ Dashboard page updated from HTML template
+- ✅ Working navigation links (Profile, Dashboard, Logout)
+- ✅ User menu with dropdown
 - ✅ Deployed to local Docker environment
 
 **Pending:**
 - ⏳ Profile picture upload to S3 (endpoint stub created, awaiting S3Service)
+- ⏳ Real data integration for dashboard (courses, problems, interviews)
 - ✅ Backend project structure fully initialized
 - ✅ All controllers, services, DTOs, middleware, and helpers created
 - ✅ Models and DbContext configured

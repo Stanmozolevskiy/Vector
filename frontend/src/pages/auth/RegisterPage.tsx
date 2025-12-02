@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -21,7 +21,6 @@ const registerSchema = z.object({
 type RegisterFormData = z.infer<typeof registerSchema>;
 
 export const RegisterPage = () => {
-  const navigate = useNavigate();
   const { register: registerUser } = useAuth();
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState(false);
@@ -44,9 +43,7 @@ export const RegisterPage = () => {
         lastName: data.lastName,
       });
       setSuccess(true);
-      setTimeout(() => {
-        navigate(ROUTES.LOGIN);
-      }, 3000);
+      // Don't redirect - stay on confirmation page
     } catch (err) {
       const errorMessage = err && typeof err === 'object' && 'response' in err
         ? (err.response as { data?: { error?: string } })?.data?.error
@@ -75,10 +72,12 @@ export const RegisterPage = () => {
               <div className="icon-circle" style={{ background: '#d1fae5' }}>
                 <i className="fas fa-check" style={{ color: '#10b981', fontSize: '2.5rem' }}></i>
               </div>
-              <h1>Registration Successful!</h1>
-              <p>Please check your email to verify your account before logging in.</p>
-              <p style={{ fontSize: '0.875rem', color: '#64748b', marginTop: '1rem' }}>
-                Redirecting to login page...
+              <h1>Check your email</h1>
+              <p>We've sent you a verification link. Please check your inbox and verify your email address before logging in.</p>
+              <p className="auth-footer" style={{ marginTop: '2rem' }}>
+                <Link to={ROUTES.LOGIN}>
+                  <i className="fas fa-arrow-left"></i> Back to login
+                </Link>
               </p>
             </div>
           </div>

@@ -74,8 +74,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       setUser(null);
-      setIsAuthenticated(false);
-      setIsLoading(false);
     }
   };
 

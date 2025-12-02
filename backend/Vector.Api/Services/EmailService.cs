@@ -49,7 +49,7 @@ public class EmailService : IEmailService
         _logger.LogWarning("FromEmail: {FromEmail}", fromEmail);
         _logger.LogWarning("FromName: {FromName}", fromName);
         
-        if (string.IsNullOrEmpty(apiKey) || apiKey == "your_sendgrid_api_key")
+        if (string.IsNullOrEmpty(apiKey) || apiKey == "your_sendgrid_api_key" || apiKey == "your_sendgrid_api_key_here")
         {
             _isEnabled = false;
             _logger.LogWarning("SendGrid API Key is not configured. Email sending is disabled. Emails will be logged to console instead.");

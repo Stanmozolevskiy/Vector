@@ -92,6 +92,12 @@ variable "backend_api_url" {
   default     = ""
 }
 
+variable "frontend_url" {
+  description = "Frontend URL for email verification links"
+  type        = string
+  default     = ""
+}
+
 variable "sendgrid_api_key" {
   description = "SendGrid API key for email service"
   type        = string

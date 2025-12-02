@@ -73,19 +73,28 @@ public class AuthService : IAuthService
         await _context.SaveChangesAsync();
 
         // Send verification email (fire and forget - don't wait for it)
+        // Using Task.Run with proper error handling
         _ = Task.Run(async () =>
         {
             try
             {
-                _logger.LogInformation("Attempting to send verification email to {Email}", user.Email);
+                _logger.LogWarning("=== STARTING EMAIL SEND TASK ===");
+                _logger.LogWarning("Attempting to send verification email to {Email}", user.Email);
+                _logger.LogWarning("Verification token: {Token}", verificationToken);
+                
                 await _emailService.SendVerificationEmailAsync(user.Email, verificationToken);
-                _logger.LogInformation("Verification email task completed for {Email}", user.Email);
+                
+                _logger.LogWarning("Verification email task completed successfully for {Email}", user.Email);
+                _logger.LogWarning("=== EMAIL SEND TASK COMPLETED ===");
             }
             catch (Exception ex)
             {
                 // Log error but don't fail registration
-                _logger.LogError(ex, "Failed to send verification email to {Email}. Error: {Message}", user.Email, ex.Message);
+                _logger.LogError(ex, "=== EMAIL SEND TASK FAILED ===");
+                _logger.LogError("Failed to send verification email to {Email}. Error: {Message}", user.Email, ex.Message);
+                _logger.LogError("Exception type: {ExceptionType}", ex.GetType().Name);
                 _logger.LogError("Stack trace: {StackTrace}", ex.StackTrace);
+                _logger.LogError("=== END EMAIL SEND TASK ERROR ===");
             }
         });
 
@@ -179,16 +188,127 @@ public class AuthService : IAuthService
         return true;
     }
 
-    public Task<bool> ForgotPasswordAsync(string email)
+    public async Task<bool> ForgotPasswordAsync(string email)
     {
-        // TODO: Implement forgot password
-        throw new NotImplementedException();
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            _logger.LogWarning("Forgot password attempted with empty email");
+            return false;
+        }
+
+        // Find user by email
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
+
+        // Always return true to prevent email enumeration
+        // But only send email if user exists
+        if (user == null)
+        {
+            _logger.LogWarning("Forgot password attempted for non-existent email: {Email}", email);
+            return true; // Return true to prevent email enumeration
+        }
+
+        // Generate password reset token
+        var resetToken = TokenGenerator.GeneratePasswordResetToken();
+        var passwordReset = new PasswordReset
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            Token = resetToken,
+            ExpiresAt = DateTime.UtcNow.AddHours(1), // Token expires in 1 hour
+            IsUsed = false,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        // Invalidate any existing unused reset tokens for this user
+        var existingResets = await _context.PasswordResets
+            .Where(pr => pr.UserId == user.Id && !pr.IsUsed && pr.ExpiresAt > DateTime.UtcNow)
+            .ToListAsync();
+        
+        foreach (var existing in existingResets)
+        {
+            existing.IsUsed = true;
+        }
+
+        // Save new reset token
+        _context.PasswordResets.Add(passwordReset);
+        await _context.SaveChangesAsync();
+
+        // Send password reset email (fire and forget)
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                _logger.LogInformation("Attempting to send password reset email to {Email}", user.Email);
+                await _emailService.SendPasswordResetEmailAsync(user.Email, resetToken);
+                _logger.LogInformation("Password reset email sent successfully to {Email}", user.Email);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send password reset email to {Email}. Error: {Message}", user.Email, ex.Message);
+            }
+        });
+
+        return true;
     }
 
-    public Task<bool> ResetPasswordAsync(ResetPasswordDto dto)
+    public async Task<bool> ResetPasswordAsync(ResetPasswordDto dto)
     {
-        // TODO: Implement reset password
-        throw new NotImplementedException();
+        if (string.IsNullOrWhiteSpace(dto.Token) || string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.NewPassword))
+        {
+            _logger.LogWarning("Reset password attempted with invalid data");
+            return false;
+        }
+
+        // Find the password reset record
+        var passwordReset = await _context.PasswordResets
+            .Include(pr => pr.User)
+            .FirstOrDefaultAsync(pr => pr.Token == dto.Token);
+
+        if (passwordReset == null)
+        {
+            _logger.LogWarning("Password reset token not found: {Token}", dto.Token);
+            return false;
+        }
+
+        // Verify email matches
+        if (passwordReset.User.Email.ToLower() != dto.Email.ToLower())
+        {
+            _logger.LogWarning("Password reset email mismatch. Token: {Token}, Expected: {ExpectedEmail}, Provided: {ProvidedEmail}", 
+                dto.Token, passwordReset.User.Email, dto.Email);
+            return false;
+        }
+
+        // Check if token is already used
+        if (passwordReset.IsUsed)
+        {
+            _logger.LogWarning("Password reset token already used: {Token}, UserId: {UserId}", 
+                dto.Token, passwordReset.UserId);
+            return false;
+        }
+
+        // Check if token is expired
+        if (passwordReset.ExpiresAt < DateTime.UtcNow)
+        {
+            _logger.LogWarning("Password reset token expired: {Token}, ExpiresAt: {ExpiresAt}, UserId: {UserId}", 
+                dto.Token, passwordReset.ExpiresAt, passwordReset.UserId);
+            return false;
+        }
+
+        // Update user password
+        var user = passwordReset.User;
+        user.PasswordHash = PasswordHasher.HashPassword(dto.NewPassword);
+        user.UpdatedAt = DateTime.UtcNow;
+
+        // Mark token as used
+        passwordReset.IsUsed = true;
+
+        // Save changes
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Password reset successful for user: {Email}, UserId: {UserId}", user.Email, user.Id);
+
+        return true;
     }
 
     public Task<bool> LogoutAsync(Guid userId)

@@ -72,7 +72,7 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
-// builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IUserService, UserService>();
 // builder.Services.AddScoped<IS3Service, S3Service>();
 // builder.Services.AddScoped<IStripeService, StripeService>();
 
@@ -81,16 +81,24 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy.WithOrigins(builder.Configuration["Frontend:Url"] ?? "http://localhost:3000")
+        policy.WithOrigins(
+                builder.Configuration["Frontend:Url"] ?? "http://localhost:3000",
+                "http://localhost:3000",
+                "http://127.0.0.1:3000"
+              )
               .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowCredentials();
+              .AllowCredentials()
+              .SetPreflightMaxAge(TimeSpan.FromSeconds(86400));
     });
 });
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
+// CORS must be FIRST to handle preflight OPTIONS requests
+app.UseCors("AllowReactApp");
+
 // Enable Swagger for Development and non-Production environments
 // Also enable for "Dev" environment name (used in AWS ECS)
 if (app.Environment.IsDevelopment() || 
@@ -117,7 +125,6 @@ if (!string.IsNullOrEmpty(urls) && urls.Contains("https"))
     app.UseHttpsRedirection();
 }
 
-app.UseCors("AllowReactApp");
 app.UseAuthentication();
 app.UseAuthorization();
 // app.UseMiddleware<ErrorHandlingMiddleware>(); // Will be created later

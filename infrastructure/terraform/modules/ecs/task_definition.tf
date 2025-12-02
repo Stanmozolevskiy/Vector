@@ -43,6 +43,12 @@ resource "aws_ecs_task_definition" "backend" {
             value = var.redis_connection_string
           }
         ] : [],
+        var.frontend_url != "" ? [
+          {
+            name  = "Frontend__Url"
+            value = var.frontend_url
+          }
+        ] : [],
         var.sendgrid_api_key != "" ? [
           {
             name  = "SendGrid__ApiKey"

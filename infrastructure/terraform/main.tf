@@ -102,6 +102,7 @@ module "ecs" {
   frontend_ecr_repository_url = module.ecr.frontend_repository_url
   frontend_target_group_arn  = module.alb.frontend_target_group_arn
   backend_api_url            = "http://${module.alb.alb_dns_name}/api"
+  frontend_url               = "http://${module.alb.alb_dns_name}"
   # Note: Password should be passed with single quotes in PowerShell to prevent variable expansion
   # Example: terraform apply -var='db_password=$Memic1234'
   db_connection_string       = "Host=${replace(module.database.endpoint, ":5432", "")};Port=5432;Database=${var.db_name};Username=${var.db_username};Password=${var.db_password};SSL Mode=Require;"

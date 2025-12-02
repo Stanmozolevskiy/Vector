@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Vector.Api.Data;
 using Vector.Api.DTOs.User;
 using Vector.Api.Models;
@@ -14,16 +15,18 @@ public class UserService : IUserService
         _context = context;
     }
 
-    public Task<User?> GetUserByIdAsync(Guid userId)
+    public async Task<User?> GetUserByIdAsync(Guid userId)
     {
-        // TODO: Implement get user by ID
-        throw new NotImplementedException();
+        return await _context.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == userId);
     }
 
-    public Task<User?> GetUserByEmailAsync(string email)
+    public async Task<User?> GetUserByEmailAsync(string email)
     {
-        // TODO: Implement get user by email
-        throw new NotImplementedException();
+        return await _context.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
     }
 
     public Task<User> UpdateProfileAsync(Guid userId, UpdateProfileDto dto)

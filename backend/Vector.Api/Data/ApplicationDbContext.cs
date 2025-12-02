@@ -14,6 +14,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Subscription> Subscriptions { get; set; }
     public DbSet<Payment> Payments { get; set; }
     public DbSet<EmailVerification> EmailVerifications { get; set; }
+    public DbSet<PasswordReset> PasswordResets { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -57,6 +58,17 @@ public class ApplicationDbContext : DbContext
 
         // Configure EmailVerification entity
         modelBuilder.Entity<EmailVerification>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(e => e.Token).IsUnique();
+        });
+
+        // Configure PasswordReset entity
+        modelBuilder.Entity<PasswordReset>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.HasOne(e => e.User)

@@ -156,19 +156,30 @@ Before starting, ensure you have:
 - [x] Test email verification flow ✅ (End-to-end flow tested and working)
 - [ ] Add resend verification functionality
 
-### Day 14: Password Reset
+### Day 14: Password Reset ✅ COMPLETE
 - [x] Create forgot password page UI ✅ (ForgotPasswordPage redesigned to match HTML reference)
-- [ ] Create forgot password endpoint (backend implementation pending)
-- [ ] Create reset password endpoint
-- [ ] Create forgot password page UI
-- [ ] Create reset password page UI
-- [ ] Add password strength validation
+- [x] Create forgot password endpoint ✅ (POST /api/auth/forgot-password)
+- [x] Create reset password endpoint ✅ (POST /api/auth/reset-password)
+- [x] Create reset password page UI ✅ (ResetPasswordPage)
+- [x] Implement PasswordReset model ✅
+- [x] Add password reset email sending ✅
+- [x] Implement token generation and validation ✅
+- [x] Add database migration for PasswordReset table ✅
 
 ---
 
 ## Week 3: User Profile & Roles
 
-### Day 15-16: User Profile Management
+### Day 15-16: User Profile Management ✅ IN PROGRESS
+- [x] Create profile settings page ✅ (ProfilePage.tsx placeholder created)
+- [x] Implement GET /api/users/me endpoint ✅ (Returns current user info)
+- [x] Fix login flow after email verification ✅ (User can now login after verifying email)
+- [x] Fix alignment issues on auth pages ✅ (Forgot password and other pages aligned correctly)
+- [ ] Create profile API endpoints (PUT /api/users/me)
+- [ ] Implement profile picture upload
+- [ ] Add password change functionality
+- [x] Create profile page placeholder ✅ (ProfilePage component)
+- [x] Add profile route ✅ (/profile)
 - [ ] Create profile API endpoints
 - [ ] Implement profile picture upload
 - [ ] Set up S3 bucket policies
@@ -218,15 +229,18 @@ Before starting, ensure you have:
 
 ## Week 5-6: Testing & Polish
 
-### Testing
-- [ ] Unit tests for services
+### Testing ✅ IN PROGRESS
+- [x] Unit tests for services ✅ (AuthServiceTests, AuthControllerTests, UserControllerTests created)
+- [x] Unit tests for API endpoints ✅ (Auth and User controller tests implemented)
 - [ ] Integration tests for API endpoints
-- [ ] Authentication flow tests
+- [x] Authentication flow tests ✅ (Register, Login, Email Verification, Password Reset)
 - [ ] Payment flow tests
 - [ ] Email service tests
 - [ ] Component tests (React Testing Library)
 - [ ] Integration tests for forms
 - [ ] E2E tests (Playwright/Cypress)
+
+**⚠️ IMPORTANT: All unit tests must pass before deploying code. Run `dotnet test` before every deployment.**
 
 ### Bug Fixes & Optimization
 - [ ] Fix all identified bugs
@@ -257,12 +271,16 @@ Before starting, ensure you have:
 - [x] Users can register with email/password ✅
 - [x] Email verification works ✅ (Endpoint implemented: GET /api/auth/verify-email?token=xxx)
 - [x] Login/logout works ✅ (Login endpoint implemented: POST /api/auth/login)
-- [ ] Password reset flow works
+- [x] Auth pages redesigned ✅ (Login, Register, Forgot Password match HTML reference with auth.css)
+- [x] FontAwesome icons integrated ✅
+- [x] Inter font integrated ✅
+- [x] Password reset flow works ✅ (Forgot password and reset password endpoints implemented)
 - [ ] JWT tokens are properly managed
 - [ ] Refresh token rotation works
 
-### User Profile
-- [ ] Users can view their profile
+### User Profile ✅ IN PROGRESS
+- [x] Users can view their profile ✅ (GET /api/users/me endpoint implemented)
+- [x] User profile page placeholder created ✅ (ProfilePage.tsx)
 - [ ] Users can update their profile
 - [ ] Profile picture upload works
 - [ ] Image optimization works
@@ -287,20 +305,32 @@ Before starting, ensure you have:
 - [ ] Database migrations run automatically
 - [ ] Environment variables are configured
 
-### Testing
+### Testing ✅ IN PROGRESS
+- [x] Unit tests created for API functionality ✅ (AuthController, UserController, AuthService tests)
+- [x] Test project structure created ✅ (Vector.Api.Tests with xUnit, Moq, InMemory DB)
 - [ ] All critical paths are tested
 - [ ] Test coverage > 70%
+- [ ] Tests run automatically before deployment
 - [ ] E2E tests pass
 
 ---
 
 ## Progress Summary
 
-**Completed:** 60+ items  
+**Completed:** 70+ items  
 **In Progress:** 0 items  
-**Remaining:** 60+ items
+**Remaining:** 50+ items
 
-**Current Status:** Week 2, Day 10-11 (Login System) - ✅ Login System Complete, Auth Pages Redesigned, Ready for Dev Deployment
+**Current Status:** Week 2, Day 15-16 (User Profile Management) - ✅ Login Flow Fixed, User Profile Endpoint Implemented, Unit Tests Created, Deployed to Docker
+
+**Recent Updates:**
+- ✅ Fixed login flow after email verification (GET /api/users/me endpoint created)
+- ✅ Fixed alignment issues on forgot-password and other auth pages
+- ✅ Created comprehensive unit tests for API functionality
+- ✅ Ensured email validation stability (SendGrid configuration documented)
+- ✅ UserService registered in DI container
+- ✅ User profile placeholder page created
+- ✅ Deployed to local Docker environment
 - ✅ Backend project structure fully initialized
 - ✅ All controllers, services, DTOs, middleware, and helpers created
 - ✅ Models and DbContext configured

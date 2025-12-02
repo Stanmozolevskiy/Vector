@@ -46,11 +46,13 @@ jobs:
       - name: Build project
         run: dotnet build ${{ env.PROJECT_PATH }}/Vector.Api.csproj --no-restore --configuration Release
 
-      - name: Run tests (if tests exist)
+      - name: Run tests
         run: |
-          # Uncomment when tests are added
-          # dotnet test --no-build --configuration Release --verbosity normal
-          echo "Tests will run here when test projects are added"
+          if [ -d "backend/Vector.Api.Tests" ]; then
+            dotnet test backend/Vector.Api.Tests/Vector.Api.Tests.csproj --no-build --configuration Release --verbosity normal
+          else
+            echo "No test project found, skipping tests"
+          fi
 
       - name: Check for linting errors
         run: |

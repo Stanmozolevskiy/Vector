@@ -122,7 +122,15 @@ public class UserControllerProfilePictureTests
     [Fact]
     public async Task UploadProfilePicture_WithoutAuthentication_ReturnsUnauthorized()
     {
-        // Arrange - No user claim set
+        // Arrange - Set up empty claims (no NameIdentifier)
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(new ClaimsIdentity())
+            }
+        };
+
         var fileMock = new Mock<IFormFile>();
         fileMock.Setup(_ => _.ContentType).Returns("image/jpeg");
         fileMock.Setup(_ => _.Length).Returns(1000);
@@ -173,7 +181,14 @@ public class UserControllerProfilePictureTests
     [Fact]
     public async Task DeleteProfilePicture_WithoutAuthentication_ReturnsUnauthorized()
     {
-        // Arrange - No user claim set
+        // Arrange - Set up empty claims (no NameIdentifier)
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(new ClaimsIdentity())
+            }
+        };
 
         // Act
         var result = await _controller.DeleteProfilePicture();

@@ -141,7 +141,7 @@ public class AuthServiceTests : IDisposable
         var expectedToken = "test-access-token";
         _jwtServiceMock.Setup(x => x.GenerateAccessToken(user.Id, user.Role))
             .Returns(expectedToken);
-        _jwtServiceMock.Setup(x => x.GenerateRefreshToken())
+        _jwtServiceMock.Setup(x => x.GenerateRefreshToken(user.Id))
             .Returns("test-refresh-token");
 
         // Act

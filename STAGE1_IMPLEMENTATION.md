@@ -172,24 +172,100 @@ Before starting, ensure you have:
 ## Week 3: User Profile & Roles
 
 ### Day 15-16: User Profile Management ✅ COMPLETE (ALL FEATURES)
-- [x] Create profile settings page ✅ (ProfilePage.tsx created)
-- [x] Implement GET /api/users/me endpoint ✅ (Returns current user info including profilePictureUrl)
-- [x] Fix login flow after email verification ✅ (User can now login after verifying email)
-- [x] Fix alignment issues on auth pages ✅ (Forgot password and other pages aligned correctly)
-- [x] Implement protected routes ✅ (ProtectedRoute component created)
-- [x] Add resend verification functionality ✅ (POST /api/auth/resend-verification endpoint and ResendVerificationPage)
-- [x] Add resend verification UI links ✅ (LoginPage and VerifyEmailPage)
+
+**Status:** ✅ DEPLOYED TO AWS DEV  
+**Unit Tests:** 52/52 passing ✅  
+**Deployment Date:** December 3, 2025
+
+#### Core Profile Features:
+- [x] Create profile settings page ✅ (ProfilePage.tsx with 5 sections: Personal Info, Security, Subscription, Notifications, Privacy)
+- [x] Implement GET /api/users/me endpoint ✅ (Returns complete user info including profilePictureUrl, phoneNumber, location)
 - [x] Create profile update API endpoint ✅ (PUT /api/users/me - updates firstName, lastName, bio, phoneNumber, location)
 - [x] Add password change functionality API ✅ (PUT /api/users/me/password with current password verification)
-- [x] Create profile editing UI ✅ (Edit mode with save/cancel, form validation)
+- [x] Create profile editing UI ✅ (Edit mode with save/cancel, form validation, success/error messages)
+
+#### Profile Picture Upload (S3 Integration):
+- [x] **S3 Service Implementation** ✅
+  - AWS SDK packages installed (AWSSDK.S3, AWSSDK.Extensions.NETCore.Setup)
+  - S3Service created with upload, delete, presigned URL methods
+  - Integrated with UserService for profile picture operations
+  - Registered in Program.cs with AWS configuration
+- [x] **Profile Picture Upload Endpoint** ✅ (POST /api/users/me/profile-picture)
+  - File validation (JPEG/PNG/GIF, max 5MB)
+  - Uploads to S3 profile-pictures/ folder with PublicRead ACL
+  - Deletes old picture automatically
+  - Returns S3 URL
+- [x] **Profile Picture Delete Endpoint** ✅ (DELETE /api/users/me/profile-picture)
+  - Deletes from S3 and clears database URL
+- [x] **Profile Picture Display** ✅
+  - Displays in navbar header (circular, 36px × 36px)
+  - Displays on profile page (circular, 120px × 120px)
+  - Image preview before upload
+  - Falls back to user initials when no image
+- [x] **S3 Bucket Configuration** ✅
+  - Terraform configuration complete
+  - Bucket: dev-vector-user-uploads
+  - Public read policy for profile-pictures/* folder
+  - CORS, encryption, lifecycle rules configured
+  - Deployed to AWS dev environment
+
+#### Additional Features:
+- [x] Fix login flow after email verification ✅ (User can now login after verifying email)
+- [x] Fix alignment issues on auth pages ✅ (Forgot password and other pages aligned correctly)
+- [x] Implement protected routes ✅ (ProtectedRoute component for requireAuth/requireUnauth)
+- [x] Add resend verification functionality ✅ (POST /api/auth/resend-verification endpoint and ResendVerificationPage)
+- [x] Add resend verification UI links ✅ (LoginPage and VerifyEmailPage)
 - [x] Add image preview functionality ✅ (Client-side preview with FileReader, validation)
 - [x] Create index/landing page ✅ (IndexPage with hero, features, testimonials from HTML template)
-- [x] Update dashboard page ✅ (DashboardPage with stats, courses, interviews from HTML template)
-- [x] Add working navigation links ✅ (Profile, Dashboard, Logout in user menu)
-- [x] Redesign profile page ✅ (ProfilePage with sidebar navigation, 5 sections from HTML template)
-- [x] **Profile picture upload implementation** ✅ (S3 integration, upload/delete endpoints, navbar display)
-- [x] **Profile picture display in header** ✅ (Navbar shows S3 image, circular with 50% border-radius)
-- [x] **Unit tests for profile picture** ✅ (UserControllerProfilePictureTests - 8 tests, all passing)
+- [x] Update dashboard page ✅ (DashboardPage with stats, courses, profile picture in navbar)
+- [x] Add working navigation links ✅ (Profile, Dashboard, Logout in dropdown menu)
+- [x] Redesign profile page ✅ (Complete redesign matching HTML templates with proper CSS)
+- [x] Add phone number and location fields ✅ (Database columns, API support, UI forms)
+- [x] Fix dropdown menu UX ✅ (Transparent bridge, smooth hover behavior)
+
+#### Unit Tests (52 tests total):
+- [x] **UserServiceTests** ✅
+  - Profile update tests (with phone/location)
+  - Password change tests
+  - Empty field handling
+  - Invalid user handling
+- [x] **UserControllerProfilePictureTests** ✅ (8 new tests)
+  - Upload with valid image
+  - Upload validation (file type, size, authentication)
+  - Delete functionality
+  - Error handling
+- [x] **AuthServiceTests** ✅
+  - Login, registration, email verification
+  - Password reset functionality
+  - Refresh token creation
+- [x] **PasswordResetTests** ✅
+  - Password reset flow testing
+
+#### Database Schema:
+- [x] **User Model Extended** ✅
+  - PhoneNumber (VARCHAR 20)
+  - Location (VARCHAR 200)
+  - ProfilePictureUrl (TEXT) - Stores S3 URL
+- [x] **RefreshToken Model** ✅
+  - Token storage for refresh token rotation
+- [x] **Migrations Created** ✅
+  - 4 pending migrations ready for AWS deployment
+  - Will run automatically on ECS container startup
+
+#### Documentation:
+- [x] **PROFILE_IMAGE_FEATURE_COMPLETE.md** ✅
+  - Complete implementation guide
+  - Unit test coverage details
+  - Image upload flow
+  - Security features
+  - API documentation
+  - Troubleshooting guide
+- [x] **Deployment guides updated** ✅
+  - AWS credentials setup
+  - S3 configuration
+  - Docker environment variables
+
+**All Day 15-16 tasks 100% complete and deployed to AWS dev!** 🎉
 - [x] Fix dropdown menu hover issue ✅ (Added padding area to prevent disappearing)
 - [x] Fix logout functionality ✅ (Clears tokens, resets auth state, prevents protected page access)
 - [x] Add phone number and location fields ✅ (Optional fields in profile form)

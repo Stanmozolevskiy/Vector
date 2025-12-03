@@ -52,36 +52,66 @@ useEffect(() => {
 
 ### AWS Deployment Requirements
 
-When deploying to AWS (dev, staging, or production), ensure ALL of the following are deployed:
+**CRITICAL: When pushing to `develop`, `staging`, or `main` branches, ALL components MUST be deployed together:**
 
-1. **Database Changes:**
+1. **Database Changes (PostgreSQL):**
    - Create EF Core migrations for any model changes
-   - Migrations run automatically on container startup
-   - Verify migration files are committed to git
+   - Migrations run automatically on container startup via `DbInitializer.cs`
+   - **ALWAYS verify migration files are committed to git before pushing**
+   - List pending migrations: `dotnet ef migrations list`
+   - Review migration: `dotnet ef migrations script`
 
 2. **Backend Changes:**
    - All controller, service, and model changes
    - Configuration updates (appsettings, environment variables)
    - New dependencies in `.csproj` file
+   - **Unit tests MUST pass**: `dotnet test`
 
 3. **Frontend Changes:**
    - UI/UX changes
    - API integration changes
    - New npm dependencies in `package.json`
+   - **Rebuild without cache for Docker**: `docker-compose build --no-cache frontend`
+
+4. **Redis Changes:**
+   - Any cache invalidation logic
+   - Session management updates
+   - Rate limiting configuration
+
+**IMPORTANT:** Never push backend/frontend changes without corresponding database migrations if schema changed!
 
 ### Deployment Checklist
 
-Before pushing to `develop`, `staging`, or `main`:
+**BEFORE pushing to `develop`, `staging`, or `main`:**
 
-- [ ] Database migrations created (if DB schema changed)
-- [ ] All migration files committed
-- [ ] Backend code committed
-- [ ] Frontend code committed
-- [ ] Unit tests pass: `dotnet test`
+**Database (PostgreSQL):**
+- [ ] Database migrations created (if DB schema changed): `dotnet ef migrations add <Name>`
+- [ ] All migration files committed to git
+- [ ] Review migration SQL: `dotnet ef migrations script`
+- [ ] Test migrations locally: Check Docker PostgreSQL
+
+**Backend:**
+- [ ] All backend code changes committed
+- [ ] Unit tests pass: `dotnet test` (ALL tests must pass)
+- [ ] No compile errors or warnings
+
+**Frontend:**
+- [ ] All frontend code changes committed
 - [ ] Linting passes: `npm run lint`
-- [ ] Local Docker build succeeds
+- [ ] Frontend rebuilt without cache for Docker: `docker-compose build --no-cache frontend`
+
+**General:**
+- [ ] Local Docker build succeeds for both frontend and backend
 - [ ] No secrets in code or documentation
 - [ ] Environment variables configured in GitHub Secrets
+- [ ] Redis configuration updated if needed
+
+**PUSH ALL CHANGES TOGETHER:**
+```bash
+git add -A
+git commit -m "Deploy: backend, frontend, and database changes"
+git push origin develop  # This triggers automatic deployment
+```
 
 ### Verification After Deployment
 

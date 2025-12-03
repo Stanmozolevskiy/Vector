@@ -15,6 +15,78 @@ export const DashboardPage = () => {
     }
   }, [isAuthenticated, isLoading, navigate]);
 
+  // Enhanced dropdown functionality
+  useEffect(() => {
+    const userDropdown = document.getElementById('userDropdown');
+    if (!userDropdown) return;
+
+    const dropdownMenu = userDropdown.querySelector('.dropdown-menu');
+    if (!dropdownMenu) return;
+
+    let closeTimeout: NodeJS.Timeout | null = null;
+
+    const showDropdown = () => {
+      if (closeTimeout) {
+        clearTimeout(closeTimeout);
+        closeTimeout = null;
+      }
+      dropdownMenu.classList.add('show');
+    };
+
+    const hideDropdown = () => {
+      closeTimeout = setTimeout(() => {
+        dropdownMenu.classList.remove('show');
+      }, 100);
+    };
+
+    const hideDropdownImmediately = () => {
+      if (closeTimeout) {
+        clearTimeout(closeTimeout);
+        closeTimeout = null;
+      }
+      dropdownMenu.classList.remove('show');
+    };
+
+    const toggleDropdown = () => {
+      if (dropdownMenu.classList.contains('show')) {
+        hideDropdownImmediately();
+      } else {
+        showDropdown();
+      }
+    };
+
+    const handleClick = (e: MouseEvent) => {
+      e.stopPropagation();
+      toggleDropdown();
+    };
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (!userDropdown.contains(e.target as Node)) {
+        hideDropdownImmediately();
+      }
+    };
+
+    userDropdown.addEventListener('click', handleClick);
+    userDropdown.addEventListener('mouseenter', showDropdown);
+    userDropdown.addEventListener('mouseleave', hideDropdown);
+    dropdownMenu.addEventListener('mouseenter', () => {
+      if (closeTimeout) {
+        clearTimeout(closeTimeout);
+        closeTimeout = null;
+      }
+    });
+    dropdownMenu.addEventListener('mouseleave', hideDropdown);
+    document.addEventListener('click', handleClickOutside);
+
+    return () => {
+      userDropdown.removeEventListener('click', handleClick);
+      userDropdown.removeEventListener('mouseenter', showDropdown);
+      userDropdown.removeEventListener('mouseleave', hideDropdown);
+      document.removeEventListener('click', handleClickOutside);
+      if (closeTimeout) clearTimeout(closeTimeout);
+    };
+  }, []);
+
   const handleLogout = () => {
     logout();
     navigate(ROUTES.HOME);

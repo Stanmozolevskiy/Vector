@@ -45,15 +45,18 @@ public class S3Service : IS3Service
                 Key = key,
                 BucketName = _bucketName,
                 ContentType = contentType,
-                CannedACL = S3CannedACL.Private, // Private by default, use presigned URLs
+                // Profile pictures are public (for user avatars)
+                // Other files remain private
+                CannedACL = folder == "profile-pictures" ? S3CannedACL.PublicRead : S3CannedACL.Private
             };
 
-            // Add tags for profile pictures to allow public read
+            // Add tags for profile pictures
             if (folder == "profile-pictures")
             {
                 uploadRequest.TagSet = new List<Tag>
                 {
-                    new Tag { Key = "public", Value = "true" }
+                    new Tag { Key = "public", Value = "true" },
+                    new Tag { Key = "content-type", Value = "profile-picture" }
                 };
             }
 

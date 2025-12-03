@@ -173,9 +173,10 @@ Before starting, ensure you have:
 
 ### Day 15-16: User Profile Management ✅ COMPLETE (ALL FEATURES)
 
-**Status:** ✅ DEPLOYED TO AWS DEV  
+**Status:** ✅ DEPLOYED TO AWS DEV (WITH IAM FIX)
 **Unit Tests:** 52/52 passing ✅  
-**Deployment Date:** December 3, 2025
+**Last Deployment:** December 3, 2025  
+**IAM Fix Applied:** S3 PutObjectAcl permission added
 
 #### Core Profile Features:
 - [x] Create profile settings page ✅ (ProfilePage.tsx with 5 sections: Personal Info, Security, Subscription, Notifications, Privacy)
@@ -272,13 +273,14 @@ Before starting, ensure you have:
 - [x] Add Notifications section ✅ (Email notification preferences with toggle switches)
 - [x] Add Privacy section ✅ (Profile visibility, data download, account deletion)
 - [x] Set up S3 bucket policies ✅ (Profile pictures public read, ECS full access)
-- [ ] Implement profile picture upload API (Pending S3Service implementation - bucket ready)
+- [x] Implement profile picture upload API ✅ (S3Service fully implemented with upload/delete)
 - [x] Create profile page placeholder ✅ (ProfilePage component)
 - [x] Add profile route ✅ (/profile)
-- [ ] Create profile API endpoints
-- [ ] Set up S3 bucket policies
-- [ ] Create profile settings page
-- [ ] Add image preview functionality
+- [x] Create profile API endpoints ✅ (GET/PUT /api/users/me, POST/DELETE profile picture)
+- [x] Set up S3 bucket policies ✅ (Public read access + IAM role permissions)
+- [x] Create profile settings page ✅ (Full 5-section layout with edit mode)
+- [x] Add image preview functionality ✅ (Client-side preview + display in header)
+- [x] Fix IAM role permissions ✅ (Added s3:PutObjectAcl to ECS task role)
 
 ### Day 17-18: Role-Based Access Control
 - [ ] Implement RBAC middleware

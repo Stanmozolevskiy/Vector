@@ -86,6 +86,7 @@ resource "aws_iam_role_policy" "ecs_task_s3" {
           "s3:GetObject",
           "s3:PutObject",
           "s3:PutObjectAcl",
+          "s3:PutObjectTagging",
           "s3:DeleteObject"
         ]
         Resource = "${var.s3_bucket_arn}/*"

@@ -19,14 +19,20 @@ public class User
     [MaxLength(100)]
     public string? LastName { get; set; }
     
+    public string? Bio { get; set; }
+    
+    [MaxLength(20)]
+    public string? PhoneNumber { get; set; }
+    
+    [MaxLength(200)]
+    public string? Location { get; set; }
+    
     [MaxLength(20)]
     public string Role { get; set; } = "student";
     
     public bool EmailVerified { get; set; } = false;
     
     public string? ProfilePictureUrl { get; set; }
-    
-    public string? Bio { get; set; }
     
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     

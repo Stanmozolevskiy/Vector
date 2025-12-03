@@ -13,11 +13,13 @@ public class UserController : ControllerBase
 {
     private readonly IUserService _userService;
     private readonly IJwtService _jwtService;
+    private readonly ILogger<UserController> _logger;
 
-    public UserController(IUserService userService, IJwtService jwtService)
+    public UserController(IUserService userService, IJwtService jwtService, ILogger<UserController> logger)
     {
         _userService = userService;
         _jwtService = jwtService;
+        _logger = logger;
     }
 
     /// <summary>
@@ -87,7 +89,11 @@ public class UserController : ControllerBase
 
         try
         {
+            _logger.LogInformation("Updating profile for user {UserId} with data: {@ProfileData}", userId, dto);
+            
             var user = await _userService.UpdateProfileAsync(userId, dto);
+            
+            _logger.LogInformation("Profile updated successfully for user {UserId}", userId);
             
             return Ok(new
             {
@@ -106,10 +112,12 @@ public class UserController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
+            _logger.LogWarning(ex, "User not found: {UserId}", userId);
             return NotFound(new { error = ex.Message });
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error updating profile for user {UserId}", userId);
             return StatusCode(500, new { error = "An error occurred while updating profile" });
         }
     }

@@ -37,7 +37,7 @@ export const ProfilePage = () => {
     newPassword: '',
     confirmPassword: '',
   });
-  const [, setProfilePicture] = useState<File | null>(null);
+  const [profilePicture, setProfilePicture] = useState<File | null>(null);
   const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -121,6 +121,18 @@ export const ProfilePage = () => {
     setSuccessMessage('');
 
     try {
+      // Upload profile picture if selected (S3 integration pending)
+      if (profilePicture) {
+        setErrorMessage('Profile picture upload not yet implemented. Updating other fields...');
+        // TODO: Uncomment when S3Service is registered
+        // const formData = new FormData();
+        // formData.append('file', profilePicture);
+        // await api.post('/users/me/profile-picture', formData, {
+        //   headers: { 'Content-Type': 'multipart/form-data' }
+        // });
+      }
+
+      // Update profile data
       await api.put('/users/me', profileData);
       setSuccessMessage('Profile updated successfully!');
 

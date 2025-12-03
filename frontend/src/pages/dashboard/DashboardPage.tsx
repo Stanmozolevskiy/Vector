@@ -23,7 +23,7 @@ export const DashboardPage = () => {
     const dropdownMenu = userDropdown.querySelector('.dropdown-menu');
     if (!dropdownMenu) return;
 
-    let closeTimeout: NodeJS.Timeout | null = null;
+    let closeTimeout: ReturnType<typeof setTimeout> | null = null;
 
     const showDropdown = () => {
       if (closeTimeout) {

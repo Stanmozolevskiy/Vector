@@ -339,6 +339,13 @@
     transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
     /* Transparent padding bridge to prevent dropdown from closing */
     padding-top: 0.75rem;
+    pointer-events: none;
+}
+
+/* Enable pointer events on dropdown when visible */
+.user-menu:hover .dropdown-menu,
+.user-menu .dropdown-menu.show {
+    pointer-events: auto;
 }
 
 .dropdown-inner {
@@ -352,9 +359,9 @@
 /* Show dropdown on hover or when .show class is present */
 .user-menu:hover .dropdown-menu,
 .user-menu .dropdown-menu.show {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: translateY(0) !important;
 }
 
 .dropdown-menu a,

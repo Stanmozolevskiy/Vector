@@ -29,13 +29,14 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "user_uploads" {
 }
 
 # S3 Bucket Public Access Block
+# Profile pictures need public read access, so we allow public ACLs
 resource "aws_s3_bucket_public_access_block" "user_uploads" {
   bucket = aws_s3_bucket.user_uploads.id
 
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
+  block_public_acls       = false  # Allow public ACLs for profile pictures
+  block_public_policy     = false  # Allow bucket policies
+  ignore_public_acls      = false  # Respect public ACLs
+  restrict_public_buckets = false  # Allow public bucket access
 }
 
 # S3 Bucket CORS Configuration

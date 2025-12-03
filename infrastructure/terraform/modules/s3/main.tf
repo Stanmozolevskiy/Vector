@@ -8,6 +8,15 @@ resource "aws_s3_bucket" "user_uploads" {
   }
 }
 
+# Enable ACLs for the bucket (required for PublicRead ACL on objects)
+resource "aws_s3_bucket_ownership_controls" "user_uploads" {
+  bucket = aws_s3_bucket.user_uploads.id
+
+  rule {
+    object_ownership = "BucketOwnerPreferred"
+  }
+}
+
 # S3 Bucket Versioning
 resource "aws_s3_bucket_versioning" "user_uploads" {
   bucket = aws_s3_bucket.user_uploads.id
@@ -79,9 +88,13 @@ resource "aws_s3_bucket_lifecycle_configuration" "user_uploads" {
   }
 }
 
-# S3 Bucket Policy (for application access)
+# S3 Bucket Policy (for application access and public profile pictures)
 resource "aws_s3_bucket_policy" "user_uploads" {
   bucket = aws_s3_bucket.user_uploads.id
+  depends_on = [
+    aws_s3_bucket_public_access_block.user_uploads,
+    aws_s3_bucket_ownership_controls.user_uploads
+  ]
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -95,9 +108,17 @@ resource "aws_s3_bucket_policy" "user_uploads" {
         Action = [
           "s3:GetObject",
           "s3:PutObject",
-          "s3:DeleteObject"
+          "s3:DeleteObject",
+          "s3:PutObjectAcl"
         ]
         Resource = "${aws_s3_bucket.user_uploads.arn}/*"
+      },
+      {
+        Sid       = "PublicReadProfilePictures"
+        Effect    = "Allow"
+        Principal = "*"
+        Action    = "s3:GetObject"
+        Resource  = "${aws_s3_bucket.user_uploads.arn}/profile-pictures/*"
       }
     ]
   })

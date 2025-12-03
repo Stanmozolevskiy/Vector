@@ -10,6 +10,51 @@ document.addEventListener('DOMContentLoaded', function() {
             navMenu.classList.toggle('active');
         });
     }
+    
+    // User Dropdown Menu - Enhanced with click support
+    const userMenu = document.querySelector('.user-menu');
+    const dropdownMenu = document.querySelector('.dropdown-menu');
+    
+    if (userMenu && dropdownMenu) {
+        // Toggle dropdown on click
+        userMenu.addEventListener('click', function(e) {
+            e.stopPropagation();
+            dropdownMenu.classList.toggle('show');
+        });
+        
+        // Keep dropdown open when hovering over it
+        dropdownMenu.addEventListener('mouseenter', function() {
+            this.classList.add('show');
+        });
+        
+        dropdownMenu.addEventListener('mouseleave', function() {
+            // Add small delay before closing
+            setTimeout(() => {
+                if (!userMenu.matches(':hover') && !dropdownMenu.matches(':hover')) {
+                    this.classList.remove('show');
+                }
+            }, 100);
+        });
+        
+        userMenu.addEventListener('mouseenter', function() {
+            dropdownMenu.classList.add('show');
+        });
+        
+        userMenu.addEventListener('mouseleave', function() {
+            setTimeout(() => {
+                if (!userMenu.matches(':hover') && !dropdownMenu.matches(':hover')) {
+                    dropdownMenu.classList.remove('show');
+                }
+            }, 100);
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!userMenu.contains(e.target)) {
+                dropdownMenu.classList.remove('show');
+            }
+        });
+    }
 });
 
 // Smooth scrolling for anchor links

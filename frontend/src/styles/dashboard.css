@@ -328,24 +328,28 @@
 }
 
 .dropdown-menu {
+    display: none;
     position: absolute;
     top: 100%;
     right: 0;
+    margin-top: 0.25rem;
+    padding-top: 0.5rem;
+    background: transparent;
     min-width: 200px;
-    z-index: 1000;
+    z-index: 100;
     opacity: 0;
-    visibility: hidden;
     transform: translateY(-10px);
-    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
-    /* Transparent padding bridge to prevent dropdown from closing */
-    padding-top: 0.75rem;
-    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-/* Enable pointer events on dropdown when visible */
-.user-menu:hover .dropdown-menu,
-.user-menu .dropdown-menu.show {
-    pointer-events: auto;
+.dropdown-menu::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 0.5rem;
+    background: transparent;
 }
 
 .dropdown-inner {
@@ -356,16 +360,16 @@
     overflow: hidden;
 }
 
-/* Show dropdown on hover or when .show class is present */
 .user-menu:hover .dropdown-menu,
-.user-menu .dropdown-menu.show {
-    opacity: 1 !important;
-    visibility: visible !important;
-    transform: translateY(0) !important;
+.dropdown-menu:hover,
+.dropdown-menu.show {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
 }
 
-.dropdown-menu a,
-.dropdown-menu button {
+.dropdown-inner a,
+.dropdown-inner button {
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
@@ -381,8 +385,8 @@
     cursor: pointer;
 }
 
-.dropdown-menu a:hover,
-.dropdown-menu button:hover {
+.dropdown-inner a:hover,
+.dropdown-inner button:hover {
     background: var(--bg-gray-50);
     color: var(--primary-color);
 }

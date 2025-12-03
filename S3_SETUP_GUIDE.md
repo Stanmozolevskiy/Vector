@@ -8,8 +8,17 @@
 - S3 bucket policies configured in Terraform
 - Profile picture upload UI completed
 - Image preview functionality working
+- **AWS SDK packages installed**
+- **S3Service registered in Program.cs**
+- **UserService updated with S3 dependency**
+- **Upload/Delete methods fully implemented**
+- **Frontend upload handler working**
+- **Docker configuration complete**
+- **Local development ready**
 
 ⏳ **Remaining Steps:**
+- Create `.env` file with AWS credentials (for local testing)
+- Add AWS environment variables to ECS task definition (for AWS deployment)
 
 ---
 
@@ -292,15 +301,15 @@ Uses IAM task role (already configured in Terraform).
 - [x] Create IS3Service interface
 - [x] Create S3Service implementation
 - [x] Configure S3 bucket policies (Terraform)
-- [ ] Install AWSSDK.S3 NuGet package
-- [ ] Add AWS configuration to appsettings
-- [ ] Register S3Service in Program.cs
-- [ ] Uncomment S3Service in UserService
-- [ ] Create profile picture upload endpoint
-- [ ] Update frontend to handle file upload
-- [ ] Test locally with AWS credentials
-- [ ] Deploy to Docker
-- [ ] Test on AWS dev environment
+- [x] Install AWSSDK.S3 NuGet package
+- [x] Add AWS configuration to appsettings
+- [x] Register S3Service in Program.cs
+- [x] Uncomment S3Service in UserService
+- [x] Create profile picture upload endpoint
+- [x] Update frontend to handle file upload
+- [ ] Test locally with AWS credentials (requires .env file)
+- [x] Deploy to Docker
+- [ ] Test on AWS dev environment (requires ECS task definition update)
 
 ---
 

@@ -121,15 +121,23 @@ export const ProfilePage = () => {
     setSuccessMessage('');
 
     try {
-      // Upload profile picture if selected (S3 integration pending)
+      // Upload profile picture first if selected
       if (profilePicture) {
-        setErrorMessage('Profile picture upload not yet implemented. Updating other fields...');
-        // TODO: Uncomment when S3Service is registered
-        // const formData = new FormData();
-        // formData.append('file', profilePicture);
-        // await api.post('/users/me/profile-picture', formData, {
-        //   headers: { 'Content-Type': 'multipart/form-data' }
-        // });
+        try {
+          const formData = new FormData();
+          formData.append('file', profilePicture);
+          
+          const response = await api.post('/users/me/profile-picture', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          });
+          
+          console.log('Profile picture uploaded:', response.data.profilePictureUrl);
+        } catch (uploadErr) {
+          console.error('Failed to upload profile picture:', uploadErr);
+          setErrorMessage('Profile picture upload failed. Please try again.');
+          setIsSaving(false);
+          return; // Stop if image upload fails
+        }
       }
 
       // Update profile data

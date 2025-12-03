@@ -1,3 +1,4 @@
+using Amazon.S3;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -68,12 +69,16 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+// AWS Services
+builder.Services.AddDefaultAWSOptions(builder.Configuration.GetAWSOptions());
+builder.Services.AddAWSService<IAmazonS3>();
+
 // Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IUserService, UserService>();
-// builder.Services.AddScoped<IS3Service, S3Service>();
+builder.Services.AddScoped<IS3Service, S3Service>();
 // builder.Services.AddScoped<IStripeService, StripeService>();
 
 // CORS

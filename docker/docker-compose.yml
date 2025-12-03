@@ -53,6 +53,10 @@ services:
       - SendGrid__ApiKey=${SENDGRID_API_KEY:-your_sendgrid_api_key_here}
       - SendGrid__FromEmail=${SENDGRID_FROM_EMAIL:-stanmozolevskiy90@gmail.com}
       - SendGrid__FromName=${SENDGRID_FROM_NAME:-Vector}
+      - AWS__Region=${AWS_REGION:-us-east-1}
+      - AWS__S3__BucketName=${AWS_S3_BUCKET_NAME:-dev-vector-user-uploads}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
     depends_on:
       postgres:
         condition: service_healthy

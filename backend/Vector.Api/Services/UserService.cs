@@ -10,13 +10,13 @@ public class UserService : IUserService
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<UserService> _logger;
-    // private readonly IS3Service _s3Service;  // Uncomment when ready to use
+    private readonly IS3Service _s3Service;
 
-    public UserService(ApplicationDbContext context, ILogger<UserService> logger)
+    public UserService(ApplicationDbContext context, ILogger<UserService> logger, IS3Service s3Service)
     {
         _context = context;
         _logger = logger;
-        // _s3Service = s3Service;  // Uncomment when ready to use
+        _s3Service = s3Service;
     }
 
     public async Task<User?> GetUserByIdAsync(Guid userId)
@@ -96,27 +96,53 @@ public class UserService : IUserService
         // Delete old profile picture if exists
         if (!string.IsNullOrEmpty(user.ProfilePictureUrl))
         {
-            // TODO: Uncomment when S3Service is registered
-            // await _s3Service.DeleteFileAsync(user.ProfilePictureUrl);
+            try
+            {
+                await _s3Service.DeleteFileAsync(user.ProfilePictureUrl);
+                _logger.LogInformation("Deleted old profile picture for user {UserId}", userId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to delete old profile picture for user {UserId}", userId);
+                // Continue with upload even if delete fails
+            }
         }
 
         // Upload new profile picture
-        // TODO: Uncomment when S3Service is registered
-        // var pictureUrl = await _s3Service.UploadFileAsync(fileStream, fileName, contentType, "profile-pictures");
+        var pictureUrl = await _s3Service.UploadFileAsync(fileStream, fileName, contentType, "profile-pictures");
         
-        // For now, throw not implemented
-        throw new NotImplementedException("S3Service needs to be registered in Program.cs. See S3_SETUP_GUIDE.md");
+        user.ProfilePictureUrl = pictureUrl;
+        user.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
         
-        // user.ProfilePictureUrl = pictureUrl;
-        // user.UpdatedAt = DateTime.UtcNow;
-        // await _context.SaveChangesAsync();
-        // return pictureUrl;
+        _logger.LogInformation("Profile picture uploaded successfully for user {UserId}: {Url}", userId, pictureUrl);
+        return pictureUrl;
     }
 
-    public Task<bool> DeleteProfilePictureAsync(Guid userId)
+    public async Task<bool> DeleteProfilePictureAsync(Guid userId)
     {
-        // TODO: Implement delete profile picture from S3
-        throw new NotImplementedException("Profile picture deletion will be implemented with S3 integration");
+        var user = await _context.Users.FindAsync(userId);
+        
+        if (user == null || string.IsNullOrEmpty(user.ProfilePictureUrl))
+        {
+            return false;
+        }
+
+        try
+        {
+            await _s3Service.DeleteFileAsync(user.ProfilePictureUrl);
+            user.ProfilePictureUrl = null;
+            user.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            
+            _logger.LogInformation("Profile picture deleted successfully for user {UserId}", userId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to delete profile picture for user {UserId}", userId);
+            return false;
+        }
     }
 
     public async Task<bool> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword)

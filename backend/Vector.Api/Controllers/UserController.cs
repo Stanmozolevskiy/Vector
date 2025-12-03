@@ -165,10 +165,97 @@ public class UserController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Upload profile picture
+    /// </summary>
+    /// <param name="file">Image file to upload</param>
+    /// <returns>Profile picture URL</returns>
+    [HttpPost("me/profile-picture")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> UploadProfilePicture(IFormFile file)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+        {
+            return Unauthorized(new { error = "Invalid token" });
+        }
+
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest(new { error = "No file uploaded" });
+        }
+
+        // Validate file type
+        var allowedTypes = new[] { "image/jpeg", "image/jpg", "image/png", "image/gif" };
+        if (!allowedTypes.Contains(file.ContentType.ToLower()))
+        {
+            return BadRequest(new { error = "Invalid file type. Only JPEG, PNG, and GIF are allowed" });
+        }
+
+        // Validate file size (5MB max)
+        if (file.Length > 5 * 1024 * 1024)
+        {
+            return BadRequest(new { error = "File size exceeds 5MB limit" });
+        }
+
+        try
+        {
+            using var stream = file.OpenReadStream();
+            var pictureUrl = await _userService.UploadProfilePictureAsync(userId, stream, file.FileName, file.ContentType);
+            
+            _logger.LogInformation("Profile picture uploaded successfully for user {UserId}: {Url}", userId, pictureUrl);
+            
+            return Ok(new { profilePictureUrl = pictureUrl });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to upload profile picture for user {UserId}", userId);
+            return StatusCode(500, new { error = "Failed to upload profile picture" });
+        }
+    }
+
+    /// <summary>
+    /// Delete profile picture
+    /// </summary>
+    /// <returns>Success message</returns>
+    [HttpDelete("me/profile-picture")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> DeleteProfilePicture()
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+        {
+            return Unauthorized(new { error = "Invalid token" });
+        }
+
+        try
+        {
+            var success = await _userService.DeleteProfilePictureAsync(userId);
+            
+            if (!success)
+            {
+                return NotFound(new { error = "No profile picture to delete" });
+            }
+            
+            _logger.LogInformation("Profile picture deleted successfully for user {UserId}", userId);
+            
+            return Ok(new { message = "Profile picture deleted successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to delete profile picture for user {UserId}", userId);
+            return StatusCode(500, new { error = "Failed to delete profile picture" });
+        }
+    }
+
     // TODO: Implement remaining endpoints
-    // - DELETE /api/users/me
-    // - GET /api/users/:id (public profile)
-    // - POST /api/users/me/profile-picture (requires S3 integration)
-    // - DELETE /api/users/me/profile-picture (requires S3 integration)
+    // - DELETE /api/users/me (delete account)
+    // - GET /api/users/:id (public profile view)
 }
 

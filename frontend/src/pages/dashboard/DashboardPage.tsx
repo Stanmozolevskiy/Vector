@@ -55,26 +55,19 @@ export const DashboardPage = () => {
           </div>
           <div className="nav-menu">
             <div className="user-menu">
-              <div className="user-avatar">{getUserInitials()}</div>
+              <div className="user-avatar">
+                {user?.profilePictureUrl ? (
+                  <img src={user.profilePictureUrl} alt="Profile" />
+                ) : (
+                  <span>{getUserInitials()}</span>
+                )}
+              </div>
               <span>{user?.firstName || user?.email?.split('@')[0] || 'User'}</span>
               <i className="fas fa-chevron-down"></i>
               <div className="dropdown-menu">
                 <Link to={ROUTES.DASHBOARD}><i className="fas fa-tachometer-alt"></i> Dashboard</Link>
                 <Link to={ROUTES.PROFILE}><i className="fas fa-user"></i> Profile</Link>
-                <button onClick={handleLogout} style={{ 
-                  width: '100%', 
-                  background: 'none', 
-                  border: 'none', 
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--spacing-sm)',
-                  padding: 'var(--spacing-sm) var(--spacing-md)',
-                  color: 'var(--text-secondary)',
-                  transition: 'var(--transition)',
-                  font: 'inherit'
-                }}>
+                <button onClick={handleLogout}>
                   <i className="fas fa-sign-out-alt"></i> Logout
                 </button>
               </div>

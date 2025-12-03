@@ -49,8 +49,9 @@ const AdminDashboardPage = () => {
     try {
       const response = await api.get<UserStats>('/admin/stats');
       setStats(response.data);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load statistics');
+    } catch (err) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'Failed to load statistics');
     }
   };
 
@@ -58,8 +59,9 @@ const AdminDashboardPage = () => {
     try {
       const response = await api.get<{ users: UserData[] }>('/admin/users');
       setUsers(response.data.users);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load users');
+    } catch (err) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'Failed to load users');
     } finally {
       setLoading(false);
     }

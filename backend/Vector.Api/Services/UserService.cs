@@ -44,39 +44,39 @@ public class UserService : IUserService
 
         _logger.LogInformation("Updating user {UserId}. Current data: FirstName={FirstName}, LastName={LastName}, PhoneNumber={PhoneNumber}, Location={Location}", 
             userId, user.FirstName, user.LastName, user.PhoneNumber, user.Location);
+        
+        _logger.LogInformation("Received DTO: FirstName={FirstName}, LastName={LastName}, Bio={Bio}, PhoneNumber={PhoneNumber}, Location={Location}",
+            dto.FirstName, dto.LastName, dto.Bio, dto.PhoneNumber, dto.Location);
 
         // Update only provided fields
-        if (dto.FirstName != null)
+        if (!string.IsNullOrWhiteSpace(dto.FirstName))
         {
-            user.FirstName = string.IsNullOrWhiteSpace(dto.FirstName) ? null : dto.FirstName.Trim();
+            user.FirstName = dto.FirstName.Trim();
         }
         
-        if (dto.LastName != null)
+        if (!string.IsNullOrWhiteSpace(dto.LastName))
         {
-            user.LastName = string.IsNullOrWhiteSpace(dto.LastName) ? null : dto.LastName.Trim();
+            user.LastName = dto.LastName.Trim();
         }
         
-        if (dto.Bio != null)
+        if (!string.IsNullOrWhiteSpace(dto.Bio))
         {
-            user.Bio = string.IsNullOrWhiteSpace(dto.Bio) ? null : dto.Bio.Trim();
+            user.Bio = dto.Bio.Trim();
         }
 
-        // IMPORTANT: Update phone and location even if empty string
-        if (dto.PhoneNumber != null)
-        {
-            user.PhoneNumber = string.IsNullOrWhiteSpace(dto.PhoneNumber) ? null : dto.PhoneNumber.Trim();
-            _logger.LogInformation("Setting PhoneNumber to: {PhoneNumber}", user.PhoneNumber);
-        }
+        // IMPORTANT: Always update phone and location (allow clearing)
+        user.PhoneNumber = string.IsNullOrWhiteSpace(dto.PhoneNumber) ? null : dto.PhoneNumber.Trim();
+        _logger.LogInformation("Setting PhoneNumber to: {PhoneNumber}", user.PhoneNumber ?? "NULL");
 
-        if (dto.Location != null)
-        {
-            user.Location = string.IsNullOrWhiteSpace(dto.Location) ? null : dto.Location.Trim();
-            _logger.LogInformation("Setting Location to: {Location}", user.Location);
-        }
+        user.Location = string.IsNullOrWhiteSpace(dto.Location) ? null : dto.Location.Trim();
+        _logger.LogInformation("Setting Location to: {Location}", user.Location ?? "NULL");
 
         user.UpdatedAt = DateTime.UtcNow;
         
         await _context.SaveChangesAsync();
+        
+        _logger.LogInformation("User {UserId} updated successfully. New data: PhoneNumber={PhoneNumber}, Location={Location}", 
+            userId, user.PhoneNumber ?? "NULL", user.Location ?? "NULL");
         
         _logger.LogInformation("User {UserId} updated. New data: FirstName={FirstName}, LastName={LastName}, PhoneNumber={PhoneNumber}, Location={Location}", 
             userId, user.FirstName, user.LastName, user.PhoneNumber, user.Location);

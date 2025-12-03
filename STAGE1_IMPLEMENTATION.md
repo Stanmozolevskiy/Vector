@@ -332,15 +332,13 @@ Before starting, ensure you have:
 - [x] Test edge cases ✅ (invalid roles, last admin deletion)
 - [x] All 60 tests passing ✅
 
-#### Documentation:
-- [x] Create RBAC_ADMIN_GUIDE.md ✅
-  - Default admin credentials
-  - Role system overview
-  - Backend API reference
-  - Frontend implementation guide
-  - Security best practices
-  - Testing instructions
-  - Deployment notes
+#### Database Seeding:
+- [x] Default admin user auto-created on first deployment ✅
+  - Email: `admin@vector.com`
+  - Password: `Admin@123`
+  - Role: `admin`
+  - Email verified: `true`
+- [x] Admin seeder logs credentials to console ✅
 
 **🎉 Day 17-18 100% COMPLETE!**
 

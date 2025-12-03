@@ -282,12 +282,67 @@ Before starting, ensure you have:
 - [x] Add image preview functionality ✅ (Client-side preview + display in header)
 - [x] Fix IAM role permissions ✅ (Added s3:PutObjectAcl to ECS task role)
 
-### Day 17-18: Role-Based Access Control
-- [ ] Implement RBAC middleware
-- [ ] Create role-based route protection
-- [ ] Add role checks in frontend
-- [ ] Create admin dashboard structure
-- [ ] Test role permissions
+### Day 17-18: Role-Based Access Control ✅ COMPLETE
+
+**Status**: ✅ FULLY IMPLEMENTED  
+**Unit Tests**: 60/60 passing ✅  
+**Date Completed**: December 3, 2025
+
+#### Backend RBAC Implementation:
+- [x] Create AuthorizeRole attribute ✅ (`Attributes/AuthorizeRoleAttribute.cs`)
+- [x] Implement role-based endpoint protection ✅ (Checks authentication + role)
+- [x] Create AdminController with protected endpoints ✅
+  - GET /api/admin/users (get all users)
+  - GET /api/admin/stats (user statistics)
+  - PUT /api/admin/users/{id}/role (update user role)
+  - DELETE /api/admin/users/{id} (delete user)
+- [x] Add database seeder for default admin ✅ (`Data/DbSeeder.cs`)
+- [x] Integrate seeding into Program.cs ✅ (Runs after migrations)
+
+#### Default Admin User:
+- [x] **Email**: `admin@vector.com` ✅
+- [x] **Password**: `Admin@123` ✅
+- [x] **⚠️ SECURITY**: Change password after first login!
+- [x] Automatically created on first deployment
+- [x] Protected: Cannot delete last admin user
+
+#### Frontend RBAC Implementation:
+- [x] Add role checking functions to useAuth hook ✅
+  - `hasRole(role)` - Check specific role(s)
+  - `isAdmin`, `isCoach`, `isStudent` - Convenience flags
+- [x] Create ProtectedRoute component ✅ (`components/ProtectedRoute.tsx`)
+  - Supports `requireAuth` (authentication check)
+  - Supports `requiredRole` (role authorization)
+  - Redirects to /unauthorized if access denied
+- [x] Create UnauthorizedPage ✅ (403 error page)
+- [x] Create AdminDashboardPage ✅ (`pages/admin/AdminDashboardPage.tsx`)
+  - User statistics cards
+  - Role breakdown (students, coaches, admins)
+  - All users table with filters
+  - Responsive design
+- [x] Add admin.css styling ✅
+- [x] Add Admin Panel link to navigation ✅
+  - Only visible to admin users
+  - Appears in dropdown menu on Dashboard and Profile pages
+
+#### Testing:
+- [x] Write comprehensive unit tests ✅ (`AdminControllerTests.cs`)
+- [x] Test all admin endpoints ✅ (8 new tests)
+- [x] Test role authorization ✅
+- [x] Test edge cases ✅ (invalid roles, last admin deletion)
+- [x] All 60 tests passing ✅
+
+#### Documentation:
+- [x] Create RBAC_ADMIN_GUIDE.md ✅
+  - Default admin credentials
+  - Role system overview
+  - Backend API reference
+  - Frontend implementation guide
+  - Security best practices
+  - Testing instructions
+  - Deployment notes
+
+**🎉 Day 17-18 100% COMPLETE!**
 
 ### Day 19-20: Automated Testing (Phase 1 - Quick Wins)
 - [ ] Set up Playwright for E2E testing

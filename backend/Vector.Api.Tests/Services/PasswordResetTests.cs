@@ -219,7 +219,7 @@ public class PasswordResetTests : IDisposable
         // Assert
         Assert.False(result);
         
-        var user AfterAttempt = await _context.Users.FindAsync(user.Id);
+        var userAfterAttempt = await _context.Users.FindAsync(user.Id);
         Assert.True(PasswordHasher.VerifyPassword("OldPassword123!", userAfterAttempt!.PasswordHash));
     }
 

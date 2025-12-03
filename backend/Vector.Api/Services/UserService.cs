@@ -33,13 +33,13 @@ public class UserService : IUserService
             .FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
     }
 
-    public async Task<User> UpdateProfileAsync(Guid userId, UpdateProfileDto dto)
+    public async Task<User?> UpdateProfileAsync(Guid userId, UpdateProfileDto dto)
     {
         var user = await _context.Users.FindAsync(userId);
         
         if (user == null)
         {
-            throw new InvalidOperationException("User not found");
+            return null;
         }
 
         _logger.LogInformation("Updating user {UserId}. Current data: FirstName={FirstName}, LastName={LastName}, PhoneNumber={PhoneNumber}, Location={Location}", 
@@ -125,13 +125,13 @@ public class UserService : IUserService
         
         if (user == null)
         {
-            throw new InvalidOperationException("User not found");
+            return false;
         }
 
         // Verify current password
         if (!PasswordHasher.VerifyPassword(currentPassword, user.PasswordHash))
         {
-            throw new UnauthorizedAccessException("Current password is incorrect");
+            return false;
         }
 
         // Update password

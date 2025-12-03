@@ -124,9 +124,10 @@ public class AuthServiceTests : IDisposable
             Id = Guid.NewGuid(),
             Email = "test@example.com",
             PasswordHash = PasswordHasher.HashPassword(password),
-            Role = "User",
+            Role = "student",
             EmailVerified = true,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
         await _context.Users.AddAsync(user);
         await _context.SaveChangesAsync();
@@ -140,6 +141,8 @@ public class AuthServiceTests : IDisposable
         var expectedToken = "test-access-token";
         _jwtServiceMock.Setup(x => x.GenerateAccessToken(user.Id, user.Role))
             .Returns(expectedToken);
+        _jwtServiceMock.Setup(x => x.GenerateRefreshToken())
+            .Returns("test-refresh-token");
 
         // Act
         var result = await _authService.LoginAsync(dto);
@@ -147,6 +150,11 @@ public class AuthServiceTests : IDisposable
         // Assert
         Assert.NotNull(result);
         Assert.Equal(expectedToken, result);
+        
+        // Verify refresh token was created
+        var refreshToken = await _context.RefreshTokens.FirstOrDefaultAsync(rt => rt.UserId == user.Id);
+        Assert.NotNull(refreshToken);
+        Assert.Equal("test-refresh-token", refreshToken.Token);
     }
 
     [Fact]

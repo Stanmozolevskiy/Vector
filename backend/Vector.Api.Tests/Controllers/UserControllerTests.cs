@@ -16,13 +16,15 @@ public class UserControllerTests
 {
     private readonly Mock<IUserService> _userServiceMock;
     private readonly Mock<IJwtService> _jwtServiceMock;
+    private readonly Mock<ILogger<UserController>> _mockLogger;
     private readonly UserController _controller;
 
     public UserControllerTests()
     {
         _userServiceMock = new Mock<IUserService>();
         _jwtServiceMock = new Mock<IJwtService>();
-        _controller = new UserController(_userServiceMock.Object, _jwtServiceMock.Object);
+        _mockLogger = new Mock<ILogger<UserController>>();
+        _controller = new UserController(_userServiceMock.Object, _jwtServiceMock.Object, _mockLogger.Object);
     }
 
     [Fact]

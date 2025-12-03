@@ -330,19 +330,51 @@
 .dropdown-menu {
     display: none;
     position: absolute;
-    top: calc(100% + 0.5rem);
+    top: 100%;
     right: 0;
+    /* Add transparent padding to bridge the gap */
+    padding-top: 0.5rem;
+    min-width: 200px;
+    z-index: 1000;
+}
+
+/* Transparent bridge area above dropdown */
+.dropdown-menu::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 0.5rem;
+    background: transparent;
+}
+
+/* Actual dropdown content */
+.dropdown-menu::after {
+    content: '';
+    position: absolute;
+    top: 0.5rem;
+    left: 0;
+    right: 0;
+    bottom: 0;
     background: var(--bg-white);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-lg);
-    min-width: 200px;
-    z-index: 1000;
-    overflow: hidden;
+    z-index: -1;
 }
 
-.user-menu:hover .dropdown-menu {
+/* Show dropdown when hovering over user menu OR dropdown itself */
+.user-menu:hover .dropdown-menu,
+.dropdown-menu:hover {
     display: block;
+}
+
+/* Position dropdown links above the background */
+.dropdown-menu a,
+.dropdown-menu button {
+    position: relative;
+    z-index: 1;
 }
 
 .dropdown-menu a,

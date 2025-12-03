@@ -29,6 +29,10 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
             entity.Property(e => e.PasswordHash).IsRequired();
             entity.Property(e => e.Role).HasMaxLength(20).HasDefaultValue("student");
+            entity.Property(e => e.FirstName).HasMaxLength(100);
+            entity.Property(e => e.LastName).HasMaxLength(100);
+            entity.Property(e => e.PhoneNumber).HasMaxLength(20);
+            entity.Property(e => e.Location).HasMaxLength(200);
         });
 
         // Configure Subscription entity

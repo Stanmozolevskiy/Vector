@@ -1,40 +1,49 @@
+import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { ROUTES } from '../utils/constants';
 
 interface ProtectedRouteProps {
-  children: React.ReactNode;
+  children: ReactNode;
+  requiredRole?: string | string[];
   requireAuth?: boolean;
-  requireUnauth?: boolean;
 }
 
-export const ProtectedRoute = ({ 
+/**
+ * Protected Route Component
+ * Handles authentication and role-based access control
+ */
+const ProtectedRoute = ({ 
   children, 
-  requireAuth = true,
-  requireUnauth = false 
+  requiredRole,
+  requireAuth = true 
 }: ProtectedRouteProps) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, hasRole } = useAuth();
 
+  // Show loading state while checking auth
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <i className="fas fa-spinner fa-spin text-4xl text-blue-600 mb-4"></i>
-          <p className="text-gray-600">Loading...</p>
-        </div>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh' 
+      }}>
+        <div className="loading-spinner">Loading...</div>
       </div>
     );
   }
 
-  // Require authentication
+  // Check authentication
   if (requireAuth && !isAuthenticated) {
-    return <Navigate to={ROUTES.LOGIN} replace />;
+    return <Navigate to="/login" replace />;
   }
 
-  // Require NOT authenticated (e.g., login/register pages)
-  if (requireUnauth && isAuthenticated) {
-    return <Navigate to={ROUTES.DASHBOARD} replace />;
+  // Check role authorization
+  if (requiredRole && !hasRole(requiredRole)) {
+    return <Navigate to="/unauthorized" replace />;
   }
 
   return <>{children}</>;
 };
+
+export default ProtectedRoute;

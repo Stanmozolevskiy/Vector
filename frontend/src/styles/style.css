@@ -109,7 +109,8 @@ input, button, textarea, select {
 .navbar {
     background: var(--bg-white);
     border-bottom: 1px solid var(--border-color);
-    padding: 1rem 0; /* Increased from 0.5rem for better button vertical centering */
+    padding: 1rem 0;
+    margin: 0; /* Ensure no margin creates gaps */
     position: sticky;
     top: 0;
     z-index: 1000;

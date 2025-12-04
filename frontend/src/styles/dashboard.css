@@ -299,15 +299,17 @@
     opacity: 0.7;
 }
 
+/* User Menu - Trigger Button */
 .user-menu {
-    position: relative;
+    position: relative; /* ← CRITICAL: Positioning context for dropdown */
     display: flex;
     align-items: center;
     gap: 0.5rem;
     cursor: pointer;
-    padding: 0.5rem var(--spacing-sm);
+    padding: 0.5rem 0.75rem;
     border-radius: var(--radius-md);
     transition: var(--transition);
+    margin-right: 0; /* Ensure no extra spacing */
 }
 
 .user-menu:hover {
@@ -336,76 +338,92 @@
     display: block;
 }
 
+/* Dropdown Menu - Clean, modern implementation */
 .dropdown-menu {
     display: none;
     position: absolute;
-    top: 100%;
-    right: 0;
-    /* Add transparent padding to bridge the gap */
-    padding-top: 0.5rem;
-    min-width: 200px;
-    z-index: 1000;
-}
-
-/* Transparent bridge area above dropdown */
-.dropdown-menu::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 0.5rem;
-    background: transparent;
-}
-
-/* Actual dropdown content */
-.dropdown-menu::after {
-    content: '';
-    position: absolute;
-    top: 0.5rem;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    top: calc(100% + 0.25rem); /* Slight offset for visual separation */
+    right: 0; /* Align to right edge of user-menu */
+    min-width: 220px;
     background: var(--bg-white);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
-    box-shadow: var(--shadow-lg);
-    z-index: -1;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 0 1px rgba(0, 0, 0, 0.05);
+    padding: 0.5rem 0; /* Top/bottom padding for dropdown items */
+    z-index: 9999; /* Above everything else */
+    overflow: hidden; /* Clip items to rounded corners */
 }
 
-/* Show dropdown when hovering over user menu OR dropdown itself */
+/* Show dropdown on hover - with bridge zone */
 .user-menu:hover .dropdown-menu,
 .dropdown-menu:hover {
     display: block;
 }
 
-/* Position dropdown links above the background */
+/* Create invisible bridge to prevent dropdown from disappearing */
+.user-menu::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 100%;
+    height: 0.25rem; /* Small bridge gap */
+    background: transparent;
+    pointer-events: auto;
+}
+
+/* Dropdown Menu Items - Clean styling */
 .dropdown-menu a,
 .dropdown-menu button {
     position: relative;
-    z-index: 1;
-}
-
-.dropdown-menu a,
-.dropdown-menu button {
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
     width: 100%;
-    padding: var(--spacing-sm) var(--spacing-md);
+    padding: 0.625rem 1rem; /* Comfortable padding */
     color: var(--text-secondary);
+    font-size: 0.9375rem;
     text-decoration: none;
     text-align: left;
-    transition: var(--transition);
+    transition: all 0.15s ease-in-out;
     border: none;
     background: none;
-    font: inherit;
+    font-family: inherit;
+    font-weight: 500;
     cursor: pointer;
+    z-index: 1;
+}
+
+.dropdown-menu a:first-child {
+    margin-top: 0; /* No extra margin on first item */
+}
+
+.dropdown-menu a:last-child,
+.dropdown-menu button:last-child {
+    margin-bottom: 0; /* No extra margin on last item */
 }
 
 .dropdown-menu a:hover,
 .dropdown-menu button:hover {
     background: var(--bg-gray-50);
+    color: var(--primary-color);
+}
+
+.dropdown-menu a:active,
+.dropdown-menu button:active {
+    background: var(--bg-gray-100);
+}
+
+/* Icon styling in dropdown */
+.dropdown-menu a i,
+.dropdown-menu button i {
+    width: 1rem;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.dropdown-menu a:hover i,
+.dropdown-menu button:hover i {
     color: var(--primary-color);
 }
 

@@ -16,6 +16,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<EmailVerification> EmailVerifications { get; set; }
     public DbSet<PasswordReset> PasswordResets { get; set; }
     public DbSet<RefreshToken> RefreshTokens { get; set; }
+    public DbSet<MockInterview> MockInterviews { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -92,6 +93,16 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(e => e.Token).IsUnique();
+        });
+
+        // Configure MockInterview entity
+        modelBuilder.Entity<MockInterview>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.VideoUrl).IsRequired();
+            entity.Property(e => e.Category).HasMaxLength(50);
+            entity.Property(e => e.Difficulty).HasMaxLength(20).HasDefaultValue("Medium");
         });
     }
 }

@@ -190,6 +190,30 @@ export const DashboardPage = () => {
 
             {/* Right Column */}
             <div className="dashboard-sidebar">
+              {/* Watch Mock Interview */}
+              <div className="dashboard-card">
+                <h2>Watch Mock Interview</h2>
+                <div className="video-container">
+                  <video 
+                    controls 
+                    style={{ width: '100%', borderRadius: '8px', marginBottom: '1rem' }}
+                    poster="https://via.placeholder.com/640x360/667eea/ffffff?text=Mock+Interview"
+                  >
+                    <source 
+                      src="https://dev-vector-user-uploads.s3.us-east-1.amazonaws.com/videos/mock-interviews/what-is-exponent.mp4" 
+                      type="video/mp4" 
+                    />
+                    Your browser does not support the video tag.
+                  </video>
+                  <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem', color: 'var(--text-primary)' }}>
+                    What Is Exponent? - Introduction to Mock Interviews
+                  </h4>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', margin: '0' }}>
+                    Learn how to prepare for technical interviews effectively with this introduction to mock interviews.
+                  </p>
+                </div>
+              </div>
+
               {/* Upcoming Mock Interviews */}
               <div className="dashboard-card">
                 <h2>Upcoming Interviews</h2>

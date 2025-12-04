@@ -109,7 +109,7 @@ input, button, textarea, select {
 .navbar {
     background: var(--bg-white);
     border-bottom: 1px solid var(--border-color);
-    padding: var(--spacing-sm) 0;
+    padding: 1rem 0; /* Increased from 0.5rem for better button vertical centering */
     position: sticky;
     top: 0;
     z-index: 1000;
@@ -120,6 +120,7 @@ input, button, textarea, select {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    min-height: 48px; /* Ensures consistent navbar height */
 }
 
 .nav-brand a {
@@ -129,6 +130,7 @@ input, button, textarea, select {
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--primary-color);
+    text-decoration: none;
 }
 
 .nav-brand i {
@@ -138,18 +140,34 @@ input, button, textarea, select {
 .nav-menu {
     display: flex;
     align-items: center;
-    gap: var(--spacing-md);
+    gap: 0.75rem; /* Spacing between buttons */
+    margin-right: 0.5rem; /* Space from right edge */
 }
 
-.nav-menu a {
+/* Remove generic nav-menu anchor styles for buttons */
+.nav-menu a:not(.btn-primary):not(.btn-secondary):not(.btn-outline) {
     font-weight: 500;
     color: var(--text-secondary);
     padding: 0.5rem 0;
     transition: var(--transition);
 }
 
-.nav-menu a:hover {
+.nav-menu a:not(.btn-primary):not(.btn-secondary):not(.btn-outline):hover {
     color: var(--primary-color);
+}
+
+/* Navbar-specific button styles */
+.nav-menu .btn-secondary,
+.nav-menu .btn-primary {
+    padding: 0.625rem 1.5rem; /* 10px × 24px - balanced padding */
+    font-size: 0.9375rem; /* 15px - slightly smaller for navbar */
+    font-weight: 600;
+    min-height: 40px; /* Consistent clickable area */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    text-decoration: none;
 }
 
 .nav-toggle {
@@ -165,33 +183,63 @@ input, button, textarea, select {
 .btn-primary, .btn-secondary, .btn-outline {
     display: inline-block;
     padding: 0.75rem 1.5rem;
-    border-radius: var(--radius-md);
+    border-radius: 8px; /* Consistent border radius */
     font-weight: 600;
+    font-size: 1rem;
     text-align: center;
     cursor: pointer;
     border: none;
-    transition: var(--transition);
+    transition: all 0.2s ease-in-out;
+    text-decoration: none;
+    line-height: 1.5;
 }
 
+/* Primary Button - Clear visual hierarchy */
 .btn-primary {
     background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
     color: white;
+    box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
 }
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
+.btn-primary:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+/* Secondary Button - Subtle outline style */
 .btn-secondary {
-    background: var(--bg-gray-100);
+    background: white;
     color: var(--text-primary);
+    border: 1.5px solid var(--border-color);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .btn-secondary:hover {
-    background: var(--bg-gray-200);
+    background: var(--bg-gray-50);
+    border-color: var(--text-secondary);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+.btn-secondary:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+    border-color: var(--primary-color);
+}
+
+.btn-secondary:active {
+    background: var(--bg-gray-100);
+}
+
+/* Outline Button */
 .btn-outline {
     background: transparent;
     border: 2px solid var(--primary-color);
@@ -203,6 +251,12 @@ input, button, textarea, select {
     color: white;
 }
 
+.btn-outline:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* Button Sizes */
 .btn-large {
     padding: 1rem 2rem;
     font-size: 1.125rem;
@@ -838,10 +892,19 @@ input, button, textarea, select {
         flex-direction: column;
         padding: var(--spacing-md);
         box-shadow: var(--shadow-lg);
+        gap: 0.5rem; /* Stack buttons vertically */
     }
     
     .nav-menu.active {
         display: flex;
+    }
+    
+    /* Mobile: Full-width buttons, proper spacing */
+    .nav-menu .btn-secondary,
+    .nav-menu .btn-primary {
+        width: 100%;
+        justify-content: center;
+        padding: 0.75rem 1.5rem; /* Larger tap target on mobile */
     }
     
     .nav-toggle {

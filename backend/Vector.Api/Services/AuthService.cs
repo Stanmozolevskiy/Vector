@@ -392,22 +392,156 @@ public class AuthService : IAuthService
         return true;
     }
 
-    public Task<bool> LogoutAsync(Guid userId)
+    public async Task<bool> LogoutAsync(Guid userId)
     {
-        // TODO: Implement logout
-        throw new NotImplementedException();
+        try
+        {
+            // Revoke all active refresh tokens for this user
+            var activeTokens = await _context.RefreshTokens
+                .Where(rt => rt.UserId == userId && !rt.IsRevoked && rt.ExpiresAt > DateTime.UtcNow)
+                .ToListAsync();
+
+            foreach (var token in activeTokens)
+            {
+                token.IsRevoked = true;
+                token.RevokedAt = DateTime.UtcNow;
+            }
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("User {UserId} logged out successfully. Revoked {TokenCount} refresh token(s)", 
+                userId, activeTokens.Count);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to logout user {UserId}", userId);
+            throw;
+        }
     }
 
-    public Task<string> RefreshTokenAsync(string refreshToken)
+    public async Task<string> RefreshTokenAsync(string refreshToken)
     {
-        // TODO: Implement refresh token
-        throw new NotImplementedException();
+        try
+        {
+            // Validate and decode the refresh token
+            var tokenClaims = _jwtService.ValidateRefreshToken(refreshToken);
+            if (tokenClaims == null)
+            {
+                _logger.LogWarning("Invalid refresh token provided");
+                throw new UnauthorizedAccessException("Invalid refresh token");
+            }
+
+            var userIdClaim = tokenClaims.FindFirst("nameid")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                _logger.LogWarning("Invalid user ID in refresh token");
+                throw new UnauthorizedAccessException("Invalid refresh token");
+            }
+
+            // Find the refresh token in database
+            var storedToken = await _context.RefreshTokens
+                .Include(rt => rt.User)
+                .FirstOrDefaultAsync(rt => rt.Token == refreshToken && !rt.IsRevoked);
+
+            if (storedToken == null)
+            {
+                _logger.LogWarning("Refresh token not found or already revoked for user {UserId}", userId);
+                throw new UnauthorizedAccessException("Invalid or revoked refresh token");
+            }
+
+            // Check if token is expired
+            if (storedToken.ExpiresAt <= DateTime.UtcNow)
+            {
+                _logger.LogWarning("Refresh token expired for user {UserId}", userId);
+                throw new UnauthorizedAccessException("Refresh token has expired");
+            }
+
+            // Verify user still exists and is active
+            var user = storedToken.User;
+            if (user == null)
+            {
+                _logger.LogWarning("User not found for refresh token");
+                throw new UnauthorizedAccessException("User not found");
+            }
+
+            // ROTATION: Revoke the old refresh token
+            storedToken.IsRevoked = true;
+            storedToken.RevokedAt = DateTime.UtcNow;
+
+            // Generate new access token
+            var newAccessToken = _jwtService.GenerateAccessToken(user.Id, user.Role);
+
+            // Generate new refresh token (rotation)
+            var newRefreshToken = _jwtService.GenerateRefreshToken(user.Id);
+
+            // Store new refresh token in database
+            var newRefreshTokenRecord = new RefreshToken
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                Token = newRefreshToken,
+                ExpiresAt = DateTime.UtcNow.AddDays(7),
+                CreatedAt = DateTime.UtcNow,
+                IsRevoked = false
+            };
+
+            _context.RefreshTokens.Add(newRefreshTokenRecord);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Refresh token rotated successfully for user {UserId}", userId);
+
+            return newAccessToken;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            throw; // Re-throw auth exceptions
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to refresh token");
+            throw new UnauthorizedAccessException("Failed to refresh token", ex);
+        }
     }
 
-    public Task<string> GetLatestRefreshTokenAsync(string oldRefreshToken)
+    public async Task<string> GetLatestRefreshTokenAsync(string oldRefreshToken)
     {
-        // TODO: Implement getting latest refresh token from Redis
-        throw new NotImplementedException();
+        try
+        {
+            // Validate old token
+            var tokenClaims = _jwtService.ValidateRefreshToken(oldRefreshToken);
+            if (tokenClaims == null)
+            {
+                throw new UnauthorizedAccessException("Invalid refresh token");
+            }
+
+            var userIdClaim = tokenClaims.FindFirst("nameid")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                throw new UnauthorizedAccessException("Invalid user ID in token");
+            }
+
+            // Get the most recent non-revoked refresh token for this user
+            var latestToken = await _context.RefreshTokens
+                .Where(rt => rt.UserId == userId && !rt.IsRevoked && rt.ExpiresAt > DateTime.UtcNow)
+                .OrderByDescending(rt => rt.CreatedAt)
+                .Select(rt => rt.Token)
+                .FirstOrDefaultAsync();
+
+            if (latestToken == null)
+            {
+                _logger.LogWarning("No valid refresh token found for user {UserId}", userId);
+                throw new UnauthorizedAccessException("No valid refresh token found");
+            }
+
+            return latestToken;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get latest refresh token");
+            throw new UnauthorizedAccessException("Failed to get latest refresh token", ex);
+        }
     }
 }
 

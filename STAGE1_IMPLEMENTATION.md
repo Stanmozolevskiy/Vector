@@ -356,7 +356,7 @@ Before starting, ensure you have:
 - [ ] Add test reports and screenshots on failure
 - [ ] Configure test database for E2E tests
 
-### Day 21: Redis Implementation for Token Management
+### Day 21: Redis Implementation for Token Management Store token in Redis
 - [ ] Create Redis service wrapper (IRedisService)
 - [ ] Implement Redis connection pooling
 - [ ] Store refresh tokens in Redis instead of PostgreSQL

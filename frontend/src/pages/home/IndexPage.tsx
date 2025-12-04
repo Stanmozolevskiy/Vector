@@ -53,11 +53,6 @@ export const IndexPage = () => {
                   <video 
                     controls 
                     poster="https://via.placeholder.com/640x360/667eea/ffffff?text=Watch+Mock+Interview"
-                    style={{ 
-                      width: '100%', 
-                      borderRadius: '12px',
-                      boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
-                    }}
                   >
                     <source 
                       src="https://dev-vector-user-uploads.s3.us-east-1.amazonaws.com/videos/mock-interviews/what-is-exponent.mp4" 
@@ -65,15 +60,16 @@ export const IndexPage = () => {
                     />
                     Your browser does not support the video tag.
                   </video>
-                  <p style={{ 
-                    marginTop: '1rem', 
-                    textAlign: 'center', 
-                    color: 'var(--text-secondary)',
-                    fontSize: '0.875rem'
-                  }}>
-                    What Is Exponent? - Introduction to Mock Interviews
-                  </p>
                 </div>
+                <p style={{ 
+                  marginTop: '1rem', 
+                  textAlign: 'center', 
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.875rem',
+                  lineHeight: '1.4'
+                }}>
+                  What Is Exponent? - Introduction to Mock Interviews
+                </p>
               </div>
             </div>
           </div>

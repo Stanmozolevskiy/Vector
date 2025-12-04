@@ -234,9 +234,6 @@ export const ProfilePage = () => {
               <div className="dropdown-menu">
                 <Link to={ROUTES.DASHBOARD}><i className="fas fa-tachometer-alt"></i> Dashboard</Link>
                 <Link to={ROUTES.PROFILE}><i className="fas fa-user"></i> Profile</Link>
-                {user?.role === 'admin' && (
-                  <Link to="/admin"><i className="fas fa-shield-alt"></i> Admin Panel</Link>
-                )}
                 <button onClick={handleLogout}>
                   <i className="fas fa-sign-out-alt"></i> Logout
                 </button>

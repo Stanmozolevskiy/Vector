@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './hooks/useAuth.tsx';
-import ProtectedRoute from './components/ProtectedRoute';
+import { ProtectedRoute } from './components/ProtectedRoute';
 import { IndexPage } from './pages/home/IndexPage';
 import { LoginPage } from './pages/auth/LoginPage';
 import { RegisterPage } from './pages/auth/RegisterPage';
@@ -10,8 +10,6 @@ import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 import { ResendVerificationPage } from './pages/auth/ResendVerificationPage';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { ProfilePage } from './pages/profile/ProfilePage';
-import AdminDashboardPage from './pages/admin/AdminDashboardPage';
-import UnauthorizedPage from './pages/UnauthorizedPage';
 import { ROUTES } from './utils/constants';
 
 function App() {
@@ -41,16 +39,6 @@ function App() {
             <ProfilePage />
           </ProtectedRoute>
         } />
-        
-        {/* Admin routes (require admin role) */}
-        <Route path="/admin" element={
-          <ProtectedRoute requireAuth requiredRole="admin">
-            <AdminDashboardPage />
-          </ProtectedRoute>
-        } />
-        
-        {/* Unauthorized page */}
-        <Route path="/unauthorized" element={<UnauthorizedPage />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

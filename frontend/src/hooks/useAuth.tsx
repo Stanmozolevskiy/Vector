@@ -25,10 +25,6 @@ interface AuthContextType {
   logout: () => Promise<void>;
   isAuthenticated: boolean;
   isLoading: boolean;
-  hasRole: (role: string | string[]) => boolean;
-  isAdmin: boolean;
-  isCoach: boolean;
-  isStudent: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -83,13 +79,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Role checking functions
-  const hasRole = (role: string | string[]): boolean => {
-    if (!user) return false;
-    const roles = Array.isArray(role) ? role : [role];
-    return roles.some(r => user.role.toLowerCase() === r.toLowerCase());
-  };
-
   const value = {
     user,
     login,
@@ -97,10 +86,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     logout,
     isAuthenticated: !!user,
     isLoading,
-    hasRole,
-    isAdmin: user?.role.toLowerCase() === 'admin',
-    isCoach: user?.role.toLowerCase() === 'coach',
-    isStudent: user?.role.toLowerCase() === 'student',
   };
 
   return (

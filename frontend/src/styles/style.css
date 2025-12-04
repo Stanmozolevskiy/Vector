@@ -274,25 +274,80 @@ input, button, textarea, select {
     font-size: 1.25rem;
 }
 
+/* Hero Image Container - Ensures no overflow */
+.hero-image {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+/* White Card Container - Base layer */
 .hero-card {
+    position: relative;
     background: var(--bg-white);
     border-radius: var(--radius-xl);
     padding: var(--spacing-lg);
     box-shadow: var(--shadow-xl);
+    overflow: hidden; /* Prevents any child overflow */
+    z-index: 1;
 }
 
+/* Purple Gradient Background - Behind video when no video present */
 .mock-interview-preview {
+    position: relative;
+    width: 100%;
     aspect-ratio: 16/9;
-    background: linear-gradient(135deg, var(--primary-light), var(--secondary-color));
     border-radius: var(--radius-lg);
+    overflow: hidden; /* Critical: clips video to rounded corners */
     display: flex;
     align-items: center;
     justify-content: center;
+    background: linear-gradient(135deg, var(--primary-light), var(--secondary-color));
+    z-index: 2;
 }
 
+/* Video Element - Removes gradient background when video present */
+.mock-interview-preview video {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Maintains 16:9, fills container */
+    border-radius: var(--radius-lg);
+    display: block; /* Removes inline-block spacing */
+    background: #000; /* Black background for video loading */
+    z-index: 3;
+}
+
+/* Override gradient when video is present */
+.mock-interview-preview:has(video) {
+    background: transparent; /* Removes gradient when video exists */
+}
+
+/* Video Caption - Below video, never overlapping */
+.mock-interview-preview p {
+    position: relative;
+    margin-top: var(--spacing-sm);
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    line-height: 1.4;
+    padding: 0 var(--spacing-sm);
+    word-wrap: break-word;
+    z-index: 4;
+}
+
+/* Placeholder for when no video */
 .video-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     text-align: center;
     color: white;
+    z-index: 2;
 }
 
 .video-placeholder i {
@@ -304,6 +359,11 @@ input, button, textarea, select {
 
 .video-placeholder i:hover {
     transform: scale(1.1);
+}
+
+/* Hide placeholder when video is playing */
+.mock-interview-preview:has(video) .video-placeholder {
+    display: none;
 }
 
 /* ===========================
@@ -740,10 +800,24 @@ input, button, textarea, select {
 @media (max-width: 968px) {
     .hero-content {
         grid-template-columns: 1fr;
+        gap: var(--spacing-lg);
     }
     
     .hero-text h1 {
         font-size: 2.5rem;
+    }
+    
+    /* Ensure video container doesn't overflow on tablet */
+    .hero-image {
+        max-width: 100%;
+    }
+    
+    .hero-card {
+        padding: var(--spacing-md);
+    }
+    
+    .mock-interview-preview {
+        max-width: 100%;
     }
     
     .features-grid, .courses-grid, .testimonials-grid {
@@ -792,6 +866,19 @@ input, button, textarea, select {
     
     .hero-subtitle {
         font-size: 1rem;
+    }
+    
+    /* Mobile: Reduce padding, ensure no overflow */
+    .hero-card {
+        padding: var(--spacing-sm);
+    }
+    
+    .mock-interview-preview {
+        border-radius: var(--radius-md);
+    }
+    
+    .mock-interview-preview video {
+        border-radius: var(--radius-md);
     }
     
     .trust-indicators {

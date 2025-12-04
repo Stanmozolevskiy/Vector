@@ -1,53 +1,40 @@
-import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { ROUTES } from '../utils/constants';
 
 interface ProtectedRouteProps {
-  children: ReactNode;
-  requiredRole?: string | string[];
+  children: React.ReactNode;
   requireAuth?: boolean;
+  requireUnauth?: boolean;
 }
 
-/**
- * Protected Route Component
- * Handles authentication and role-based access control
- * 
- * @param children - Child components to render if authorized
- * @param requiredRole - Required role(s) to access this route (optional)
- * @param requireAuth - Require authentication (default: true)
- */
-const ProtectedRoute = ({ 
+export const ProtectedRoute = ({ 
   children, 
-  requiredRole,
-  requireAuth = true 
+  requireAuth = true,
+  requireUnauth = false 
 }: ProtectedRouteProps) => {
-  const { isAuthenticated, isLoading, hasRole } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
 
-  // Show loading state while checking auth
   if (isLoading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh' 
-      }}>
-        <div className="loading-spinner">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <i className="fas fa-spinner fa-spin text-4xl text-blue-600 mb-4"></i>
+          <p className="text-gray-600">Loading...</p>
+        </div>
       </div>
     );
   }
 
-  // Check authentication
+  // Require authentication
   if (requireAuth && !isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={ROUTES.LOGIN} replace />;
   }
 
-  // Check role authorization
-  if (requiredRole && !hasRole(requiredRole)) {
-    return <Navigate to="/unauthorized" replace />;
+  // Require NOT authenticated (e.g., login/register pages)
+  if (requireUnauth && isAuthenticated) {
+    return <Navigate to={ROUTES.DASHBOARD} replace />;
   }
 
   return <>{children}</>;
 };
-
-export default ProtectedRoute;

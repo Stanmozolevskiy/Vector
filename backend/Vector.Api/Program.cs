@@ -188,10 +188,6 @@ using (var scope = app.Services.CreateScope())
         {
             logger.LogInformation("Database is up to date. No migrations needed.");
         }
-
-        // Seed database with initial data (admin user, etc.)
-        logger.LogInformation("Checking for database seeding requirements...");
-        await DbSeeder.SeedDatabase(db, logger);
     }
     catch (Exception ex)
     {

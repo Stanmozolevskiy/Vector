@@ -50,10 +50,29 @@ export const IndexPage = () => {
             <div className="hero-image">
               <div className="hero-card">
                 <div className="mock-interview-preview">
-                  <div className="video-placeholder">
-                    <i className="fas fa-play-circle"></i>
-                    <p>Watch Mock Interview</p>
-                  </div>
+                  <video 
+                    controls 
+                    poster="https://via.placeholder.com/640x360/667eea/ffffff?text=Watch+Mock+Interview"
+                    style={{ 
+                      width: '100%', 
+                      borderRadius: '12px',
+                      boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
+                    }}
+                  >
+                    <source 
+                      src="https://dev-vector-user-uploads.s3.us-east-1.amazonaws.com/videos/mock-interviews/what-is-exponent.mp4" 
+                      type="video/mp4" 
+                    />
+                    Your browser does not support the video tag.
+                  </video>
+                  <p style={{ 
+                    marginTop: '1rem', 
+                    textAlign: 'center', 
+                    color: 'var(--text-secondary)',
+                    fontSize: '0.875rem'
+                  }}>
+                    What Is Exponent? - Introduction to Mock Interviews
+                  </p>
                 </div>
               </div>
             </div>

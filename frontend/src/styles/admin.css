@@ -149,6 +149,30 @@
   overflow-x: auto;
 }
 
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.status-pending {
+  background: #ffc107;
+  color: #000;
+}
+
+.status-badge.status-approved {
+  background: #28a745;
+  color: white;
+}
+
+.status-badge.status-rejected {
+  background: #dc3545;
+  color: white;
+}
+
 .admin-table {
   width: 100%;
   border-collapse: collapse;

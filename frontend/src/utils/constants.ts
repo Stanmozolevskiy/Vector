@@ -10,4 +10,6 @@ export const ROUTES = {
   RESET_PASSWORD: '/reset-password',
   RESEND_VERIFICATION: '/resend-verification',
   PROFILE: '/profile',
+  COACH_APPLY: '/coach/apply',
+  ADMIN: '/admin',
 };

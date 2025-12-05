@@ -11,6 +11,7 @@ import { ResendVerificationPage } from './pages/auth/ResendVerificationPage';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { ProfilePage } from './pages/profile/ProfilePage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import CoachApplicationPage from './pages/coach/CoachApplicationPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
 import { ROUTES } from './utils/constants';
 
@@ -41,9 +42,14 @@ function App() {
             <ProfilePage />
           </ProtectedRoute>
         } />
+        <Route path={ROUTES.COACH_APPLY} element={
+          <ProtectedRoute requireAuth>
+            <CoachApplicationPage />
+          </ProtectedRoute>
+        } />
         
         {/* Admin routes (require admin role) */}
-        <Route path="/admin" element={
+        <Route path={ROUTES.ADMIN} element={
           <ProtectedRoute requireAuth requiredRole="admin">
             <AdminDashboardPage />
           </ProtectedRoute>

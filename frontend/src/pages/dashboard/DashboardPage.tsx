@@ -224,6 +224,17 @@ export const DashboardPage = () => {
                 <Link to={ROUTES.DASHBOARD} className="btn-outline btn-full">Schedule Interview</Link>
               </div>
 
+              {/* Become a Coach */}
+              {user?.role === 'student' && (
+                <div className="dashboard-card">
+                  <h2>Become a Coach</h2>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '1rem' }}>
+                    Share your expertise and help students prepare for technical interviews.
+                  </p>
+                  <Link to="/coach/apply" className="btn-primary btn-full">Apply to Become a Coach</Link>
+                </div>
+              )}
+
               {/* Recent Achievements */}
               <div className="dashboard-card">
                 <h2>Recent Achievements</h2>

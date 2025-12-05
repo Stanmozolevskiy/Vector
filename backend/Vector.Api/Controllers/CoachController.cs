@@ -47,17 +47,7 @@ public class CoachController : ControllerBase
 
             var application = await _coachService.SubmitApplicationAsync(userId.Value, dto);
 
-            var response = new CoachApplicationResponseDto
-            {
-                Id = application.Id,
-                UserId = application.UserId,
-                Motivation = application.Motivation,
-                Experience = application.Experience,
-                Specialization = application.Specialization,
-                Status = application.Status,
-                CreatedAt = application.CreatedAt,
-                UpdatedAt = application.UpdatedAt
-            };
+            var response = MapToResponseDto(await _coachService.GetApplicationByUserIdAsync(userId.Value));
 
             return StatusCode(201, response);
         }
@@ -107,6 +97,60 @@ public class CoachController : ControllerBase
         {
             _logger.LogError(ex, "Error retrieving coach application");
             return StatusCode(500, new { error = "An error occurred while retrieving your application." });
+        }
+    }
+
+    /// <summary>
+    /// Upload images for coach application (portfolio, certificates, etc.)
+    /// </summary>
+    [HttpPost("upload-image")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> UploadImage(IFormFile file)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == null)
+        {
+            return Unauthorized(new { error = "Invalid token" });
+        }
+
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest(new { error = "No file uploaded" });
+        }
+
+        // Validate file type
+        var allowedTypes = new[] { "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp" };
+        if (!allowedTypes.Contains(file.ContentType.ToLower()))
+        {
+            return BadRequest(new { error = "Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed" });
+        }
+
+        // Validate file size (10MB max for portfolio images)
+        if (file.Length > 10 * 1024 * 1024)
+        {
+            return BadRequest(new { error = "File size exceeds 10MB limit" });
+        }
+
+        try
+        {
+            using var stream = file.OpenReadStream();
+            var imageUrl = await _s3Service.UploadFileAsync(
+                stream, 
+                file.FileName, 
+                file.ContentType, 
+                "coach-applications"
+            );
+
+            _logger.LogInformation("Coach application image uploaded successfully for user {UserId}: {Url}", userId, imageUrl);
+
+            return Ok(new { imageUrl });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to upload coach application image for user {UserId}", userId);
+            return StatusCode(500, new { error = "Failed to upload image" });
         }
     }
 

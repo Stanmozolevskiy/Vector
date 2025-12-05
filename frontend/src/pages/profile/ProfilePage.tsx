@@ -494,7 +494,7 @@ export const ProfilePage = () => {
                       Share your expertise and help students prepare for technical interviews. Apply to become a coach on Vector.
                     </p>
                     <Link 
-                      to={ROUTES.COACH_APPLICATION}
+                      to={ROUTES.COACH_APPLY}
                       className="btn-primary"
                       style={{ display: 'inline-block' }}
                     >

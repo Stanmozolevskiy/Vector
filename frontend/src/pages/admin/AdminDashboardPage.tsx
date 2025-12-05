@@ -38,6 +38,8 @@ interface UserData {
 const AdminDashboardPage = () => {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<'users' | 'coach-applications'>('users');
+  const [applicationTab, setApplicationTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
+  const [expandedApps, setExpandedApps] = useState<Set<string>>(new Set());
   const [stats, setStats] = useState<UserStats | null>(null);
   const [users, setUsers] = useState<UserData[]>([]);
   const [coachApplications, setCoachApplications] = useState<CoachApplication[]>([]);
@@ -437,105 +439,130 @@ const AdminDashboardPage = () => {
                       </div>
                     )}
 
-                    {app.imageUrls && app.imageUrls.length > 0 && (
-                      <div style={{ marginBottom: '1rem' }}>
-                        <strong>Portfolio Images:</strong>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem', marginTop: '0.5rem' }}>
-                          {app.imageUrls.map((url, index) => (
-                            <img
-                              key={index}
-                              src={url}
-                              alt={`Portfolio ${index + 1}`}
-                              style={{
-                                width: '100%',
-                                height: '200px',
-                                objectFit: 'cover',
-                                borderRadius: '8px',
-                                border: '1px solid #ddd',
-                                cursor: 'pointer',
-                              }}
-                              onClick={() => window.open(url, '_blank')}
-                            />
-                          ))}
-                        </div>
+                            <div style={{ marginBottom: '1rem' }}>
+                              <strong>Motivation:</strong>
+                              <p style={{ marginTop: '0.5rem', color: '#333' }}>{app.motivation}</p>
+                            </div>
+
+                            {app.experience && (
+                              <div style={{ marginBottom: '1rem' }}>
+                                <strong>Experience:</strong>
+                                <p style={{ marginTop: '0.5rem', color: '#333' }}>{app.experience}</p>
+                              </div>
+                            )}
+
+                            {app.specialization && (
+                              <div style={{ marginBottom: '1rem' }}>
+                                <strong>Specialization:</strong>
+                                <p style={{ marginTop: '0.5rem', color: '#333' }}>{app.specialization}</p>
+                              </div>
+                            )}
+
+                            {app.imageUrls && app.imageUrls.length > 0 && (
+                              <div style={{ marginBottom: '1rem' }}>
+                                <strong>Portfolio Images:</strong>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem', marginTop: '0.5rem' }}>
+                                  {app.imageUrls.map((url, index) => (
+                                    <img
+                                      key={index}
+                                      src={url}
+                                      alt={`Portfolio ${index + 1}`}
+                                      style={{
+                                        width: '100%',
+                                        height: '200px',
+                                        objectFit: 'cover',
+                                        borderRadius: '8px',
+                                        border: '1px solid #ddd',
+                                        cursor: 'pointer',
+                                      }}
+                                      onClick={() => window.open(url, '_blank')}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {app.adminNotes && (
+                              <div style={{ marginBottom: '1rem', padding: '0.75rem', background: '#f5f5f5', borderRadius: '4px' }}>
+                                <strong>Admin Notes:</strong>
+                                <p style={{ marginTop: '0.5rem', color: '#333' }}>{app.adminNotes}</p>
+                              </div>
+                            )}
+
+                            {app.status === 'pending' && (
+                              <div style={{ marginTop: '1rem', padding: '1rem', background: '#f8f9fa', borderRadius: '4px' }}>
+                                <div style={{ marginBottom: '1rem' }}>
+                                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                                    Review Notes (required for rejection):
+                                  </label>
+                                  <textarea
+                                    value={reviewNotes}
+                                    onChange={(e) => setReviewNotes(e.target.value)}
+                                    placeholder="Add notes for the applicant..."
+                                    rows={3}
+                                    style={{
+                                      width: '100%',
+                                      padding: '0.5rem',
+                                      border: '1px solid #ddd',
+                                      borderRadius: '4px',
+                                      fontSize: '0.9rem',
+                                    }}
+                                  />
+                                </div>
+                                <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+                                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <input
+                                      type="radio"
+                                      checked={reviewStatus === 'approved'}
+                                      onChange={() => setReviewStatus('approved')}
+                                    />
+                                    Approve
+                                  </label>
+                                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <input
+                                      type="radio"
+                                      checked={reviewStatus === 'rejected'}
+                                      onChange={() => setReviewStatus('rejected')}
+                                    />
+                                    Reject
+                                  </label>
+                                </div>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleReviewApplication(app.id);
+                                  }}
+                                  disabled={reviewingApp === app.id}
+                                  style={{
+                                    padding: '0.5rem 1rem',
+                                    background: reviewStatus === 'approved' ? '#28a745' : '#dc3545',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    fontWeight: 'bold',
+                                  }}
+                                >
+                                  {reviewingApp === app.id ? 'Processing...' : `${reviewStatus === 'approved' ? 'Approve' : 'Reject'} Application`}
+                                </button>
+                              </div>
+                            )}
+
+                            {app.reviewedAt && (
+                              <p style={{ marginTop: '1rem', fontSize: '0.85rem', color: '#666' }}>
+                                Reviewed on: {new Date(app.reviewedAt).toLocaleDateString()}
+                                {app.reviewerName && ` by ${app.reviewerName}`}
+                              </p>
+                            )}
+
+                            <p style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#666' }}>
+                              Applied on: {new Date(app.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        )}
                       </div>
-                    )}
-
-                    {app.adminNotes && (
-                      <div style={{ marginBottom: '1rem', padding: '0.75rem', background: '#f5f5f5', borderRadius: '4px' }}>
-                        <strong>Admin Notes:</strong>
-                        <p style={{ marginTop: '0.5rem', color: '#333' }}>{app.adminNotes}</p>
-                      </div>
-                    )}
-
-                    {app.status === 'pending' && (
-                      <div style={{ marginTop: '1rem', padding: '1rem', background: '#f8f9fa', borderRadius: '4px' }}>
-                        <div style={{ marginBottom: '1rem' }}>
-                          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                            Review Notes (required for rejection):
-                          </label>
-                          <textarea
-                            value={reviewNotes}
-                            onChange={(e) => setReviewNotes(e.target.value)}
-                            placeholder="Add notes for the applicant..."
-                            rows={3}
-                            style={{
-                              width: '100%',
-                              padding: '0.5rem',
-                              border: '1px solid #ddd',
-                              borderRadius: '4px',
-                              fontSize: '0.9rem',
-                            }}
-                          />
-                        </div>
-                        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <input
-                              type="radio"
-                              checked={reviewStatus === 'approved'}
-                              onChange={() => setReviewStatus('approved')}
-                            />
-                            Approve
-                          </label>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <input
-                              type="radio"
-                              checked={reviewStatus === 'rejected'}
-                              onChange={() => setReviewStatus('rejected')}
-                            />
-                            Reject
-                          </label>
-                        </div>
-                        <button
-                          onClick={() => handleReviewApplication(app.id)}
-                          disabled={reviewingApp === app.id}
-                          style={{
-                            padding: '0.5rem 1rem',
-                            background: reviewStatus === 'approved' ? '#28a745' : '#dc3545',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontWeight: 'bold',
-                          }}
-                        >
-                          {reviewingApp === app.id ? 'Processing...' : `${reviewStatus === 'approved' ? 'Approve' : 'Reject'} Application`}
-                        </button>
-                      </div>
-                    )}
-
-                    {app.reviewedAt && (
-                      <p style={{ marginTop: '1rem', fontSize: '0.85rem', color: '#666' }}>
-                        Reviewed on: {new Date(app.reviewedAt).toLocaleDateString()}
-                        {app.reviewerName && ` by ${app.reviewerName}`}
-                      </p>
-                    )}
-
-                    <p style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#666' }}>
-                      Applied on: {new Date(app.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                ))}
+                    );
+                  })}
               </div>
             )}
           </div>

@@ -122,14 +122,21 @@ const CoachApplicationPage = () => {
 
     try {
       const imageUrl = await coachService.uploadImage(file);
-      setFormData({
-        ...formData,
-        imageUrls: [...formData.imageUrls, imageUrl],
-      });
+      console.log('Uploaded image URL:', imageUrl);
+      
+      if (!imageUrl || typeof imageUrl !== 'string') {
+        throw new Error('Invalid image URL received');
+      }
+      
+      setFormData((prev) => ({
+        ...prev,
+        imageUrls: [...prev.imageUrls, imageUrl],
+      }));
       setSuccess('Image uploaded successfully!');
       setTimeout(() => setSuccess(''), 3000); // Clear success message after 3 seconds
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to upload image');
+      console.error('Image upload error:', err);
+      setError(err.response?.data?.error || err.message || 'Failed to upload image');
     } finally {
       setUploadingImage(false);
       // Reset input
@@ -382,8 +389,10 @@ const CoachApplicationPage = () => {
                           }
                         }}
                         onLoad={() => {
-                          // Image loaded successfully
+                          // Image loaded successfully - force re-render
+                          console.log('Image loaded:', url);
                         }}
+                        crossOrigin="anonymous"
                       />
                     </div>
                     <button

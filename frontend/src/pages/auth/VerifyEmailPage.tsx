@@ -67,8 +67,8 @@ export const VerifyEmailPage = () => {
 
           {status === 'success' && (
             <div className="rounded-md bg-green-50 p-4">
-              <div className="flex">
-                <div className="flex-shrink-0">
+              <div className="flex flex-col items-center text-center">
+                <div className="flex-shrink-0 mb-3">
                   <svg
                     className="h-5 w-5 text-green-400"
                     xmlns="http://www.w3.org/2000/svg"
@@ -83,7 +83,7 @@ export const VerifyEmailPage = () => {
                     />
                   </svg>
                 </div>
-                <div className="ml-3">
+                <div>
                   <p className="text-sm font-medium text-green-800">{message}</p>
                   <p className="mt-2 text-sm text-green-700">
                     Redirecting to login page...

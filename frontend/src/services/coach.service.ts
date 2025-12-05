@@ -77,7 +77,12 @@ export const coachService = {
         'Content-Type': 'multipart/form-data',
       },
     });
-    return response.data.imageUrl || (response.data as any);
+    console.log('Upload response:', response.data);
+    const imageUrl = response.data?.imageUrl || response.data;
+    if (!imageUrl || typeof imageUrl !== 'string') {
+      throw new Error('Invalid response format from server');
+    }
+    return imageUrl;
   },
 };
 

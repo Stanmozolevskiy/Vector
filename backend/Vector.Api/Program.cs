@@ -158,6 +158,8 @@ var scope = app.Services.CreateScope();
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    
+    // Run migrations (separate try-catch so seeding can still run if migrations fail)
     try
     {
         logger.LogInformation("Checking for pending database migrations...");
@@ -172,18 +174,25 @@ var scope = app.Services.CreateScope();
         {
             logger.LogInformation("Database is up to date. No migrations needed.");
         }
-
-        // Seed database with initial data (admin user, etc.)
-        logger.LogInformation("Seeding database with initial data...");
-        DbSeeder.SeedDatabase(db, logger).GetAwaiter().GetResult();
     }
     catch (Exception ex)
     {
-        // Log error but don't crash - allow application to start
-        // This is important for container orchestration (ECS) where the container
-        // might start before the database is fully ready
-        logger.LogError(ex, "An error occurred while migrating/seeding the database. The application will continue to start.");
-        logger.LogWarning("If this is a new deployment, the database connection may not be ready yet. The application will retry on the next request.");
+        // Log migration error but continue - database might already be up to date
+        logger.LogWarning(ex, "Migration failed (this is OK if tables already exist). Continuing with seeding...");
+    }
+
+    // Seed database with initial data (admin user, etc.) - runs even if migrations failed
+    try
+    {
+        logger.LogInformation("Seeding database with initial data...");
+        DbSeeder.SeedDatabase(db, logger).GetAwaiter().GetResult();
+        logger.LogInformation("Database seeding completed successfully.");
+    }
+    catch (Exception ex)
+    {
+        // Log seeding error but don't crash - allow application to start
+        logger.LogError(ex, "An error occurred while seeding the database. The application will continue to start.");
+        logger.LogWarning("Admin user may not have been created. You can create it manually or restart the container.");
     }
     finally
     {

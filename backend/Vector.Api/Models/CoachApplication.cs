@@ -24,6 +24,11 @@ public class CoachApplication
     [MaxLength(500)]
     public string? Specialization { get; set; }
     
+    /// <summary>
+    /// Comma-separated list of image URLs (portfolio, certificates, etc.)
+    /// </summary>
+    public string? ImageUrls { get; set; }
+    
     [MaxLength(20)]
     public string Status { get; set; } = "pending"; // pending, approved, rejected
     

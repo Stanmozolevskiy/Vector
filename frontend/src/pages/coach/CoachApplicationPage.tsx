@@ -17,7 +17,9 @@ const CoachApplicationPage = () => {
     motivation: '',
     experience: '',
     specialization: '',
+    imageUrls: [] as string[],
   });
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -47,6 +49,7 @@ const CoachApplicationPage = () => {
           motivation: app.motivation,
           experience: app.experience || '',
           specialization: app.specialization || '',
+          imageUrls: app.imageUrls || [],
         });
       }
     } catch (err: any) {
@@ -73,6 +76,7 @@ const CoachApplicationPage = () => {
         motivation: formData.motivation,
         experience: formData.experience || undefined,
         specialization: formData.specialization || undefined,
+        imageUrls: formData.imageUrls.length > 0 ? formData.imageUrls : undefined,
       });
       setApplication(result);
       setSuccess('Your application has been submitted successfully! You will receive an email once it has been reviewed.');
@@ -81,6 +85,49 @@ const CoachApplicationPage = () => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setError('Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.');
+      return;
+    }
+
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      setError('File size exceeds 10MB limit.');
+      return;
+    }
+
+    setError('');
+    setUploadingImage(true);
+
+    try {
+      const imageUrl = await coachService.uploadImage(file);
+      setFormData({
+        ...formData,
+        imageUrls: [...formData.imageUrls, imageUrl],
+      });
+      setSuccess('Image uploaded successfully!');
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to upload image');
+    } finally {
+      setUploadingImage(false);
+      // Reset input
+      e.target.value = '';
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setFormData({
+      ...formData,
+      imageUrls: formData.imageUrls.filter((_, i) => i !== index),
+    });
   };
 
   const getStatusBadge = (status: string) => {
@@ -226,6 +273,73 @@ const CoachApplicationPage = () => {
               }}
               placeholder="e.g., System Design, Data Structures, Behavioral Interviews..."
             />
+          </div>
+
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+              Portfolio Images (Optional)
+            </label>
+            <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '0.75rem' }}>
+              Upload images of your portfolio, certificates, or achievements (JPEG, PNG, GIF, WebP - Max 10MB each)
+            </p>
+            <input
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+              onChange={handleImageUpload}
+              disabled={uploadingImage}
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                fontSize: '1rem',
+                marginBottom: '1rem',
+              }}
+            />
+            {uploadingImage && (
+              <p style={{ color: '#667eea', fontSize: '0.9rem' }}>Uploading image...</p>
+            )}
+            {formData.imageUrls.length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+                {formData.imageUrls.map((url, index) => (
+                  <div key={index} style={{ position: 'relative' }}>
+                    <img
+                      src={url}
+                      alt={`Portfolio ${index + 1}`}
+                      style={{
+                        width: '100%',
+                        height: '150px',
+                        objectFit: 'cover',
+                        borderRadius: '8px',
+                        border: '1px solid #ddd',
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(index)}
+                      style={{
+                        position: 'absolute',
+                        top: '0.5rem',
+                        right: '0.5rem',
+                        background: 'rgba(220, 53, 69, 0.9)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: '24px',
+                        height: '24px',
+                        cursor: 'pointer',
+                        fontSize: '0.875rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <button

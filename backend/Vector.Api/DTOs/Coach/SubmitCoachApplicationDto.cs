@@ -17,5 +17,10 @@ public class SubmitCoachApplicationDto
     
     [MaxLength(500)]
     public string? Specialization { get; set; }
+    
+    /// <summary>
+    /// Comma-separated list of image URLs (uploaded separately)
+    /// </summary>
+    public List<string>? ImageUrls { get; set; }
 }
 

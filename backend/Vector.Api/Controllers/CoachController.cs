@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using Vector.Api.DTOs.Coach;
 using Vector.Api.Services;
+using Vector.Api.Models;
 
 namespace Vector.Api.Controllers;
 
@@ -12,11 +13,13 @@ namespace Vector.Api.Controllers;
 public class CoachController : ControllerBase
 {
     private readonly ICoachService _coachService;
+    private readonly IS3Service _s3Service;
     private readonly ILogger<CoachController> _logger;
 
-    public CoachController(ICoachService coachService, ILogger<CoachController> logger)
+    public CoachController(ICoachService coachService, IS3Service s3Service, ILogger<CoachController> logger)
     {
         _coachService = coachService;
+        _s3Service = s3Service;
         _logger = logger;
     }
 
@@ -132,6 +135,9 @@ public class CoachController : ControllerBase
             Motivation = application.Motivation,
             Experience = application.Experience,
             Specialization = application.Specialization,
+            ImageUrls = !string.IsNullOrEmpty(application.ImageUrls)
+                ? application.ImageUrls.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList()
+                : null,
             Status = application.Status,
             AdminNotes = application.AdminNotes,
             ReviewedBy = application.ReviewedBy,

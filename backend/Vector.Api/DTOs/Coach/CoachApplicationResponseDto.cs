@@ -12,6 +12,7 @@ public class CoachApplicationResponseDto
     public string Motivation { get; set; } = string.Empty;
     public string? Experience { get; set; }
     public string? Specialization { get; set; }
+    public List<string>? ImageUrls { get; set; }
     public string Status { get; set; } = string.Empty;
     public string? AdminNotes { get; set; }
     public Guid? ReviewedBy { get; set; }

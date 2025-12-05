@@ -121,6 +121,7 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.Motivation).IsRequired().HasMaxLength(500);
             entity.Property(e => e.Experience).HasMaxLength(1000);
             entity.Property(e => e.Specialization).HasMaxLength(500);
+            entity.Property(e => e.ImageUrls).HasMaxLength(2000); // Comma-separated URLs
             entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("pending");
             entity.Property(e => e.AdminNotes).HasMaxLength(500);
             entity.HasIndex(e => e.UserId).IsUnique(); // One application per user

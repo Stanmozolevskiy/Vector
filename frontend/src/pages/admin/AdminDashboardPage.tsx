@@ -437,6 +437,30 @@ const AdminDashboardPage = () => {
                       </div>
                     )}
 
+                    {app.imageUrls && app.imageUrls.length > 0 && (
+                      <div style={{ marginBottom: '1rem' }}>
+                        <strong>Portfolio Images:</strong>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem', marginTop: '0.5rem' }}>
+                          {app.imageUrls.map((url, index) => (
+                            <img
+                              key={index}
+                              src={url}
+                              alt={`Portfolio ${index + 1}`}
+                              style={{
+                                width: '100%',
+                                height: '200px',
+                                objectFit: 'cover',
+                                borderRadius: '8px',
+                                border: '1px solid #ddd',
+                                cursor: 'pointer',
+                              }}
+                              onClick={() => window.open(url, '_blank')}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {app.adminNotes && (
                       <div style={{ marginBottom: '1rem', padding: '0.75rem', background: '#f5f5f5', borderRadius: '4px' }}>
                         <strong>Admin Notes:</strong>

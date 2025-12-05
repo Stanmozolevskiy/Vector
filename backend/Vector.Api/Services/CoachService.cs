@@ -55,6 +55,9 @@ public class CoachService : ICoachService
             Motivation = dto.Motivation,
             Experience = dto.Experience,
             Specialization = dto.Specialization,
+            ImageUrls = dto.ImageUrls != null && dto.ImageUrls.Any() 
+                ? string.Join(",", dto.ImageUrls) 
+                : null,
             Status = "pending",
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow

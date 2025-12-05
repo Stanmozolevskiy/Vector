@@ -8,6 +8,7 @@ export interface CoachApplication {
   motivation: string;
   experience?: string;
   specialization?: string;
+  imageUrls?: string[];
   status: 'pending' | 'approved' | 'rejected';
   adminNotes?: string;
   reviewedBy?: string;
@@ -21,6 +22,7 @@ export interface SubmitCoachApplicationDto {
   motivation: string;
   experience?: string;
   specialization?: string;
+  imageUrls?: string[];
 }
 
 export interface ReviewCoachApplicationDto {
@@ -64,6 +66,18 @@ export const coachService = {
   reviewApplication: async (applicationId: string, data: ReviewCoachApplicationDto): Promise<CoachApplication> => {
     const response = await api.post<CoachApplication>(`/admin/coach-applications/${applicationId}/review`, data);
     return response.data;
+  },
+
+  // Upload image for coach application
+  uploadImage: async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post<{ imageUrl: string }>('/coach/upload-image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data.imageUrl;
   },
 };
 

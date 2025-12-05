@@ -168,5 +168,29 @@ public class UserService : IUserService
         
         return true;
     }
+
+    public async Task<bool> DeleteUserAsync(Guid userId)
+    {
+        try
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+            {
+                return false;
+            }
+
+            // Delete user (cascade will handle related data)
+            _context.Users.Remove(user);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("User {UserId} deleted successfully", userId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to delete user {UserId}", userId);
+            return false;
+        }
+    }
 }
 

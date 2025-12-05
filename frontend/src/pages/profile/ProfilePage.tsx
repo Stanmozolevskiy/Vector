@@ -825,6 +825,17 @@ export const ProfilePage = () => {
             <p style={{ marginBottom: '1.5rem', color: '#dc3545', fontWeight: 'bold' }}>
               There is no way to recover your data after deletion.
             </p>
+            {errorMessage && (
+              <div style={{
+                marginBottom: '1rem',
+                padding: '0.75rem',
+                background: '#fee',
+                color: '#c33',
+                borderRadius: '4px'
+              }}>
+                {errorMessage}
+              </div>
+            )}
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
               <button
                 onClick={() => setShowDeleteModal(false)}

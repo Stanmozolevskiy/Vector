@@ -36,12 +36,17 @@ public class PasswordResetTests : IDisposable
         serviceProviderMock.Setup(x => x.GetService(typeof(IServiceProvider)))
             .Returns(serviceProviderMock.Object);
 
+        var redisServiceMock = new Mock<IRedisService>();
+        redisServiceMock.Setup(r => r.StoreRefreshTokenAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<TimeSpan>()))
+            .ReturnsAsync(true);
+
         _authService = new AuthService(
             _context,
             _emailServiceMock.Object,
             serviceProviderMock.Object,
             _loggerMock.Object,
-            _jwtServiceMock.Object
+            _jwtServiceMock.Object,
+            redisServiceMock.Object
         );
     }
 

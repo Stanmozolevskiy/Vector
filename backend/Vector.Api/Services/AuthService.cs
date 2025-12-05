@@ -15,19 +15,22 @@ public class AuthService : IAuthService
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<AuthService> _logger;
     private readonly IJwtService _jwtService;
+    private readonly IRedisService _redisService;
 
     public AuthService(
         ApplicationDbContext context, 
         IEmailService emailService, 
         IServiceProvider serviceProvider, 
         ILogger<AuthService> logger,
-        IJwtService jwtService)
+        IJwtService jwtService,
+        IRedisService redisService)
     {
         _context = context;
         _emailService = emailService;
         _serviceProvider = serviceProvider;
         _logger = logger;
         _jwtService = jwtService;
+        _redisService = redisService;
     }
 
     public async Task<User> RegisterUserAsync(RegisterDto dto)
@@ -131,7 +134,7 @@ public class AuthService : IAuthService
         var accessToken = _jwtService.GenerateAccessToken(user.Id, user.Role);
         var refreshToken = _jwtService.GenerateRefreshToken(user.Id);
 
-        // Store refresh token in database
+        // Store refresh token in database (for persistence)
         var refreshTokenRecord = new RefreshToken
         {
             Id = Guid.NewGuid(),
@@ -145,7 +148,11 @@ public class AuthService : IAuthService
         _context.RefreshTokens.Add(refreshTokenRecord);
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("User logged in successfully: {Email}, UserId: {UserId}", user.Email, user.Id);
+        // Store refresh token in Redis (for fast access)
+        var tokenExpiration = TimeSpan.FromDays(7);
+        await _redisService.StoreRefreshTokenAsync(user.Id, refreshToken, tokenExpiration);
+
+        _logger.LogInformation("User logged in successfully: {Email}, UserId: {UserId}. Refresh token stored in Redis and PostgreSQL", user.Email, user.Id);
 
         return accessToken;
     }
@@ -396,7 +403,7 @@ public class AuthService : IAuthService
     {
         try
         {
-            // Revoke all active refresh tokens for this user
+            // Revoke all active refresh tokens for this user in database
             var activeTokens = await _context.RefreshTokens
                 .Where(rt => rt.UserId == userId && !rt.IsRevoked && rt.ExpiresAt > DateTime.UtcNow)
                 .ToListAsync();
@@ -405,11 +412,21 @@ public class AuthService : IAuthService
             {
                 token.IsRevoked = true;
                 token.RevokedAt = DateTime.UtcNow;
+                
+                // Blacklist token in Redis (fast revocation check)
+                var ttl = token.ExpiresAt - DateTime.UtcNow;
+                if (ttl.TotalSeconds > 0)
+                {
+                    await _redisService.BlacklistTokenAsync(token.Token, ttl);
+                }
             }
 
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("User {UserId} logged out successfully. Revoked {TokenCount} refresh token(s)", 
+            // Remove refresh token from Redis
+            await _redisService.RevokeRefreshTokenAsync(userId);
+
+            _logger.LogInformation("User {UserId} logged out successfully. Revoked {TokenCount} refresh token(s) in Redis and PostgreSQL", 
                 userId, activeTokens.Count);
 
             return true;
@@ -425,7 +442,15 @@ public class AuthService : IAuthService
     {
         try
         {
-            // Validate and decode the refresh token
+            // 1. Check if token is blacklisted in Redis (FAST CHECK)
+            var isBlacklisted = await _redisService.IsTokenBlacklistedAsync(refreshToken);
+            if (isBlacklisted)
+            {
+                _logger.LogWarning("Refresh token is blacklisted");
+                throw new UnauthorizedAccessException("Refresh token has been revoked");
+            }
+
+            // 2. Validate and decode the refresh token
             var tokenClaims = _jwtService.ValidateRefreshToken(refreshToken);
             if (tokenClaims == null)
             {
@@ -440,7 +465,15 @@ public class AuthService : IAuthService
                 throw new UnauthorizedAccessException("Invalid refresh token");
             }
 
-            // Find the refresh token in database
+            // 3. Check Redis for refresh token (FAST)
+            var cachedToken = await _redisService.GetRefreshTokenAsync(userId);
+            if (cachedToken != null && cachedToken != refreshToken)
+            {
+                _logger.LogWarning("Refresh token mismatch in Redis for user {UserId}", userId);
+                throw new UnauthorizedAccessException("Invalid refresh token");
+            }
+
+            // 4. Verify in database (persistence layer)
             var storedToken = await _context.RefreshTokens
                 .Include(rt => rt.User)
                 .FirstOrDefaultAsync(rt => rt.Token == refreshToken && !rt.IsRevoked);
@@ -451,14 +484,14 @@ public class AuthService : IAuthService
                 throw new UnauthorizedAccessException("Invalid or revoked refresh token");
             }
 
-            // Check if token is expired
+            // 5. Check if token is expired
             if (storedToken.ExpiresAt <= DateTime.UtcNow)
             {
                 _logger.LogWarning("Refresh token expired for user {UserId}", userId);
                 throw new UnauthorizedAccessException("Refresh token has expired");
             }
 
-            // Verify user still exists and is active
+            // 6. Verify user still exists and is active
             var user = storedToken.User;
             if (user == null)
             {
@@ -466,17 +499,22 @@ public class AuthService : IAuthService
                 throw new UnauthorizedAccessException("User not found");
             }
 
-            // ROTATION: Revoke the old refresh token
+            // 7. ROTATION: Revoke the old refresh token
             storedToken.IsRevoked = true;
             storedToken.RevokedAt = DateTime.UtcNow;
 
-            // Generate new access token
-            var newAccessToken = _jwtService.GenerateAccessToken(user.Id, user.Role);
+            // 8. Blacklist old token in Redis
+            var oldTokenTtl = storedToken.ExpiresAt - DateTime.UtcNow;
+            if (oldTokenTtl.TotalSeconds > 0)
+            {
+                await _redisService.BlacklistTokenAsync(refreshToken, oldTokenTtl);
+            }
 
-            // Generate new refresh token (rotation)
+            // 9. Generate new tokens
+            var newAccessToken = _jwtService.GenerateAccessToken(user.Id, user.Role);
             var newRefreshToken = _jwtService.GenerateRefreshToken(user.Id);
 
-            // Store new refresh token in database
+            // 10. Store new refresh token in database
             var newRefreshTokenRecord = new RefreshToken
             {
                 Id = Guid.NewGuid(),
@@ -490,7 +528,10 @@ public class AuthService : IAuthService
             _context.RefreshTokens.Add(newRefreshTokenRecord);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Refresh token rotated successfully for user {UserId}", userId);
+            // 11. Store new refresh token in Redis (for fast access)
+            await _redisService.StoreRefreshTokenAsync(user.Id, newRefreshToken, TimeSpan.FromDays(7));
+
+            _logger.LogInformation("Refresh token rotated successfully for user {UserId}. Token stored in Redis and PostgreSQL", userId);
 
             return newAccessToken;
         }

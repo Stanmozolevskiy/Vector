@@ -42,6 +42,7 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
     var connectionString = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
     return ConnectionMultiplexer.Connect(connectionString);
 });
+builder.Services.AddSingleton<IRedisService, RedisService>();
 
 // JWT Authentication
 var jwtSecret = builder.Configuration["Jwt:Secret"] ?? throw new InvalidOperationException("JWT Secret is not configured");

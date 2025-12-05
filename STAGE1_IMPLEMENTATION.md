@@ -141,7 +141,7 @@ Before starting, ensure you have:
 - [x] Implement email verification check ✅ (Requires verified email to login)
 - [x] Implement protected routes ✅ (ProtectedRoute component for requireAuth/requireUnauth)
 - [x] Implement refresh token storage ✅ (RefreshTokens table, stored on login)
-- [ ] Implement refresh token rotation (TODO: Complete rotation logic in RefreshTokenAsync)
+- [x] Implement refresh token rotation (Complete rotation logic in RefreshTokenAsync)
 - [ ] Store refresh tokens in Redis (TODO: Planned for Day 21)
 
 ### Day 12-13: Email Verification ✅ COMPLETE

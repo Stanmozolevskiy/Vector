@@ -10,11 +10,13 @@ namespace Vector.Api.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly IRedisService _redisService;
     private readonly ILogger<AuthController> _logger;
 
-    public AuthController(IAuthService authService, ILogger<AuthController> logger)
+    public AuthController(IAuthService authService, IRedisService redisService, ILogger<AuthController> logger)
     {
         _authService = authService;
+        _redisService = redisService;
         _logger = logger;
     }
 
@@ -150,9 +152,26 @@ public class AuthController : ControllerBase
             return BadRequest(ModelState);
         }
 
+        // Rate limiting: Max 5 login attempts per 15 minutes per email
+        var rateLimitKey = $"login:{dto.Email.ToLower()}";
+        var isAllowed = await _redisService.CheckRateLimitAsync(rateLimitKey, 5, TimeSpan.FromMinutes(15));
+        
+        if (!isAllowed)
+        {
+            var attempts = await _redisService.GetRateLimitAttemptsAsync(rateLimitKey);
+            _logger.LogWarning("Rate limit exceeded for login attempt: {Email}, Attempts: {Attempts}", dto.Email, attempts);
+            return StatusCode(429, new 
+            { 
+                error = "Too many login attempts. Please try again in 15 minutes." 
+            });
+        }
+
         try
         {
             var accessToken = await _authService.LoginAsync(dto);
+            
+            // Reset rate limit on successful login
+            await _redisService.ResetRateLimitAsync(rateLimitKey);
             
             return Ok(new 
             { 

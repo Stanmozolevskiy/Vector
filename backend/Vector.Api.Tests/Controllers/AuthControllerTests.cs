@@ -17,6 +17,7 @@ public class AuthControllerTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
     private readonly Mock<IAuthService> _authServiceMock;
+    private readonly Mock<IRedisService> _redisServiceMock;
     private readonly Mock<ILogger<AuthController>> _loggerMock;
     private readonly AuthController _controller;
 
@@ -28,8 +29,16 @@ public class AuthControllerTests : IDisposable
         _context = new ApplicationDbContext(options);
 
         _authServiceMock = new Mock<IAuthService>();
+        _redisServiceMock = new Mock<IRedisService>();
         _loggerMock = new Mock<ILogger<AuthController>>();
-        _controller = new AuthController(_authServiceMock.Object, _loggerMock.Object);
+        
+        // Setup Redis mocks
+        _redisServiceMock.Setup(r => r.CheckRateLimitAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<TimeSpan>()))
+            .ReturnsAsync(true); // Allow all requests in tests
+        _redisServiceMock.Setup(r => r.ResetRateLimitAsync(It.IsAny<string>()))
+            .ReturnsAsync(true);
+        
+        _controller = new AuthController(_authServiceMock.Object, _redisServiceMock.Object, _loggerMock.Object);
     }
 
     [Fact]

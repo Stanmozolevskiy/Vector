@@ -13,12 +13,14 @@ public class UserController : ControllerBase
 {
     private readonly IUserService _userService;
     private readonly IJwtService _jwtService;
+    private readonly IRedisService _redisService;
     private readonly ILogger<UserController> _logger;
 
-    public UserController(IUserService userService, IJwtService jwtService, ILogger<UserController> logger)
+    public UserController(IUserService userService, IJwtService jwtService, IRedisService redisService, ILogger<UserController> logger)
     {
         _userService = userService;
         _jwtService = jwtService;
+        _redisService = redisService;
         _logger = logger;
     }
 
@@ -45,11 +47,28 @@ public class UserController : ControllerBase
             return Unauthorized(new { error = "Invalid token" });
         }
 
-        var user = await _userService.GetUserByIdAsync(userId);
+        // Try to get user from Redis cache first (FAST)
+        var cachedUser = await _redisService.GetCachedUserSessionAsync<Models.User>(userId);
         
-        if (user == null)
+        Models.User user;
+        if (cachedUser != null)
         {
-            return NotFound(new { error = "User not found" });
+            _logger.LogInformation("User {UserId} fetched from Redis cache", userId);
+            user = cachedUser;
+        }
+        else
+        {
+            // Cache miss - fetch from database
+            user = await _userService.GetUserByIdAsync(userId);
+            
+            if (user == null)
+            {
+                return NotFound(new { error = "User not found" });
+            }
+
+            // Cache user session in Redis for 5 minutes
+            await _redisService.CacheUserSessionAsync(userId, user, TimeSpan.FromMinutes(5));
+            _logger.LogInformation("User {UserId} fetched from database and cached in Redis", userId);
         }
 
         // Return user data (exclude sensitive information)

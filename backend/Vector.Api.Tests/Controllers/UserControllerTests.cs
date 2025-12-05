@@ -16,6 +16,7 @@ public class UserControllerTests
 {
     private readonly Mock<IUserService> _userServiceMock;
     private readonly Mock<IJwtService> _jwtServiceMock;
+    private readonly Mock<IRedisService> _redisServiceMock;
     private readonly Mock<ILogger<UserController>> _mockLogger;
     private readonly UserController _controller;
 
@@ -23,8 +24,16 @@ public class UserControllerTests
     {
         _userServiceMock = new Mock<IUserService>();
         _jwtServiceMock = new Mock<IJwtService>();
+        _redisServiceMock = new Mock<IRedisService>();
         _mockLogger = new Mock<ILogger<UserController>>();
-        _controller = new UserController(_userServiceMock.Object, _jwtServiceMock.Object, _mockLogger.Object);
+        
+        // Setup Redis mocks
+        _redisServiceMock.Setup(r => r.GetCachedUserSessionAsync<User>(It.IsAny<Guid>()))
+            .ReturnsAsync((User?)null); // Default: cache miss
+        _redisServiceMock.Setup(r => r.CacheUserSessionAsync(It.IsAny<Guid>(), It.IsAny<object>(), It.IsAny<TimeSpan>()))
+            .ReturnsAsync(true);
+        
+        _controller = new UserController(_userServiceMock.Object, _jwtServiceMock.Object, _redisServiceMock.Object, _mockLogger.Object);
     }
 
     [Fact]

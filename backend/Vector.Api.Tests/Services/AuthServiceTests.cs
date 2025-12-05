@@ -47,12 +47,19 @@ public class AuthServiceTests : IDisposable
         });
         _configuration = configurationBuilder.Build();
 
+        var redisServiceMock = new Mock<IRedisService>();
+        redisServiceMock.Setup(r => r.StoreRefreshTokenAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<TimeSpan>()))
+            .ReturnsAsync(true);
+        redisServiceMock.Setup(r => r.CheckRateLimitAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<TimeSpan>()))
+            .ReturnsAsync(true);
+
         _authService = new AuthService(
             _context,
             _emailServiceMock.Object,
             serviceProviderMock.Object,
             _loggerMock.Object,
-            _jwtServiceMock.Object
+            _jwtServiceMock.Object,
+            redisServiceMock.Object
         );
     }
 

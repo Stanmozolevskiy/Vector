@@ -45,13 +45,21 @@ public class RefreshTokenTests : IDisposable
             .Build();
 
         var serviceProviderMock = new Mock<IServiceProvider>();
+        var redisServiceMock = new Mock<IRedisService>();
+        redisServiceMock.Setup(r => r.IsTokenBlacklistedAsync(It.IsAny<string>()))
+            .ReturnsAsync(false);
+        redisServiceMock.Setup(r => r.StoreRefreshTokenAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<TimeSpan>()))
+            .ReturnsAsync(true);
+        redisServiceMock.Setup(r => r.BlacklistTokenAsync(It.IsAny<string>(), It.IsAny<TimeSpan>()))
+            .ReturnsAsync(true);
         
         _authService = new AuthService(
             _context,
             _emailServiceMock.Object,
             serviceProviderMock.Object,
             _loggerMock.Object,
-            _jwtServiceMock.Object
+            _jwtServiceMock.Object,
+            redisServiceMock.Object
         );
     }
 

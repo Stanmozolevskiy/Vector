@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { ROUTES } from '../../utils/constants';
 import api from '../../services/api';
+import { coachService } from '../../services/coach.service';
 import '../../styles/style.css';
 import '../../styles/dashboard.css';
 import '../../styles/profile.css';
@@ -42,6 +43,7 @@ export const ProfilePage = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [hasCoachApplication, setHasCoachApplication] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -59,6 +61,15 @@ export const ProfilePage = () => {
         phoneNumber: user.phoneNumber || '',
         location: user.location || '',
       });
+      
+      // Check if user has a coach application
+      if (user.role === 'student') {
+        coachService.getMyApplication().then(app => {
+          setHasCoachApplication(!!app);
+        }).catch(() => {
+          setHasCoachApplication(false);
+        });
+      }
     }
   }, [user]);
 
@@ -471,6 +482,27 @@ export const ProfilePage = () => {
                     </div>
                   </form>
                 </div>
+
+                {/* Apply for Coaching Button (for students only) */}
+                {user?.role === 'student' && !hasCoachApplication && (
+                  <div className="profile-card" style={{ marginTop: '2rem', border: '2px dashed #667eea', background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)' }}>
+                    <h3 style={{ color: '#667eea', marginBottom: '0.5rem' }}>
+                      <i className="fas fa-chalkboard-teacher" style={{ marginRight: '0.5rem' }}></i>
+                      Become a Coach
+                    </h3>
+                    <p style={{ color: '#666', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                      Share your expertise and help students prepare for technical interviews. Apply to become a coach on Vector.
+                    </p>
+                    <Link 
+                      to={ROUTES.COACH_APPLICATION}
+                      className="btn-primary"
+                      style={{ display: 'inline-block' }}
+                    >
+                      <i className="fas fa-paper-plane" style={{ marginRight: '0.5rem' }}></i>
+                      Apply to Become a Coach
+                    </Link>
+                  </div>
+                )}
               </div>
 
               {/* Security Section */}

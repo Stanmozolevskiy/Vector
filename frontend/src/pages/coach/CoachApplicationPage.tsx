@@ -146,10 +146,20 @@ const CoachApplicationPage = () => {
 
   return (
     <div className="container" style={{ maxWidth: '800px', margin: '2rem auto', padding: '2rem' }}>
-      <h1>Become a Coach</h1>
-      <p style={{ marginBottom: '2rem', color: '#666' }}>
-        Share your expertise and help students prepare for their technical interviews.
-      </p>
+      {/* Header Section */}
+      <div style={{ 
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        color: 'white',
+        padding: '2rem',
+        borderRadius: '12px',
+        marginBottom: '2rem',
+        textAlign: 'center'
+      }}>
+        <h1 style={{ margin: '0 0 0.5rem 0', fontSize: '2.5rem', fontWeight: 'bold' }}>Become a Coach</h1>
+        <p style={{ margin: '0', fontSize: '1.1rem', opacity: 0.95 }}>
+          Share your expertise and help students prepare for their technical interviews.
+        </p>
+      </div>
 
       {application && (
         <div style={{

@@ -44,6 +44,8 @@ export const ProfilePage = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [hasCoachApplication, setHasCoachApplication] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -83,9 +85,33 @@ export const ProfilePage = () => {
     return 'U';
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate(ROUTES.HOME);
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      // Even if logout fails, clear local storage and redirect
+      console.error('Logout error:', error);
+    } finally {
+      navigate(ROUTES.HOME);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    setErrorMessage('');
+    
+    try {
+      await api.delete('/users/me');
+      setShowDeleteModal(false);
+      // Clear local storage and redirect
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      await logout();
+      navigate(ROUTES.HOME);
+    } catch (err: any) {
+      setErrorMessage(err.response?.data?.error || 'Failed to delete account. Please try again.');
+      setIsDeleting(false);
+    }
   };
 
   const handleProfileInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -739,17 +765,16 @@ export const ProfilePage = () => {
                   <div className="danger-actions">
                     <div className="danger-item">
                       <div className="danger-info">
-                        <h4>Download Your Data</h4>
-                        <p>Request a copy of all your data including progress, notes, and account information</p>
-                      </div>
-                      <button className="btn-outline">Request Data</button>
-                    </div>
-                    <div className="danger-item">
-                      <div className="danger-info">
                         <h4>Delete Account</h4>
                         <p>Permanently delete your account and all associated data. This action cannot be undone.</p>
                       </div>
-                      <button className="btn-danger">Delete Account</button>
+                      <button 
+                        className="btn-danger" 
+                        onClick={() => setShowDeleteModal(true)}
+                        disabled={isDeleting}
+                      >
+                        {isDeleting ? 'Deleting...' : 'Delete Account'}
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -758,6 +783,90 @@ export const ProfilePage = () => {
           </div>
         </div>
       </section>
+
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '12px',
+            padding: '2rem',
+            maxWidth: '500px',
+            width: '90%',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.2)'
+          }}>
+            <h2 style={{ margin: '0 0 1rem 0', color: '#dc3545', fontSize: '1.5rem' }}>
+              <i className="fas fa-exclamation-triangle" style={{ marginRight: '0.5rem' }}></i>
+              Delete Account
+            </h2>
+            <p style={{ marginBottom: '1rem', color: '#666', lineHeight: '1.6' }}>
+              <strong>Warning: This action cannot be undone!</strong>
+            </p>
+            <p style={{ marginBottom: '1.5rem', color: '#666', lineHeight: '1.6' }}>
+              All your data will be permanently deleted, including:
+            </p>
+            <ul style={{ marginBottom: '1.5rem', paddingLeft: '1.5rem', color: '#666' }}>
+              <li>Your profile and account information</li>
+              <li>All your progress and achievements</li>
+              <li>Your coach application (if any)</li>
+              <li>All associated data and records</li>
+            </ul>
+            <p style={{ marginBottom: '1.5rem', color: '#dc3545', fontWeight: 'bold' }}>
+              There is no way to recover your data after deletion.
+            </p>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                disabled={isDeleting}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  background: 'white',
+                  color: '#333',
+                  cursor: isDeleting ? 'not-allowed' : 'pointer',
+                  fontWeight: '600'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={isDeleting}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  border: 'none',
+                  borderRadius: '8px',
+                  background: isDeleting ? '#999' : '#dc3545',
+                  color: 'white',
+                  cursor: isDeleting ? 'not-allowed' : 'pointer',
+                  fontWeight: '600'
+                }}
+              >
+                {isDeleting ? (
+                  <>
+                    <i className="fas fa-spinner fa-spin" style={{ marginRight: '0.5rem' }}></i>
+                    Deleting...
+                  </>
+                ) : (
+                  'Yes, Delete My Account'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="footer">

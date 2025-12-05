@@ -273,8 +273,42 @@ public class UserController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Delete current user's account
+    /// </summary>
+    [HttpDelete("me")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> DeleteAccount()
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+        {
+            return Unauthorized(new { error = "Invalid token" });
+        }
+
+        try
+        {
+            var deleted = await _userService.DeleteUserAsync(userId);
+            if (!deleted)
+            {
+                return NotFound(new { error = "User not found" });
+            }
+
+            _logger.LogInformation("Account deleted for user {UserId}", userId);
+
+            return Ok(new { message = "Account deleted successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to delete account for user {UserId}", userId);
+            return StatusCode(500, new { error = "Failed to delete account" });
+        }
+    }
+
     // TODO: Implement remaining endpoints
-    // - DELETE /api/users/me (delete account)
     // - GET /api/users/:id (public profile view)
 }
 

@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using Vector.Api.DTOs.Auth;
 using Vector.Api.Models;
 using Vector.Api.Services;
@@ -263,6 +265,36 @@ public class AuthController : ControllerBase
         {
             _logger.LogError(ex, "Error during password reset for email: {Email}", dto.Email);
             return StatusCode(500, new { error = "An error occurred while resetting the password." });
+        }
+    }
+
+    /// <summary>
+    /// Logout user and invalidate refresh token
+    /// </summary>
+    /// <returns>Success message</returns>
+    [HttpPost("logout")]
+    [Authorize]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Logout()
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+        {
+            return Unauthorized(new { error = "Invalid token" });
+        }
+
+        try
+        {
+            await _authService.LogoutAsync(userId);
+            return Ok(new { message = "Logged out successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during logout for user {UserId}", userId);
+            // Still return success even if logout fails - token will expire anyway
+            return Ok(new { message = "Logged out successfully" });
         }
     }
 }

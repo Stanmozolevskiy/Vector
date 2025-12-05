@@ -358,7 +358,10 @@ const CoachApplicationPage = () => {
                       borderRadius: '8px',
                       overflow: 'hidden',
                       border: '1px solid #ddd',
-                      backgroundColor: '#f5f5f5'
+                      backgroundColor: '#f5f5f5',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
                     }}>
                       <img
                         src={url}
@@ -370,8 +373,16 @@ const CoachApplicationPage = () => {
                           display: 'block'
                         }}
                         onError={(e) => {
-                          // Fallback if image fails to load
-                          (e.target as HTMLImageElement).style.display = 'none';
+                          // Show placeholder if image fails to load
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const parent = target.parentElement;
+                          if (parent) {
+                            parent.innerHTML = '<i class="fas fa-image" style="font-size: 2rem; color: #ccc;"></i>';
+                          }
+                        }}
+                        onLoad={() => {
+                          // Image loaded successfully
                         }}
                       />
                     </div>

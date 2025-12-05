@@ -77,7 +77,7 @@ export const coachService = {
         'Content-Type': 'multipart/form-data',
       },
     });
-    return response.data.imageUrl;
+    return response.data.imageUrl || (response.data as any);
   },
 };
 

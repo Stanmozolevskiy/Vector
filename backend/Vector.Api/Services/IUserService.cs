@@ -11,5 +11,6 @@ public interface IUserService
     Task<string> UploadProfilePictureAsync(Guid userId, Stream fileStream, string fileName, string contentType);
     Task<bool> DeleteProfilePictureAsync(Guid userId);
     Task<bool> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword);
+    Task<bool> DeleteUserAsync(Guid userId);
 }
 

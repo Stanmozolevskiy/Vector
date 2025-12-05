@@ -298,6 +298,9 @@ public class AdminController : ControllerBase
             Motivation = application.Motivation,
             Experience = application.Experience,
             Specialization = application.Specialization,
+            ImageUrls = !string.IsNullOrEmpty(application.ImageUrls)
+                ? application.ImageUrls.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList()
+                : null,
             Status = application.Status,
             AdminNotes = application.AdminNotes,
             ReviewedBy = application.ReviewedBy,

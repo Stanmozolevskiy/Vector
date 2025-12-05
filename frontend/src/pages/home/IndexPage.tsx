@@ -52,7 +52,7 @@ export const IndexPage = () => {
                 <div className="mock-interview-preview">
                   <video 
                     controls 
-                    poster="https://via.placeholder.com/640x360/667eea/ffffff?text=Watch+Mock+Interview"
+                    poster=""
                   >
                     <source 
                       src="https://dev-vector-user-uploads.s3.us-east-1.amazonaws.com/videos/mock-interviews/what-is-exponent.mp4" 

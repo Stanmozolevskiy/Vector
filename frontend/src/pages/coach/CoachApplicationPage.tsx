@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { coachService, type CoachApplication } from '../../services/coach.service';
+import { ROUTES } from '../../utils/constants';
 import '../../styles/style.css';
 
 const CoachApplicationPage = () => {
@@ -53,7 +54,10 @@ const CoachApplicationPage = () => {
         });
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to load application');
+      // 404 is expected when no application exists yet - don't show error
+      if (err.response?.status !== 404) {
+        setError(err.response?.data?.error || 'Failed to load application');
+      }
     } finally {
       setLoading(false);
     }
@@ -91,16 +95,25 @@ const CoachApplicationPage = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Check image limit (10 images max)
+    if (formData.imageUrls.length >= 10) {
+      setError('Maximum 10 images allowed. Please remove an image before adding a new one.');
+      e.target.value = '';
+      return;
+    }
+
     // Validate file type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
       setError('Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.');
+      e.target.value = '';
       return;
     }
 
     // Validate file size (10MB max)
     if (file.size > 10 * 1024 * 1024) {
       setError('File size exceeds 10MB limit.');
+      e.target.value = '';
       return;
     }
 
@@ -114,6 +127,7 @@ const CoachApplicationPage = () => {
         imageUrls: [...formData.imageUrls, imageUrl],
       });
       setSuccess('Image uploaded successfully!');
+      setTimeout(() => setSuccess(''), 3000); // Clear success message after 3 seconds
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to upload image');
     } finally {
@@ -183,6 +197,16 @@ const CoachApplicationPage = () => {
               Reviewed on: {new Date(application.reviewedAt).toLocaleDateString()}
             </p>
           )}
+          <div style={{ marginTop: '1.5rem' }}>
+            <Link 
+              to={ROUTES.DASHBOARD}
+              className="btn-primary"
+              style={{ display: 'inline-block', textDecoration: 'none' }}
+            >
+              <i className="fas fa-arrow-left" style={{ marginRight: '0.5rem' }}></i>
+              Back to Dashboard
+            </Link>
+          </div>
         </div>
       )}
 
@@ -207,6 +231,18 @@ const CoachApplicationPage = () => {
           marginBottom: '1rem',
         }}>
           {success}
+          {success.includes('submitted successfully') && (
+            <div style={{ marginTop: '1rem' }}>
+              <Link 
+                to={ROUTES.DASHBOARD}
+                className="btn-primary"
+                style={{ display: 'inline-block', textDecoration: 'none' }}
+              >
+                <i className="fas fa-arrow-left" style={{ marginRight: '0.5rem' }}></i>
+                Back to Dashboard
+              </Link>
+            </div>
+          )}
         </div>
       )}
 
@@ -312,18 +348,33 @@ const CoachApplicationPage = () => {
             {formData.imageUrls.length > 0 && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
                 {formData.imageUrls.map((url, index) => (
-                  <div key={index} style={{ position: 'relative' }}>
-                    <img
-                      src={url}
-                      alt={`Portfolio ${index + 1}`}
-                      style={{
-                        width: '100%',
-                        height: '150px',
-                        objectFit: 'cover',
-                        borderRadius: '8px',
-                        border: '1px solid #ddd',
-                      }}
-                    />
+                  <div key={index} style={{ position: 'relative', width: '100%', paddingTop: '100%' }}>
+                    <div style={{ 
+                      position: 'absolute', 
+                      top: 0, 
+                      left: 0, 
+                      width: '100%', 
+                      height: '100%',
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      border: '1px solid #ddd',
+                      backgroundColor: '#f5f5f5'
+                    }}>
+                      <img
+                        src={url}
+                        alt={`Portfolio ${index + 1}`}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          display: 'block'
+                        }}
+                        onError={(e) => {
+                          // Fallback if image fails to load
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    </div>
                     <button
                       type="button"
                       onClick={() => handleRemoveImage(index)}
@@ -335,20 +386,28 @@ const CoachApplicationPage = () => {
                         color: 'white',
                         border: 'none',
                         borderRadius: '50%',
-                        width: '24px',
-                        height: '24px',
+                        width: '28px',
+                        height: '28px',
                         cursor: 'pointer',
-                        fontSize: '0.875rem',
+                        fontSize: '1rem',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
+                        zIndex: 10,
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
                       }}
+                      title="Remove image"
                     >
                       ×
                     </button>
                   </div>
                 ))}
               </div>
+            )}
+            {formData.imageUrls.length >= 10 && (
+              <p style={{ color: '#ff9800', fontSize: '0.85rem', marginTop: '0.5rem' }}>
+                Maximum of 10 images reached. Remove an image to add a new one.
+              </p>
             )}
           </div>
 

@@ -140,13 +140,23 @@ export const ProfilePage = () => {
           formData.append('file', profilePicture);
           
           const response = await api.post('/users/me/profile-picture', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
+            headers: { 
+              'Content-Type': 'multipart/form-data'
+            }
           });
           
-          console.log('Profile picture uploaded:', response.data.profilePictureUrl);
-        } catch (uploadErr) {
+          if (response.data?.profilePictureUrl) {
+            setSuccessMessage('Profile picture updated successfully!');
+            // Update user context if available
+            if (user) {
+              user.profilePictureUrl = response.data.profilePictureUrl;
+            }
+            setProfilePicture(null);
+            setProfilePicturePreview(null);
+          }
+        } catch (uploadErr: any) {
           console.error('Failed to upload profile picture:', uploadErr);
-          setErrorMessage('Profile picture upload failed. Please try again.');
+          setErrorMessage(uploadErr.response?.data?.error || 'Profile picture upload failed. Please try again.');
           setIsSaving(false);
           return; // Stop if image upload fails
         }

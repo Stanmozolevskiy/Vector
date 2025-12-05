@@ -107,10 +107,27 @@ public static class DbSeeder
     {
         logger.LogInformation("Starting database seeding...");
 
-        await SeedAdminUser(context, logger);
-        await SeedMockInterviews(context, logger);
+        // Seed admin user first (critical)
+        try
+        {
+            await SeedAdminUser(context, logger);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to seed admin user, but continuing with other seeds...");
+        }
 
-        logger.LogInformation("Database seeding completed successfully");
+        // Seed mock interviews (non-critical)
+        try
+        {
+            await SeedMockInterviews(context, logger);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to seed mock interviews, but this is non-critical. Continuing...");
+        }
+
+        logger.LogInformation("Database seeding completed");
     }
 }
 

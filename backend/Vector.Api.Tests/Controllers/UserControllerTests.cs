@@ -138,5 +138,130 @@ public class UserControllerTests
         var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
         Assert.Equal(404, notFoundResult.StatusCode);
     }
+
+    [Fact]
+    public async Task DeleteAccount_WithValidToken_ReturnsOk()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+            new Claim(ClaimTypes.Role, "User")
+        };
+        var identity = new ClaimsIdentity(claims, "TestAuth");
+        var principal = new ClaimsPrincipal(identity);
+        
+        var httpContext = new DefaultHttpContext
+        {
+            User = principal
+        };
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContext
+        };
+
+        _userServiceMock.Setup(x => x.DeleteUserAsync(userId))
+            .ReturnsAsync(true);
+
+        // Act
+        var result = await _controller.DeleteAccount();
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(200, okResult.StatusCode);
+        _userServiceMock.Verify(x => x.DeleteUserAsync(userId), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteAccount_WithInvalidToken_ReturnsUnauthorized()
+    {
+        // Arrange
+        var claims = new ClaimsIdentity();
+        var principal = new ClaimsPrincipal(claims);
+        
+        var httpContext = new DefaultHttpContext
+        {
+            User = principal
+        };
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContext
+        };
+
+        // Act
+        var result = await _controller.DeleteAccount();
+
+        // Assert
+        var unauthorizedResult = Assert.IsType<UnauthorizedObjectResult>(result);
+        Assert.Equal(401, unauthorizedResult.StatusCode);
+        _userServiceMock.Verify(x => x.DeleteUserAsync(It.IsAny<Guid>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteAccount_WithNonExistentUser_ReturnsNotFound()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+            new Claim(ClaimTypes.Role, "User")
+        };
+        var identity = new ClaimsIdentity(claims, "TestAuth");
+        var principal = new ClaimsPrincipal(identity);
+        
+        var httpContext = new DefaultHttpContext
+        {
+            User = principal
+        };
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContext
+        };
+
+        _userServiceMock.Setup(x => x.DeleteUserAsync(userId))
+            .ReturnsAsync(false);
+
+        // Act
+        var result = await _controller.DeleteAccount();
+
+        // Assert
+        var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
+        Assert.Equal(404, notFoundResult.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteAccount_WithServiceException_ReturnsInternalServerError()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+            new Claim(ClaimTypes.Role, "User")
+        };
+        var identity = new ClaimsIdentity(claims, "TestAuth");
+        var principal = new ClaimsPrincipal(identity);
+        
+        var httpContext = new DefaultHttpContext
+        {
+            User = principal
+        };
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContext
+        };
+
+        _userServiceMock.Setup(x => x.DeleteUserAsync(userId))
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act
+        var result = await _controller.DeleteAccount();
+
+        // Assert
+        var statusCodeResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(500, statusCodeResult.StatusCode);
+    }
 }
 

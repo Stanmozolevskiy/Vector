@@ -236,6 +236,96 @@ public class AuthControllerTests : IDisposable
         Assert.Equal(400, badRequestResult.StatusCode);
     }
 
+    [Fact]
+    public async Task Logout_WithValidToken_ReturnsOk()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, userId.ToString())
+        };
+        var identity = new ClaimsIdentity(claims, "TestAuth");
+        var principal = new ClaimsPrincipal(identity);
+        
+        var httpContext = new DefaultHttpContext
+        {
+            User = principal
+        };
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContext
+        };
+
+        _authServiceMock.Setup(x => x.LogoutAsync(userId))
+            .ReturnsAsync(true);
+
+        // Act
+        var result = await _controller.Logout();
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(200, okResult.StatusCode);
+        _authServiceMock.Verify(x => x.LogoutAsync(userId), Times.Once);
+    }
+
+    [Fact]
+    public async Task Logout_WithInvalidToken_ReturnsUnauthorized()
+    {
+        // Arrange
+        var claims = new ClaimsIdentity();
+        var principal = new ClaimsPrincipal(claims);
+        
+        var httpContext = new DefaultHttpContext
+        {
+            User = principal
+        };
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContext
+        };
+
+        // Act
+        var result = await _controller.Logout();
+
+        // Assert
+        var unauthorizedResult = Assert.IsType<UnauthorizedObjectResult>(result);
+        Assert.Equal(401, unauthorizedResult.StatusCode);
+        _authServiceMock.Verify(x => x.LogoutAsync(It.IsAny<Guid>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Logout_WithServiceException_StillReturnsOk()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, userId.ToString())
+        };
+        var identity = new ClaimsIdentity(claims, "TestAuth");
+        var principal = new ClaimsPrincipal(identity);
+        
+        var httpContext = new DefaultHttpContext
+        {
+            User = principal
+        };
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContext
+        };
+
+        _authServiceMock.Setup(x => x.LogoutAsync(userId))
+            .ThrowsAsync(new Exception("Redis error"));
+
+        // Act
+        var result = await _controller.Logout();
+
+        // Assert - Should still return OK even if service fails
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(200, okResult.StatusCode);
+    }
+
     public void Dispose()
     {
         _context?.Dispose();

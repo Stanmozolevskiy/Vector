@@ -13,7 +13,15 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo 
+    { 
+        Title = "Vector API", 
+        Version = "v1",
+        Description = "API for Vector - Technical Interview Preparation Platform"
+    });
+});
 
 // Database with connection pooling
 builder.Services.AddDbContext<ApplicationDbContext>(options =>

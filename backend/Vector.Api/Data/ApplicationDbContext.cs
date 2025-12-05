@@ -17,6 +17,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<PasswordReset> PasswordResets { get; set; }
     public DbSet<RefreshToken> RefreshTokens { get; set; }
     public DbSet<MockInterview> MockInterviews { get; set; }
+    public DbSet<CoachApplication> CoachApplications { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -103,6 +104,26 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.VideoUrl).IsRequired();
             entity.Property(e => e.Category).HasMaxLength(50);
             entity.Property(e => e.Difficulty).HasMaxLength(20).HasDefaultValue("Medium");
+        });
+
+        // Configure CoachApplication entity
+        modelBuilder.Entity<CoachApplication>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Reviewer)
+                .WithMany()
+                .HasForeignKey(e => e.ReviewedBy)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.Property(e => e.Motivation).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.Experience).HasMaxLength(1000);
+            entity.Property(e => e.Specialization).HasMaxLength(500);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("pending");
+            entity.Property(e => e.AdminNotes).HasMaxLength(500);
+            entity.HasIndex(e => e.UserId).IsUnique(); // One application per user
         });
     }
 }

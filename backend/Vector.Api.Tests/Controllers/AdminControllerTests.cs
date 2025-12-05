@@ -2,10 +2,12 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Moq;
 using System.Security.Claims;
 using Vector.Api.Controllers;
 using Vector.Api.Data;
 using Vector.Api.Models;
+using Vector.Api.Services;
 using Xunit;
 
 namespace Vector.Api.Tests.Controllers;
@@ -24,7 +26,8 @@ public class AdminControllerTests : IDisposable
 
         _context = new ApplicationDbContext(options);
         _logger = new LoggerFactory().CreateLogger<AdminController>();
-        _controller = new AdminController(_context, _logger);
+        var coachServiceMock = new Mock<ICoachService>();
+        _controller = new AdminController(_context, coachServiceMock.Object, _logger);
     }
 
     public void Dispose()

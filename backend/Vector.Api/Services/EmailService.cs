@@ -283,5 +283,47 @@ public class EmailService : IEmailService
             _logger.LogError(ex, "Failed to send subscription confirmation email to {Email}", email);
         }
     }
+
+    public async Task SendEmailAsync(string email, string subject, string body)
+    {
+        if (!_isEnabled || _client == null)
+        {
+            _logger.LogWarning("=== GENERIC EMAIL (SendGrid not configured) ===");
+            _logger.LogWarning("To: {Email}", email);
+            _logger.LogWarning("Subject: {Subject}", subject);
+            _logger.LogWarning("Body: {Body}", body);
+            _logger.LogWarning("==============================================");
+            return;
+        }
+
+        var fromEmail = _configuration["SendGrid:FromEmail"] 
+                     ?? Environment.GetEnvironmentVariable("SendGrid__FromEmail")
+                     ?? _configuration["SendGrid__FromEmail"]
+                     ?? "noreply@vector.com";
+        
+        var fromName = _configuration["SendGrid:FromName"] 
+                    ?? Environment.GetEnvironmentVariable("SendGrid__FromName")
+                    ?? _configuration["SendGrid__FromName"]
+                    ?? "Vector";
+
+        var msg = new SendGridMessage
+        {
+            From = new EmailAddress(fromEmail, fromName),
+            Subject = subject,
+            PlainTextContent = body,
+            HtmlContent = $"<p>{body.Replace("\n", "<br>")}</p>"
+        };
+        msg.AddTo(new EmailAddress(email));
+
+        try
+        {
+            await _client.SendEmailAsync(msg);
+            _logger.LogInformation("Email sent to {Email} with subject: {Subject}", email, subject);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send email to {Email}", email);
+        }
+    }
 }
 

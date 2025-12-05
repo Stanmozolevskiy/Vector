@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using Vector.Api.Attributes;
 using Vector.Api.Data;
+using Vector.Api.DTOs.Coach;
 using Vector.Api.Models;
+using Vector.Api.Services;
 
 namespace Vector.Api.Controllers;
 
@@ -14,11 +17,16 @@ namespace Vector.Api.Controllers;
 public class AdminController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly ICoachService _coachService;
     private readonly ILogger<AdminController> _logger;
 
-    public AdminController(ApplicationDbContext context, ILogger<AdminController> logger)
+    public AdminController(
+        ApplicationDbContext context, 
+        ICoachService coachService,
+        ILogger<AdminController> logger)
     {
         _context = context;
+        _coachService = coachService;
         _logger = logger;
     }
 
@@ -181,6 +189,125 @@ public class AdminController : ControllerBase
             _logger.LogError(ex, "Failed to delete user {UserId}", userId);
             return StatusCode(500, new { message = "Failed to delete user" });
         }
+    }
+
+    /// <summary>
+    /// Get all coach applications (admin only)
+    /// </summary>
+    [HttpGet("coach-applications")]
+    [ProducesResponseType(typeof(List<CoachApplicationResponseDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAllCoachApplications()
+    {
+        try
+        {
+            var applications = await _coachService.GetAllApplicationsAsync();
+            var response = applications.Select(a => MapToResponseDto(a)).ToList();
+            return Ok(new { applications = response, total = response.Count });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get coach applications");
+            return StatusCode(500, new { message = "Failed to retrieve coach applications" });
+        }
+    }
+
+    /// <summary>
+    /// Get pending coach applications (admin only)
+    /// </summary>
+    [HttpGet("coach-applications/pending")]
+    [ProducesResponseType(typeof(List<CoachApplicationResponseDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPendingCoachApplications()
+    {
+        try
+        {
+            var applications = await _coachService.GetPendingApplicationsAsync();
+            var response = applications.Select(a => MapToResponseDto(a)).ToList();
+            return Ok(new { applications = response, total = response.Count });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get pending coach applications");
+            return StatusCode(500, new { message = "Failed to retrieve pending coach applications" });
+        }
+    }
+
+    /// <summary>
+    /// Review (approve/reject) a coach application (admin only)
+    /// </summary>
+    [HttpPost("coach-applications/{applicationId}/review")]
+    [ProducesResponseType(typeof(CoachApplicationResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ReviewCoachApplication(Guid applicationId, [FromBody] ReviewCoachApplicationDto dto)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            var adminId = GetCurrentUserId();
+            if (adminId == null)
+            {
+                return Unauthorized(new { error = "Invalid token" });
+            }
+
+            var application = await _coachService.ReviewApplicationAsync(applicationId, adminId.Value, dto);
+            var response = MapToResponseDto(application);
+
+            return Ok(response);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error reviewing coach application {ApplicationId}", applicationId);
+            return StatusCode(500, new { error = "An error occurred while reviewing the application." });
+        }
+    }
+
+    private Guid? GetCurrentUserId()
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                        ?? User.FindFirst("sub")?.Value
+                        ?? User.FindFirst("userId")?.Value;
+
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+        {
+            return null;
+        }
+
+        return userId;
+    }
+
+    private CoachApplicationResponseDto MapToResponseDto(CoachApplication application)
+    {
+        return new CoachApplicationResponseDto
+        {
+            Id = application.Id,
+            UserId = application.UserId,
+            UserEmail = application.User?.Email ?? string.Empty,
+            UserName = $"{application.User?.FirstName} {application.User?.LastName}".Trim(),
+            Motivation = application.Motivation,
+            Experience = application.Experience,
+            Specialization = application.Specialization,
+            Status = application.Status,
+            AdminNotes = application.AdminNotes,
+            ReviewedBy = application.ReviewedBy,
+            ReviewerName = application.Reviewer != null
+                ? $"{application.Reviewer.FirstName} {application.Reviewer.LastName}".Trim()
+                : null,
+            ReviewedAt = application.ReviewedAt,
+            CreatedAt = application.CreatedAt,
+            UpdatedAt = application.UpdatedAt
+        };
     }
 }
 

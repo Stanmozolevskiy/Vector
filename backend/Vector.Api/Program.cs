@@ -80,6 +80,7 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IS3Service, S3Service>();
+builder.Services.AddScoped<ICoachService, CoachService>();
 // builder.Services.AddScoped<IStripeService, StripeService>();
 
 // CORS

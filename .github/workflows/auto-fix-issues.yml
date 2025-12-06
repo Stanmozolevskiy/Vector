@@ -20,7 +20,10 @@ jobs:
   create-fix-tasks:
     name: Create Fix Tasks for Failed Builds
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    # Only run if workflow_run event and conclusion is failure, OR if manually triggered
+    if: |
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'failure') ||
+      github.event_name == 'workflow_dispatch'
     permissions:
       contents: write
       issues: write

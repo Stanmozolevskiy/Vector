@@ -1,7 +1,7 @@
 # Stage 1 Completion Checklist
 
-**Last Updated:** December 5, 2025  
-**Overall Progress:** ~65% Complete
+**Last Updated:** December 6, 2025  
+**Overall Progress:** ~70% Complete
 
 ---
 
@@ -36,10 +36,11 @@
 - [x] Mock interview video storage
 
 ### Testing
-- [x] Unit tests (67 tests, all passing)
+- [x] Unit tests (89 tests, all passing)
 - [x] Service layer tests
 - [x] Controller tests
 - [x] Authentication flow tests
+- [x] Coach application tests (Controller and Service)
 
 ### Documentation
 - [x] Redis connection guide
@@ -76,12 +77,16 @@
 - [ ] Bug fixes and optimization
 - [ ] Performance tuning
 
-### Day 22: Coach Application
-- [ ] Coach application endpoint
-- [ ] Coach approval endpoint
-- [ ] Application form UI
-- [ ] Admin approval interface
-- [ ] Approval/rejection emails
+### Day 22: Coach Application ✅ COMPLETED
+- [x] Coach application endpoint
+- [x] Coach approval endpoint
+- [x] Application form UI
+- [x] Admin approval interface
+- [x] Approval/rejection emails
+- [x] S3 image uploads for applications
+- [x] Collapsible application cards in admin dashboard
+- [x] Application status display on user profile
+- [x] Unit tests for coach application features
 
 ### Day 19-20: Automated Testing (Moved to End)
 - [ ] Playwright setup
@@ -97,7 +102,7 @@
 ### Code Metrics
 - **Backend:** ~15,000+ lines of C# code
 - **Frontend:** ~8,000+ lines of TypeScript/React
-- **Tests:** 67 unit tests (100% passing)
+- **Tests:** 89 unit tests (100% passing)
 - **Services:** 8 core services implemented
 - **Controllers:** 4 main controllers
 - **Models:** 7 database models
@@ -141,7 +146,7 @@
 ## ✅ Quality Gates
 
 ### Before Deployment
-- [x] All unit tests passing (67/67 ✅)
+- [x] All unit tests passing (89/89 ✅)
 - [x] No build errors
 - [x] Linter checks passing
 - [x] Database migrations tested
@@ -161,13 +166,18 @@
 ## 📝 Notes
 
 ### Completed Recently
+- **Day 22:** Coach application system complete with approval workflow
+- **Coach Features:** Application submission, admin review, email notifications, role updates
+- **S3 Integration:** Fixed permissions for coach application image uploads
+- **Testing:** Added 22 new unit tests for coach application features (89 total tests)
+- **Frontend:** Collapsible application cards, status display, improved error handling
 - **Day 21:** Redis implementation complete with 10-20x performance improvement
 - **Health Endpoints:** Fixed duplicate endpoints and serialization issues
 - **Admin Seeding:** Automatic admin user creation on startup
 - **Redis Guide:** Comprehensive connection guide created
 
 ### Known Issues
-- None currently blocking
+- **Profile Page 404 Error:** Console shows 404 for `/api/coach/my-application` for new users (handled gracefully, but console error persists). TODO added to STAGE1_IMPLEMENTATION.md for fix.
 
 ### Technical Debt
 - E2E testing deferred to end of Stage 1
@@ -176,6 +186,23 @@
 
 ---
 
-**Last Review:** December 5, 2025  
+**Last Review:** December 6, 2025  
 **Next Review:** After Week 4 completion
+
+---
+
+## 🚀 Deployment Status
+
+### AWS Dev Environment
+- **Last Deployment:** December 6, 2025
+- **Deployed Features:**
+  - Coach application system (submit, review, approve/reject)
+  - S3 image uploads with proper permissions
+  - Admin dashboard with collapsible application cards
+  - Application status on user profile page
+  - Email notifications for application status changes
+  - User role updates on approval
+- **Database Migrations:** Auto-applied on container startup
+- **Test Status:** All 89 unit tests passing before deployment
+- **Deployment Method:** GitHub Actions CI/CD (triggered on push to `develop` branch)
 

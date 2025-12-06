@@ -32,6 +32,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            const core = require('@actions/core');
             const workflowRun = context.payload.workflow_run;
             const owner = context.repo.owner;
             const repo = context.repo.repo;
@@ -85,6 +86,8 @@ jobs:
               }
             }
             
+            // Explicitly set output for next step
+            core.setOutput('errorSummary', errorSummary);
             return errorSummary;
 
       - name: Create Issue for Fix Tasks
@@ -93,9 +96,19 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const workflowRun = context.payload.workflow_run;
-            const errorSummary = `${{ steps.get-logs.outputs.result }}`;
+            const errorSummary = `${{ steps.get-logs.outputs.errorSummary }}`;
             
-            const issueBody = `${errorSummary}
+            // Debug: Log the error summary
+            console.log('Error Summary:', errorSummary);
+            console.log('Workflow Run:', workflowRun.name);
+            console.log('Branch:', workflowRun.head_branch);
+            
+            // Fallback if errorSummary is empty
+            const summary = errorSummary && errorSummary.trim() !== '' 
+              ? errorSummary 
+              : `## Build Failure Detected\n\n**Workflow:** ${workflowRun.name}\n**Branch:** ${workflowRun.head_branch}\n**Commit:** ${workflowRun.head_sha.substring(0, 7)}\n\nPlease check the workflow run for details.`;
+            
+            const issueBody = `${summary}
             
             ## Automated Fix Request
             

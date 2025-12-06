@@ -47,14 +47,32 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const core = require('@actions/core');
-            const workflowRun = context.payload.workflow_run;
+            
+            // Handle both workflow_run and workflow_dispatch events
+            let workflowRun;
+            if (context.payload.workflow_run) {
+              workflowRun = context.payload.workflow_run;
+            } else if (context.payload.inputs && context.payload.inputs.workflow_run_id) {
+              // Manual trigger with workflow run ID
+              const runId = context.payload.inputs.workflow_run_id;
+              const runResponse = await github.rest.actions.getWorkflowRun({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: parseInt(runId)
+              });
+              workflowRun = runResponse.data;
+            } else {
+              throw new Error('No workflow run information available');
+            }
+            
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             
             // Debug logging
-            console.log('Workflow Run Object:', JSON.stringify(workflowRun, null, 2));
+            console.log('Event type:', context.eventName);
             console.log('Workflow Run Conclusion:', workflowRun.conclusion);
             console.log('Workflow Run Name:', workflowRun.name);
+            console.log('Workflow Run ID:', workflowRun.id);
             
             // Get workflow run details
             const runResponse = await github.rest.actions.getWorkflowRun({

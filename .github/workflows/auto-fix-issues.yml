@@ -9,6 +9,12 @@ on:
       - develop
       - staging
       - main
+  workflow_dispatch:  # Allow manual triggering for testing
+    inputs:
+      workflow_run_id:
+        description: 'Workflow run ID to process (optional)'
+        required: false
+        type: string
 
 jobs:
   create-fix-tasks:
@@ -21,6 +27,14 @@ jobs:
       pull-requests: write
     
     steps:
+      - name: Debug - Log event context
+        run: |
+          echo "Event name: ${{ github.event_name }}"
+          echo "Workflow run conclusion: ${{ github.event.workflow_run.conclusion }}"
+          echo "Workflow run name: ${{ github.event.workflow_run.name }}"
+          echo "Workflow run ID: ${{ github.event.workflow_run.id }}"
+          echo "Head branch: ${{ github.event.workflow_run.head_branch }}"
+      
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -36,6 +50,11 @@ jobs:
             const workflowRun = context.payload.workflow_run;
             const owner = context.repo.owner;
             const repo = context.repo.repo;
+            
+            // Debug logging
+            console.log('Workflow Run Object:', JSON.stringify(workflowRun, null, 2));
+            console.log('Workflow Run Conclusion:', workflowRun.conclusion);
+            console.log('Workflow Run Name:', workflowRun.name);
             
             // Get workflow run details
             const runResponse = await github.rest.actions.getWorkflowRun({

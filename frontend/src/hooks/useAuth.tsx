@@ -23,6 +23,7 @@ interface AuthContextType {
   login: (data: LoginData) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
   isAuthenticated: boolean;
   isLoading: boolean;
   hasRole: (role: string | string[]) => boolean;
@@ -83,6 +84,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const refreshUser = async () => {
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      await fetchUser();
+    }
+  };
+
   // Role checking functions
   const hasRole = (role: string | string[]): boolean => {
     if (!user) return false;
@@ -95,6 +103,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     login,
     register,
     logout,
+    refreshUser,
     isAuthenticated: !!user,
     isLoading,
     hasRole,

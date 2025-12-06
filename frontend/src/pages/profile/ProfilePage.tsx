@@ -23,7 +23,7 @@ interface PasswordFormData {
 }
 
 export const ProfilePage = () => {
-  const { user, isAuthenticated, isLoading, logout } = useAuth();
+  const { user, isAuthenticated, isLoading, logout, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState('personal');
   const [profileData, setProfileData] = useState<ProfileFormData>({
@@ -44,6 +44,7 @@ export const ProfilePage = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [hasCoachApplication, setHasCoachApplication] = useState(false);
+  const [coachApplication, setCoachApplication] = useState<{ status: string; adminNotes?: string } | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -64,13 +65,32 @@ export const ProfilePage = () => {
         location: user.location || '',
       });
       
-      // Check if user has a coach application
+      // Check if user has a coach application (only for students, silently handle 404)
       if (user.role === 'student') {
-        coachService.getMyApplication().then(app => {
-          setHasCoachApplication(!!app);
-        }).catch(() => {
-          setHasCoachApplication(false);
-        });
+        coachService.getMyApplication()
+          .then(app => {
+            setHasCoachApplication(!!app);
+            if (app) {
+              setCoachApplication({
+                status: app.status,
+                adminNotes: app.adminNotes
+              });
+            } else {
+              setCoachApplication(null);
+            }
+          })
+          .catch((err) => {
+            // 404 is expected when no application exists - don't log as error
+            // The error is already marked as isExpected404 in the API interceptor
+            if (!err?.isExpected404 && err?.response?.status !== 404) {
+              console.error('Failed to fetch coach application status:', err);
+            }
+            setHasCoachApplication(false);
+            setCoachApplication(null);
+          });
+      } else {
+        setHasCoachApplication(false);
+        setCoachApplication(null);
       }
     }
   }, [user]);
@@ -192,9 +212,8 @@ export const ProfilePage = () => {
       await api.put('/users/me', profileData);
       setSuccessMessage('Profile updated successfully!');
 
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+      // Refresh user context to get updated data
+      await refreshUser();
     } catch (err) {
       const errorMsg = err && typeof err === 'object' && 'response' in err
         ? (err.response as { data?: { error?: string } })?.data?.error
@@ -519,24 +538,78 @@ export const ProfilePage = () => {
                   </form>
                 </div>
 
-                {/* Apply for Coaching Button (for students only) */}
-                {user?.role === 'student' && !hasCoachApplication && (
-                  <div className="profile-card" style={{ marginTop: '2rem', border: '2px dashed #667eea', background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)' }}>
-                    <h3 style={{ color: '#667eea', marginBottom: '0.5rem' }}>
-                      <i className="fas fa-chalkboard-teacher" style={{ marginRight: '0.5rem' }}></i>
-                      Become a Coach
-                    </h3>
-                    <p style={{ color: '#666', marginBottom: '1rem', fontSize: '0.9rem' }}>
-                      Share your expertise and help students prepare for technical interviews. Apply to become a coach on Vector.
-                    </p>
-                    <Link 
-                      to={ROUTES.COACH_APPLY}
-                      className="btn-primary"
-                      style={{ display: 'inline-block' }}
-                    >
-                      <i className="fas fa-paper-plane" style={{ marginRight: '0.5rem' }}></i>
-                      Apply to Become a Coach
-                    </Link>
+                {/* Coach Application Status or Apply Button */}
+                {user?.role === 'student' && (
+                  <div className="profile-card" style={{ marginTop: '2rem' }}>
+                    {hasCoachApplication && coachApplication ? (
+                      <>
+                        <h3 style={{ marginBottom: '1rem' }}>
+                          <i className="fas fa-chalkboard-teacher" style={{ marginRight: '0.5rem', color: '#667eea' }}></i>
+                          Coach Application Status
+                        </h3>
+                        <div style={{ marginBottom: '1rem' }}>
+                          <strong>Status: </strong>
+                          <span style={{
+                            padding: '0.25rem 0.75rem',
+                            borderRadius: '4px',
+                            fontSize: '0.9rem',
+                            fontWeight: 'bold',
+                            backgroundColor: coachApplication.status === 'approved' ? '#d4edda' : 
+                                           coachApplication.status === 'rejected' ? '#f8d7da' : '#fff3cd',
+                            color: coachApplication.status === 'approved' ? '#155724' : 
+                                  coachApplication.status === 'rejected' ? '#721c24' : '#856404'
+                          }}>
+                            {coachApplication.status === 'approved' ? '✓ Approved' : 
+                             coachApplication.status === 'rejected' ? '✗ Rejected' : 
+                             '⏳ Pending Review'}
+                          </span>
+                        </div>
+                        {coachApplication.adminNotes && (
+                          <div style={{ 
+                            marginTop: '1rem', 
+                            padding: '1rem', 
+                            background: '#f5f5f5', 
+                            borderRadius: '4px',
+                            border: '1px solid #ddd'
+                          }}>
+                            <strong>Admin Notes:</strong>
+                            <p style={{ marginTop: '0.5rem', color: '#333', whiteSpace: 'pre-wrap' }}>
+                              {coachApplication.adminNotes}
+                            </p>
+                          </div>
+                        )}
+                        {coachApplication.status === 'rejected' && (
+                          <div style={{ marginTop: '1rem' }}>
+                            <Link 
+                              to={ROUTES.COACH_APPLY}
+                              className="btn-primary"
+                              style={{ display: 'inline-block', textDecoration: 'none' }}
+                            >
+                              <i className="fas fa-redo" style={{ marginRight: '0.5rem' }}></i>
+                              Reapply for Coaching
+                            </Link>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <h3 style={{ color: '#667eea', marginBottom: '0.5rem' }}>
+                          <i className="fas fa-chalkboard-teacher" style={{ marginRight: '0.5rem' }}></i>
+                          Become a Coach
+                        </h3>
+                        <p style={{ color: '#666', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                          Share your expertise and help students prepare for technical interviews. Apply to become a coach on Vector.
+                        </p>
+                        <Link 
+                          to={ROUTES.COACH_APPLY}
+                          className="btn-primary"
+                          style={{ display: 'inline-block', textDecoration: 'none' }}
+                        >
+                          <i className="fas fa-paper-plane" style={{ marginRight: '0.5rem' }}></i>
+                          Apply to Become a Coach
+                        </Link>
+                      </>
+                    )}
                   </div>
                 )}
               </div>

@@ -40,10 +40,15 @@ export const coachService = {
   // Get current user's application
   getMyApplication: async (): Promise<CoachApplication | null> => {
     try {
-      const response = await api.get<CoachApplication>('/coach/my-application');
-      return response.data;
+      // Suppress 404 console errors for this endpoint since it's expected for new users
+      const response = await api.get<CoachApplication>('/coach/my-application', {
+        validateStatus: (status) => status === 200 || status === 404
+      });
+      // If 404, response.data will be undefined, return null
+      return response.status === 404 ? null : response.data;
     } catch (error: any) {
-      if (error.response?.status === 404) {
+      // Handle expected 404s silently (no console error for new users without applications)
+      if (error.response?.status === 404 || error.isExpected404) {
         return null;
       }
       throw error;

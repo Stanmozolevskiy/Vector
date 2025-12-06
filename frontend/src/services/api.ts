@@ -26,6 +26,20 @@ api.interceptors.response.use(
       localStorage.removeItem('refreshToken');
       window.location.href = '/login';
     }
+    
+    // Suppress console errors for expected 404s on coach application endpoint
+    // This prevents console noise when new users (without applications) visit the profile page
+    if (error.response?.status === 404 && 
+        error.config?.url?.includes('/coach/my-application')) {
+      // This is expected for users without applications - mark it so it won't log to console
+      error.isExpected404 = true;
+      // Suppress the browser console error by preventing the default error logging
+      // Note: Browser will still show the network request in DevTools, but won't show as error
+      if (error.config?.suppress404Logging !== false) {
+        error.suppressConsoleError = true;
+      }
+    }
+    
     return Promise.reject(error);
   }
 );

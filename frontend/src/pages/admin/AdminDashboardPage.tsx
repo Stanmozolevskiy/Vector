@@ -38,8 +38,7 @@ interface UserData {
 const AdminDashboardPage = () => {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<'users' | 'coach-applications'>('users');
-  const [applicationTab, setApplicationTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
-  const [expandedApps, setExpandedApps] = useState<Set<string>>(new Set());
+  const [_applicationTab, _setApplicationTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
   const [stats, setStats] = useState<UserStats | null>(null);
   const [users, setUsers] = useState<UserData[]>([]);
   const [coachApplications, setCoachApplications] = useState<CoachApplication[]>([]);
@@ -47,10 +46,11 @@ const AdminDashboardPage = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [reviewingApp, setReviewingApp] = useState<string | null>(null);
-  const [reviewNotes, setReviewNotes] = useState('');
-  const [reviewStatus, setReviewStatus] = useState<'approved' | 'rejected'>('approved');
+  const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
+  const [reviewStatus, setReviewStatus] = useState<Record<string, 'approved' | 'rejected'>>({});
   const [updatingUser, setUpdatingUser] = useState<string | null>(null);
   const [deletingUser, setDeletingUser] = useState<string | null>(null);
+  const [expandedApplications, setExpandedApplications] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchStats();
@@ -88,7 +88,10 @@ const AdminDashboardPage = () => {
   };
 
   const handleReviewApplication = async (applicationId: string) => {
-    if (!reviewNotes.trim() && reviewStatus === 'rejected') {
+    const notes = reviewNotes[applicationId] || '';
+    const status = reviewStatus[applicationId] || 'approved';
+
+    if (status === 'rejected' && !notes.trim()) {
       setError('Please provide notes when rejecting an application');
       return;
     }
@@ -99,19 +102,27 @@ const AdminDashboardPage = () => {
 
     try {
       await coachService.reviewApplication(applicationId, {
-        status: reviewStatus,
-        adminNotes: reviewNotes || undefined,
+        status: status,
+        adminNotes: notes || undefined,
       });
-      setSuccess(`Application ${reviewStatus} successfully`);
-      setReviewNotes('');
-      setReviewStatus('approved');
+      setSuccess(`Application ${status} successfully`);
+      // Clear review notes and status for this application
+      setReviewNotes(prev => {
+        const newNotes = { ...prev };
+        delete newNotes[applicationId];
+        return newNotes;
+      });
+      setReviewStatus(prev => {
+        const newStatus = { ...prev };
+        delete newStatus[applicationId];
+        return newStatus;
+      });
       setReviewingApp(null);
       await fetchCoachApplications();
       await fetchStats(); // Refresh stats to update coach count
       await fetchUsers(); // Refresh users to see role changes
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to review application');
-    } finally {
       setReviewingApp(null);
     }
   };
@@ -401,168 +412,229 @@ const AdminDashboardPage = () => {
               <p>No coach applications found.</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                {coachApplications.map((app) => (
-                  <div
-                    key={app.id}
-                    style={{
-                      background: 'white',
-                      padding: '1.5rem',
-                      borderRadius: '8px',
-                      border: '1px solid #ddd',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1rem' }}>
-                      <div>
-                        <h4 style={{ margin: 0, marginBottom: '0.5rem' }}>{app.userName}</h4>
-                        <p style={{ margin: 0, color: '#666', fontSize: '0.9rem' }}>{app.userEmail}</p>
+                {coachApplications.map((app) => {
+                  const isExpanded = expandedApplications.has(app.id);
+                  return (
+                    <div
+                      key={app.id}
+                      style={{
+                        background: 'white',
+                        padding: '1.5rem',
+                        borderRadius: '8px',
+                        border: '1px solid #ddd',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                      }}
+                    >
+                      <div 
+                        style={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'start',
+                          cursor: 'pointer',
+                        }}
+                        onClick={() => {
+                          setExpandedApplications(prev => {
+                            const newSet = new Set(prev);
+                            if (newSet.has(app.id)) {
+                              newSet.delete(app.id);
+                            } else {
+                              newSet.add(app.id);
+                            }
+                            return newSet;
+                          });
+                        }}
+                      >
+                        <div style={{ flex: 1 }}>
+                          <h4 style={{ margin: 0, marginBottom: '0.5rem' }}>{app.userName}</h4>
+                          <p style={{ margin: 0, color: '#666', fontSize: '0.9rem' }}>{app.userEmail}</p>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                          {getStatusBadge(app.status)}
+                          <i 
+                            className={`fas fa-chevron-${isExpanded ? 'up' : 'down'}`}
+                            style={{ color: '#666', fontSize: '0.9rem' }}
+                          ></i>
+                        </div>
                       </div>
-                      {getStatusBadge(app.status)}
-                    </div>
 
-                    <div style={{ marginBottom: '1rem' }}>
-                      <strong>Motivation:</strong>
-                      <p style={{ marginTop: '0.5rem', color: '#333' }}>{app.motivation}</p>
-                    </div>
+                      {isExpanded && (
+                        <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid #eee' }}>
+                          <div style={{ marginBottom: '1rem' }}>
+                            <strong>Motivation:</strong>
+                            <p style={{ marginTop: '0.5rem', color: '#333', whiteSpace: 'pre-wrap' }}>{app.motivation}</p>
+                          </div>
 
-                    {app.experience && (
-                      <div style={{ marginBottom: '1rem' }}>
-                        <strong>Experience:</strong>
-                        <p style={{ marginTop: '0.5rem', color: '#333' }}>{app.experience}</p>
-                      </div>
-                    )}
-
-                    {app.specialization && (
-                      <div style={{ marginBottom: '1rem' }}>
-                        <strong>Specialization:</strong>
-                        <p style={{ marginTop: '0.5rem', color: '#333' }}>{app.specialization}</p>
-                      </div>
-                    )}
-
+                          {app.experience && (
                             <div style={{ marginBottom: '1rem' }}>
-                              <strong>Motivation:</strong>
-                              <p style={{ marginTop: '0.5rem', color: '#333' }}>{app.motivation}</p>
+                              <strong>Experience:</strong>
+                              <p style={{ marginTop: '0.5rem', color: '#333', whiteSpace: 'pre-wrap' }}>{app.experience}</p>
                             </div>
+                          )}
 
-                            {app.experience && (
-                              <div style={{ marginBottom: '1rem' }}>
-                                <strong>Experience:</strong>
-                                <p style={{ marginTop: '0.5rem', color: '#333' }}>{app.experience}</p>
-                              </div>
-                            )}
+                          {app.specialization && (
+                            <div style={{ marginBottom: '1rem' }}>
+                              <strong>Specialization:</strong>
+                              <p style={{ marginTop: '0.5rem', color: '#333' }}>{app.specialization}</p>
+                            </div>
+                          )}
 
-                            {app.specialization && (
-                              <div style={{ marginBottom: '1rem' }}>
-                                <strong>Specialization:</strong>
-                                <p style={{ marginTop: '0.5rem', color: '#333' }}>{app.specialization}</p>
-                              </div>
-                            )}
-
-                            {app.imageUrls && app.imageUrls.length > 0 && (
-                              <div style={{ marginBottom: '1rem' }}>
-                                <strong>Portfolio Images:</strong>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem', marginTop: '0.5rem' }}>
-                                  {app.imageUrls.map((url, index) => (
+                          {app.imageUrls && app.imageUrls.length > 0 && (
+                            <div style={{ marginBottom: '1rem' }}>
+                              <strong>Portfolio Images:</strong>
+                              <div style={{ 
+                                display: 'grid', 
+                                gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', 
+                                gap: '1rem', 
+                                marginTop: '0.5rem' 
+                              }}>
+                                {app.imageUrls.map((url, index) => (
+                                  <div 
+                                    key={index}
+                                    style={{
+                                      position: 'relative',
+                                      width: '100%',
+                                      paddingTop: '100%',
+                                      borderRadius: '8px',
+                                      overflow: 'hidden',
+                                      border: '1px solid #ddd',
+                                      cursor: 'pointer',
+                                    }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      window.open(url, '_blank');
+                                    }}
+                                  >
                                     <img
-                                      key={index}
                                       src={url}
                                       alt={`Portfolio ${index + 1}`}
                                       style={{
+                                        position: 'absolute',
+                                        top: 0,
+                                        left: 0,
                                         width: '100%',
-                                        height: '200px',
+                                        height: '100%',
                                         objectFit: 'cover',
-                                        borderRadius: '8px',
-                                        border: '1px solid #ddd',
-                                        cursor: 'pointer',
                                       }}
-                                      onClick={() => window.open(url, '_blank')}
+                                      onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.style.display = 'none';
+                                        const parent = target.parentElement;
+                                        if (parent) {
+                                          parent.innerHTML = '<i class="fas fa-image" style="font-size: 2rem; color: #ccc; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"></i>';
+                                        }
+                                      }}
                                     />
-                                  ))}
-                                </div>
+                                  </div>
+                                ))}
                               </div>
-                            )}
+                            </div>
+                          )}
 
-                            {app.adminNotes && (
-                              <div style={{ marginBottom: '1rem', padding: '0.75rem', background: '#f5f5f5', borderRadius: '4px' }}>
-                                <strong>Admin Notes:</strong>
-                                <p style={{ marginTop: '0.5rem', color: '#333' }}>{app.adminNotes}</p>
-                              </div>
-                            )}
+                          {app.adminNotes && (
+                            <div style={{ marginBottom: '1rem', padding: '0.75rem', background: '#f5f5f5', borderRadius: '4px' }}>
+                              <strong>Admin Notes:</strong>
+                              <p style={{ marginTop: '0.5rem', color: '#333', whiteSpace: 'pre-wrap' }}>{app.adminNotes}</p>
+                            </div>
+                          )}
 
-                            {app.status === 'pending' && (
-                              <div style={{ marginTop: '1rem', padding: '1rem', background: '#f8f9fa', borderRadius: '4px' }}>
-                                <div style={{ marginBottom: '1rem' }}>
-                                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                                    Review Notes (required for rejection):
-                                  </label>
-                                  <textarea
-                                    value={reviewNotes}
-                                    onChange={(e) => setReviewNotes(e.target.value)}
-                                    placeholder="Add notes for the applicant..."
-                                    rows={3}
-                                    style={{
-                                      width: '100%',
-                                      padding: '0.5rem',
-                                      border: '1px solid #ddd',
-                                      borderRadius: '4px',
-                                      fontSize: '0.9rem',
-                                    }}
-                                  />
-                                </div>
-                                <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
-                                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <input
-                                      type="radio"
-                                      checked={reviewStatus === 'approved'}
-                                      onChange={() => setReviewStatus('approved')}
-                                    />
-                                    Approve
-                                  </label>
-                                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <input
-                                      type="radio"
-                                      checked={reviewStatus === 'rejected'}
-                                      onChange={() => setReviewStatus('rejected')}
-                                    />
-                                    Reject
-                                  </label>
-                                </div>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleReviewApplication(app.id);
+                          {app.status === 'pending' && (
+                            <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#f8f9fa', borderRadius: '4px', border: '1px solid #ddd' }}>
+                              <div style={{ marginBottom: '1rem' }}>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+                                  Review Notes {reviewStatus[app.id] === 'rejected' && <span style={{ color: '#dc3545' }}>*</span>}:
+                                </label>
+                                <textarea
+                                  value={reviewNotes[app.id] || ''}
+                                  onChange={(e) => {
+                                    setReviewNotes(prev => ({
+                                      ...prev,
+                                      [app.id]: e.target.value
+                                    }));
                                   }}
-                                  disabled={reviewingApp === app.id}
+                                  placeholder="Add notes for the applicant..."
+                                  rows={3}
                                   style={{
-                                    padding: '0.5rem 1rem',
-                                    background: reviewStatus === 'approved' ? '#28a745' : '#dc3545',
-                                    color: 'white',
-                                    border: 'none',
+                                    width: '100%',
+                                    padding: '0.5rem',
+                                    border: '1px solid #ddd',
                                     borderRadius: '4px',
-                                    cursor: 'pointer',
-                                    fontWeight: 'bold',
+                                    fontSize: '0.9rem',
+                                    fontFamily: 'inherit',
                                   }}
-                                >
-                                  {reviewingApp === app.id ? 'Processing...' : `${reviewStatus === 'approved' ? 'Approve' : 'Reject'} Application`}
-                                </button>
+                                  onClick={(e) => e.stopPropagation()}
+                                />
                               </div>
-                            )}
+                              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                                  <input
+                                    type="radio"
+                                    checked={reviewStatus[app.id] === 'approved'}
+                                    onChange={() => {
+                                      setReviewStatus(prev => ({
+                                        ...prev,
+                                        [app.id]: 'approved'
+                                      }));
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                  Approve
+                                </label>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                                  <input
+                                    type="radio"
+                                    checked={reviewStatus[app.id] === 'rejected'}
+                                    onChange={() => {
+                                      setReviewStatus(prev => ({
+                                        ...prev,
+                                        [app.id]: 'rejected'
+                                      }));
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                  Reject
+                                </label>
+                              </div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleReviewApplication(app.id);
+                                }}
+                                disabled={reviewingApp === app.id}
+                                style={{
+                                  padding: '0.5rem 1rem',
+                                  background: (reviewStatus[app.id] || 'approved') === 'approved' ? '#28a745' : '#dc3545',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  cursor: reviewingApp === app.id ? 'not-allowed' : 'pointer',
+                                  fontWeight: 'bold',
+                                  opacity: reviewingApp === app.id ? 0.6 : 1,
+                                }}
+                              >
+                                {reviewingApp === app.id ? 'Processing...' : `${(reviewStatus[app.id] || 'approved') === 'approved' ? 'Approve' : 'Reject'} Application`}
+                              </button>
+                            </div>
+                          )}
 
-                            {app.reviewedAt && (
-                              <p style={{ marginTop: '1rem', fontSize: '0.85rem', color: '#666' }}>
+                          {app.reviewedAt && (
+                            <div style={{ marginTop: '1rem', fontSize: '0.85rem', color: '#666' }}>
+                              <p style={{ margin: 0 }}>
                                 Reviewed on: {new Date(app.reviewedAt).toLocaleDateString()}
                                 {app.reviewerName && ` by ${app.reviewerName}`}
                               </p>
-                            )}
+                            </div>
+                          )}
 
-                            <p style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#666' }}>
+                          <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#666' }}>
+                            <p style={{ margin: 0 }}>
                               Applied on: {new Date(app.createdAt).toLocaleDateString()}
                             </p>
                           </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

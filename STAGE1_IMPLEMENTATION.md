@@ -434,7 +434,7 @@ Before starting, ensure you have:
 - [ ] Create application form UI
 - [ ] Add admin approval interface
 - [ ] Send approval/rejection emails
-
+- [ ] Change user's role after approval 
 ---
 
 ---
@@ -548,6 +548,7 @@ Before starting, ensure you have:
 - [ ] Automated deployments work
 - [ ] Database migrations run automatically
 - [ ] Environment variables are configured
+- [ ] All 3 environmrnts are working (Dev, Staging, Prod)
 
 ### Testing ✅ IN PROGRESS
 - [x] Unit tests created for API functionality ✅ (AuthController, UserController, AuthService tests)
@@ -681,3 +682,13 @@ Before starting, ensure you have:
 5. Test end-to-end authentication flow
 
 For detailed step-by-step implementation instructions, refer to `IMPLEMENTATION_PLAN_STEP_BY_STEP.md`.
+
+---
+
+## TODO: End of Stage 1
+
+### Frontend Issues
+- [ ] **Fix 404 console error on Profile Page**: When a new user navigates to `/profile`, the browser console shows `GET http://localhost:5000/api/coach/my-application 404 (Not Found)`. While the code handles this gracefully (returns null for 404), the console error still appears. Need to investigate and suppress this error properly, possibly by:
+  - Adding a guard to only call the endpoint if user has an existing application
+  - Improving the Axios interceptor to handle expected 404s silently
+  - Or implementing a better check before making the API call

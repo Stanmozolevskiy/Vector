@@ -182,6 +182,42 @@ const CoachApplicationPage = () => {
         </p>
       </div>
 
+      {success && (
+        <div style={{
+          background: '#efe',
+          color: '#3c3',
+          padding: '1rem',
+          borderRadius: '4px',
+          marginBottom: '1rem',
+        }}>
+          {success}
+          {success.includes('submitted successfully') && (
+            <div style={{ marginTop: '1rem' }}>
+              <Link 
+                to={ROUTES.DASHBOARD}
+                className="btn-primary"
+                style={{ display: 'inline-block', textDecoration: 'none' }}
+              >
+                <i className="fas fa-arrow-left" style={{ marginRight: '0.5rem' }}></i>
+                Back to Dashboard
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
+
+      {error && (
+        <div style={{
+          background: '#fee',
+          color: '#c33',
+          padding: '1rem',
+          borderRadius: '4px',
+          marginBottom: '1rem',
+        }}>
+          {error}
+        </div>
+      )}
+
       {application && (
         <div style={{
           background: '#f5f5f5',
@@ -203,52 +239,6 @@ const CoachApplicationPage = () => {
             <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#666' }}>
               Reviewed on: {new Date(application.reviewedAt).toLocaleDateString()}
             </p>
-          )}
-          <div style={{ marginTop: '1.5rem' }}>
-            <Link 
-              to={ROUTES.DASHBOARD}
-              className="btn-primary"
-              style={{ display: 'inline-block', textDecoration: 'none' }}
-            >
-              <i className="fas fa-arrow-left" style={{ marginRight: '0.5rem' }}></i>
-              Back to Dashboard
-            </Link>
-          </div>
-        </div>
-      )}
-
-      {error && (
-        <div style={{
-          background: '#fee',
-          color: '#c33',
-          padding: '1rem',
-          borderRadius: '4px',
-          marginBottom: '1rem',
-        }}>
-          {error}
-        </div>
-      )}
-
-      {success && (
-        <div style={{
-          background: '#efe',
-          color: '#3c3',
-          padding: '1rem',
-          borderRadius: '4px',
-          marginBottom: '1rem',
-        }}>
-          {success}
-          {success.includes('submitted successfully') && (
-            <div style={{ marginTop: '1rem' }}>
-              <Link 
-                to={ROUTES.DASHBOARD}
-                className="btn-primary"
-                style={{ display: 'inline-block', textDecoration: 'none' }}
-              >
-                <i className="fas fa-arrow-left" style={{ marginRight: '0.5rem' }}></i>
-                Back to Dashboard
-              </Link>
-            </div>
           )}
         </div>
       )}

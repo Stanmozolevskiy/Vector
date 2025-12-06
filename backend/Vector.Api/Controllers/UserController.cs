@@ -112,6 +112,15 @@ public class UserController : ControllerBase
             
             var user = await _userService.UpdateProfileAsync(userId, dto);
             
+            if (user == null)
+            {
+                return NotFound(new { error = "User not found" });
+            }
+            
+            // Invalidate Redis cache to ensure fresh data on next request
+            await _redisService.InvalidateUserSessionAsync(userId);
+            _logger.LogInformation("Invalidated Redis cache for user {UserId}", userId);
+            
             _logger.LogInformation("Profile updated successfully for user {UserId}", userId);
             
             return Ok(new
@@ -227,6 +236,10 @@ public class UserController : ControllerBase
             
             _logger.LogInformation("Profile picture uploaded successfully for user {UserId}: {Url}", userId, pictureUrl);
             
+            // Invalidate Redis cache to ensure fresh data on next request
+            await _redisService.InvalidateUserSessionAsync(userId);
+            _logger.LogInformation("Invalidated Redis cache for user {UserId} after profile picture upload", userId);
+            
             return Ok(new { profilePictureUrl = pictureUrl });
         }
         catch (Exception ex)
@@ -299,6 +312,10 @@ public class UserController : ControllerBase
             }
             
             _logger.LogInformation("Profile picture deleted successfully for user {UserId}", userId);
+            
+            // Invalidate Redis cache to ensure fresh data on next request
+            await _redisService.InvalidateUserSessionAsync(userId);
+            _logger.LogInformation("Invalidated Redis cache for user {UserId} after profile picture deletion", userId);
             
             return Ok(new { message = "Profile picture deleted successfully" });
         }

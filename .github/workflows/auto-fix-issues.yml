@@ -229,10 +229,21 @@ jobs:
             }
 
       - name: Create TODO File for Cursor
+        id: create-todo
         run: |
-          WORKFLOW_NAME="${{ github.event.workflow_run.name }}"
-          BRANCH="${{ github.event.workflow_run.head_branch }}"
-          COMMIT_SHA="${{ github.event.workflow_run.head_sha }}"
+          # Determine workflow run info based on event type
+          if [ "${{ github.event_name }}" == "workflow_run" ]; then
+            WORKFLOW_NAME="${{ github.event.workflow_run.name }}"
+            BRANCH="${{ github.event.workflow_run.head_branch }}"
+            COMMIT_SHA="${{ github.event.workflow_run.head_sha }}"
+            RUN_ID="${{ github.event.workflow_run.id }}"
+          else
+            # Manual trigger - use context or inputs
+            WORKFLOW_NAME="Auto-Create Fix Tasks (Manual)"
+            BRANCH="${{ github.ref_name }}"
+            COMMIT_SHA="${{ github.sha }}"
+            RUN_ID="${{ github.run_id }}"
+          fi
           
           TODO_FILE=".cursor-fix-tasks.md"
           
@@ -252,7 +263,7 @@ jobs:
           - **Name:** $WORKFLOW_NAME
           - **Branch:** $BRANCH
           - **Commit:** $COMMIT_SHA
-          - **View:** https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}
+          - **View:** https://github.com/${{ github.repository }}/actions/runs/$RUN_ID
           
           ### Action Required
           1. Review the failed workflow run logs
@@ -267,13 +278,35 @@ jobs:
           
           echo "Created TODO file: $TODO_FILE"
           cat "$TODO_FILE"
+          
+          # Set output for next step
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
 
       - name: Commit TODO file (if not in CI)
         if: github.event_name != 'pull_request'
         run: |
+          # Get branch name from previous step or context
+          BRANCH="${{ steps.create-todo.outputs.branch }}"
+          if [ -z "$BRANCH" ]; then
+            # Fallback to current branch
+            if [ "${{ github.event_name }}" == "workflow_run" ]; then
+              BRANCH="${{ github.event.workflow_run.head_branch }}"
+            else
+              BRANCH="${{ github.ref_name }}"
+            fi
+          fi
+          
+          echo "Attempting to commit and push to branch: $BRANCH"
+          
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add .cursor-fix-tasks.md
           git commit -m "chore: Add auto-generated fix tasks for failed build" || echo "No changes to commit"
-          git push origin ${{ github.event.workflow_run.head_branch }} || echo "Unable to push (may be protected branch)"
+          
+          # Only push if we have a valid branch name
+          if [ -n "$BRANCH" ] && [ "$BRANCH" != "null" ]; then
+            git push origin "$BRANCH" || echo "Unable to push to branch $BRANCH (may be protected branch)"
+          else
+            echo "Warning: Branch name is empty, skipping push"
+          fi
 

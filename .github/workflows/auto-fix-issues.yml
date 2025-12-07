@@ -1,0 +1,255 @@
+name: Auto-Create Fix Tasks
+
+on:
+  workflow_run:
+    workflows: ["Frontend CI/CD", "Backend CI/CD"]
+    types:
+      - completed
+    branches:
+      - develop
+      - staging
+      - main
+  workflow_dispatch:  # Allow manual triggering for testing
+    inputs:
+      workflow_run_id:
+        description: 'Workflow run ID to process (optional)'
+        required: false
+        type: string
+
+jobs:
+  create-fix-tasks:
+    name: Create Fix Tasks for Failed Builds
+    runs-on: ubuntu-latest
+    # Only run if workflow_run event and conclusion is failure, OR if manually triggered
+    if: |
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'failure') ||
+      github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    
+    steps:
+      - name: Debug - Log event context
+        run: |
+          echo "Event name: ${{ github.event_name }}"
+          echo "Workflow run conclusion: ${{ github.event.workflow_run.conclusion }}"
+          echo "Workflow run name: ${{ github.event.workflow_run.name }}"
+          echo "Workflow run ID: ${{ github.event.workflow_run.id }}"
+          echo "Head branch: ${{ github.event.workflow_run.head_branch }}"
+      
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get workflow logs
+        uses: actions/github-script@v7
+        id: get-logs
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const core = require('@actions/core');
+            
+            // Handle both workflow_run and workflow_dispatch events
+            let workflowRun;
+            if (context.payload.workflow_run) {
+              workflowRun = context.payload.workflow_run;
+            } else if (context.payload.inputs && context.payload.inputs.workflow_run_id) {
+              // Manual trigger with workflow run ID
+              const runId = context.payload.inputs.workflow_run_id;
+              const runResponse = await github.rest.actions.getWorkflowRun({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: parseInt(runId)
+              });
+              workflowRun = runResponse.data;
+            } else {
+              throw new Error('No workflow run information available');
+            }
+            
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            
+            // Debug logging
+            console.log('Event type:', context.eventName);
+            console.log('Workflow Run Conclusion:', workflowRun.conclusion);
+            console.log('Workflow Run Name:', workflowRun.name);
+            console.log('Workflow Run ID:', workflowRun.id);
+            
+            // Get workflow run details
+            const runResponse = await github.rest.actions.getWorkflowRun({
+              owner,
+              repo,
+              run_id: workflowRun.id
+            });
+            
+            // Get jobs for this workflow run
+            const jobsResponse = await github.rest.actions.listJobsForWorkflowRun({
+              owner,
+              repo,
+              run_id: workflowRun.id
+            });
+            
+            const failedJobs = jobsResponse.data.jobs.filter(job => job.conclusion === 'failure');
+            
+            let errorSummary = `## Build Failure Detected\n\n`;
+            errorSummary += `**Workflow:** ${workflowRun.name}\n`;
+            errorSummary += `**Branch:** ${workflowRun.head_branch}\n`;
+            errorSummary += `**Commit:** ${workflowRun.head_sha.substring(0, 7)}\n\n`;
+            
+            // Get logs for failed jobs
+            for (const job of failedJobs) {
+              errorSummary += `### Failed Job: ${job.name}\n\n`;
+              
+              // Get steps for this job
+              const steps = job.steps || [];
+              const failedSteps = steps.filter(step => step.conclusion === 'failure');
+              
+              for (const step of failedSteps) {
+                errorSummary += `**Failed Step:** ${step.name}\n`;
+                
+                // Try to get step logs
+                try {
+                  const logResponse = await github.rest.actions.getJobForWorkflowRun({
+                    owner,
+                    repo,
+                    job_id: job.id
+                  });
+                  
+                  // Extract error messages from step logs
+                  // Note: Full log access requires additional API calls
+                  errorSummary += `- Step failed during execution\n`;
+                } catch (error) {
+                  errorSummary += `- Unable to retrieve detailed logs\n`;
+                }
+              }
+            }
+            
+            // Explicitly set output for next step
+            core.setOutput('errorSummary', errorSummary);
+            return errorSummary;
+
+      - name: Create Issue for Fix Tasks
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const workflowRun = context.payload.workflow_run;
+            const errorSummary = `${{ steps.get-logs.outputs.errorSummary }}`;
+            
+            // Debug: Log the error summary
+            console.log('Error Summary:', errorSummary);
+            console.log('Workflow Run:', workflowRun.name);
+            console.log('Branch:', workflowRun.head_branch);
+            
+            // Fallback if errorSummary is empty
+            const summary = errorSummary && errorSummary.trim() !== '' 
+              ? errorSummary 
+              : `## Build Failure Detected\n\n**Workflow:** ${workflowRun.name}\n**Branch:** ${workflowRun.head_branch}\n**Commit:** ${workflowRun.head_sha.substring(0, 7)}\n\nPlease check the workflow run for details.`;
+            
+            const issueBody = `${summary}
+            
+            ## Automated Fix Request
+            
+            This issue was automatically created because a CI/CD build failed.
+            
+            ### Next Steps:
+            1. Review the error messages above
+            2. Fix the issues in the codebase
+            3. Push the fixes to trigger a new build
+            4. Close this issue once the build succeeds
+            
+            ### Workflow Run:
+            - [View failed workflow run](${workflowRun.html_url})
+            
+            ---
+            *This issue was automatically created by the Auto-Create Fix Tasks workflow*
+            `;
+            
+            const issueTitle = `🔧 Fix Required: ${workflowRun.name} Build Failed on ${workflowRun.head_branch}`;
+            
+            // Check if an issue already exists for this workflow run
+            const existingIssues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'auto-generated,ci-failure'
+            });
+            
+            const existingIssue = existingIssues.data.find(issue => 
+              issue.title.includes(workflowRun.name) && 
+              issue.title.includes(workflowRun.head_branch)
+            );
+            
+            if (existingIssue) {
+              console.log(`Issue already exists: ${existingIssue.html_url}`);
+              // Update existing issue
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existingIssue.number,
+                body: `## Update: Build Still Failing\n\n${errorSummary}\n\n[View workflow run](${workflowRun.html_url})`
+              });
+            } else {
+              // Create new issue
+              const issue = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: issueTitle,
+                body: issueBody,
+                labels: ['auto-generated', 'ci-failure', 'bug']
+              });
+              
+              console.log(`Created issue: ${issue.data.html_url}`);
+            }
+
+      - name: Create TODO File for Cursor
+        run: |
+          WORKFLOW_NAME="${{ github.event.workflow_run.name }}"
+          BRANCH="${{ github.event.workflow_run.head_branch }}"
+          COMMIT_SHA="${{ github.event.workflow_run.head_sha }}"
+          
+          TODO_FILE=".cursor-fix-tasks.md"
+          
+          cat > "$TODO_FILE" << EOF
+          # Auto-Generated Fix Tasks
+          
+          **Generated:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Workflow:** $WORKFLOW_NAME
+          **Branch:** $BRANCH
+          **Commit:** $COMMIT_SHA
+          
+          ## Build Failure Detected
+          
+          The CI/CD pipeline failed. Please review and fix the following issues:
+          
+          ### Failed Workflow
+          - **Name:** $WORKFLOW_NAME
+          - **Branch:** $BRANCH
+          - **Commit:** $COMMIT_SHA
+          - **View:** https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}
+          
+          ### Action Required
+          1. Review the failed workflow run logs
+          2. Identify the root cause of the failure
+          3. Fix the issues in the codebase
+          4. Push fixes to trigger a new build
+          5. Delete this file once fixed
+          
+          ---
+          *This file is auto-generated and will be overwritten on the next build failure*
+          EOF
+          
+          echo "Created TODO file: $TODO_FILE"
+          cat "$TODO_FILE"
+
+      - name: Commit TODO file (if not in CI)
+        if: github.event_name != 'pull_request'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add .cursor-fix-tasks.md
+          git commit -m "chore: Add auto-generated fix tasks for failed build" || echo "No changes to commit"
+          git push origin ${{ github.event.workflow_run.head_branch }} || echo "Unable to push (may be protected branch)"
+

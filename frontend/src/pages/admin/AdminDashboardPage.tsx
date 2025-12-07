@@ -38,7 +38,6 @@ interface UserData {
 const AdminDashboardPage = () => {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<'users' | 'coach-applications'>('users');
-  const [_applicationTab, _setApplicationTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
   const [stats, setStats] = useState<UserStats | null>(null);
   const [users, setUsers] = useState<UserData[]>([]);
   const [coachApplications, setCoachApplications] = useState<CoachApplication[]>([]);
@@ -62,8 +61,9 @@ const AdminDashboardPage = () => {
     try {
       const response = await api.get<UserStats>('/admin/stats');
       setStats(response.data);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load statistics');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'Failed to load statistics');
     }
   };
 
@@ -71,8 +71,9 @@ const AdminDashboardPage = () => {
     try {
       const response = await api.get<{ users: UserData[] }>('/admin/users');
       setUsers(response.data.users);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load users');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'Failed to load users');
     } finally {
       setLoading(false);
     }
@@ -82,8 +83,9 @@ const AdminDashboardPage = () => {
     try {
       const applications = await coachService.getAllApplications();
       setCoachApplications(applications);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load coach applications');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'Failed to load coach applications');
     }
   };
 
@@ -121,8 +123,9 @@ const AdminDashboardPage = () => {
       await fetchCoachApplications();
       await fetchStats(); // Refresh stats to update coach count
       await fetchUsers(); // Refresh users to see role changes
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to review application');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } } };
+      setError(error.response?.data?.error || 'Failed to review application');
       setReviewingApp(null);
     }
   };
@@ -141,8 +144,9 @@ const AdminDashboardPage = () => {
       setSuccess('User role updated successfully');
       await fetchUsers();
       await fetchStats();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to update user role');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'Failed to update user role');
     } finally {
       setUpdatingUser(null);
     }
@@ -162,8 +166,9 @@ const AdminDashboardPage = () => {
       setSuccess('User deleted successfully');
       await fetchUsers();
       await fetchStats();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to delete user');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'Failed to delete user');
     } finally {
       setDeletingUser(null);
     }

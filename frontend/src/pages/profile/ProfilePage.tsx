@@ -128,8 +128,9 @@ export const ProfilePage = () => {
       localStorage.removeItem('refreshToken');
       await logout();
       navigate(ROUTES.HOME);
-    } catch (err: any) {
-      setErrorMessage(err.response?.data?.error || 'Failed to delete account. Please try again.');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } } };
+      setErrorMessage(error.response?.data?.error || 'Failed to delete account. Please try again.');
       setIsDeleting(false);
     }
   };
@@ -200,9 +201,10 @@ export const ProfilePage = () => {
             setProfilePicture(null);
             setProfilePicturePreview(null);
           }
-        } catch (uploadErr: any) {
+        } catch (uploadErr: unknown) {
           console.error('Failed to upload profile picture:', uploadErr);
-          setErrorMessage(uploadErr.response?.data?.error || 'Profile picture upload failed. Please try again.');
+          const error = uploadErr as { response?: { data?: { error?: string } } };
+          setErrorMessage(error.response?.data?.error || 'Profile picture upload failed. Please try again.');
           setIsSaving(false);
           return; // Stop if image upload fails
         }

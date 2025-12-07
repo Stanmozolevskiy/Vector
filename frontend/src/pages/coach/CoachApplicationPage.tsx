@@ -53,10 +53,11 @@ const CoachApplicationPage = () => {
           imageUrls: app.imageUrls || [],
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       // 404 is expected when no application exists yet - don't show error
-      if (err.response?.status !== 404) {
-        setError(err.response?.data?.error || 'Failed to load application');
+      const error = err as { response?: { status?: number; data?: { error?: string } } };
+      if (error.response?.status !== 404) {
+        setError(error.response?.data?.error || 'Failed to load application');
       }
     } finally {
       setLoading(false);
@@ -84,8 +85,9 @@ const CoachApplicationPage = () => {
       });
       setApplication(result);
       setSuccess('Your application has been submitted successfully! You will receive an email once it has been reviewed.');
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to submit application');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } } };
+      setError(error.response?.data?.error || 'Failed to submit application');
     } finally {
       setSubmitting(false);
     }
@@ -134,9 +136,10 @@ const CoachApplicationPage = () => {
       }));
       setSuccess('Image uploaded successfully!');
       setTimeout(() => setSuccess(''), 3000); // Clear success message after 3 seconds
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Image upload error:', err);
-      setError(err.response?.data?.error || err.message || 'Failed to upload image');
+      const error = err as { response?: { data?: { error?: string } }; message?: string };
+      setError(error.response?.data?.error || error.message || 'Failed to upload image');
     } finally {
       setUploadingImage(false);
       // Reset input

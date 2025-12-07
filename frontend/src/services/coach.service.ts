@@ -46,9 +46,10 @@ export const coachService = {
       });
       // If 404, response.data will be undefined, return null
       return response.status === 404 ? null : response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Handle expected 404s silently (no console error for new users without applications)
-      if (error.response?.status === 404 || error.isExpected404) {
+      const err = error as { response?: { status?: number }; isExpected404?: boolean };
+      if (err.response?.status === 404 || err.isExpected404) {
         return null;
       }
       throw error;

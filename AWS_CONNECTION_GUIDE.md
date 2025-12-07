@@ -101,6 +101,21 @@ Replace:
 
 **Step 3.1: Create SSH Tunnel**
 
+**Windows PowerShell:**
+```powershell
+# Get database endpoint from Terraform
+cd infrastructure/terraform
+$DB_ENDPOINT = (terraform output -raw database_endpoint).Split(':')[0]
+$BASTION_IP = terraform output -raw bastion_public_ip
+
+# Create SSH tunnel (runs in background)
+ssh -i "$env:USERPROFILE\.ssh\dev-bastion-key" `
+    -L 5433:${DB_ENDPOINT}:5432 `
+    -N `
+    ec2-user@${BASTION_IP}
+```
+
+**Linux/Mac:**
 ```bash
 # Get database endpoint from Terraform
 cd infrastructure/terraform
@@ -336,9 +351,46 @@ exit
 
 ## Troubleshooting
 
+### Issue: "Connection timed out" (Most Common)
+
+**Quick Fix - Add Your IP to Security Group:**
+
+```powershell
+# PowerShell (Windows)
+$MY_IP = (Invoke-RestMethod -Uri "https://api.ipify.org?format=json").ip
+cd infrastructure/terraform
+$SG_ID = terraform output -raw bastion_security_group_id
+aws ec2 authorize-security-group-ingress --group-id $SG_ID --protocol tcp --port 22 --cidr "$MY_IP/32"
+```
+
+```bash
+# Bash (Linux/Mac)
+MY_IP=$(curl -s https://api.ipify.org)
+cd infrastructure/terraform
+SG_ID=$(terraform output -raw bastion_security_group_id)
+aws ec2 authorize-security-group-ingress --group-id $SG_ID --protocol tcp --port 22 --cidr "$MY_IP/32"
+```
+
+**Other Causes:**
+1. **Instance is stopped** - Start it: `aws ec2 start-instances --instance-ids <INSTANCE_ID>`
+2. **Wrong IP address** - Verify: `terraform output bastion_public_ip`
+3. **Network blocking SSH** - Try SSM Session Manager instead (see below)
+
+**See `AWS_CONNECTION_TROUBLESHOOTING.md` for detailed diagnostics.**
+
 ### Issue: "Permission denied (publickey)"
 
-**Solution:**
+**Solution (Windows):**
+```powershell
+# Check key exists
+Test-Path "$env:USERPROFILE\.ssh\dev-bastion-key"
+
+# Fix permissions (if needed)
+icacls "$env:USERPROFILE\.ssh\dev-bastion-key" /inheritance:r
+icacls "$env:USERPROFILE\.ssh\dev-bastion-key" /grant:r "$env:USERNAME:(R)"
+```
+
+**Solution (Linux/Mac):**
 ```bash
 # Check key permissions
 chmod 400 ~/.ssh/dev-bastion-key.pem
@@ -364,6 +416,19 @@ ls -la ~/.ssh/dev-bastion-key.pem
    ssh -i ~/.ssh/dev-bastion-key.pem ec2-user@<BASTION_IP>
    telnet <RDS_ENDPOINT> 5432
    ```
+
+### Alternative: Use SSM Session Manager (No SSH Required)
+
+If SSH continues to fail, use AWS Systems Manager:
+
+```powershell
+# PowerShell
+cd infrastructure/terraform
+$INSTANCE_ID = terraform output -raw bastion_instance_id
+aws ssm start-session --target $INSTANCE_ID --region us-east-1
+```
+
+This works from anywhere and doesn't require security group rules!
 
 ### Issue: "Database does not exist"
 

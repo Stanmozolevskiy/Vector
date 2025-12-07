@@ -1,0 +1,31 @@
+﻿{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ssm:StartSession"
+      ],
+      "Resource": [
+        "arn:aws:ec2:*:*:instance/*",
+        "arn:aws:ssm:*:*:document/SSM-SessionManagerRunShell"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "ssm:resourceTag/Environment": "dev"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ssm:DescribeInstanceInformation",
+        "ssm:DescribeInstanceProperties",
+        "ssm:DescribeSessions",
+        "ssm:GetConnectionStatus",
+        "ssm:TerminateSession"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

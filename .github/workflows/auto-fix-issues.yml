@@ -135,18 +135,42 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const workflowRun = context.payload.workflow_run;
+            // Get workflow run info from previous step or context
+            let workflowRun;
+            if (context.payload.workflow_run) {
+              workflowRun = context.payload.workflow_run;
+            } else if (context.payload.inputs && context.payload.inputs.workflow_run_id) {
+              // Manual trigger - get workflow run from ID
+              const runId = context.payload.inputs.workflow_run_id;
+              const runResponse = await github.rest.actions.getWorkflowRun({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: parseInt(runId)
+              });
+              workflowRun = runResponse.data;
+            } else {
+              // Fallback: try to get from error summary or use defaults
+              workflowRun = {
+                name: 'Unknown Workflow',
+                head_branch: context.ref.replace('refs/heads/', ''),
+                head_sha: context.sha,
+                html_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+                id: context.runId
+              };
+            }
+            
             const errorSummary = `${{ steps.get-logs.outputs.errorSummary }}`;
             
             // Debug: Log the error summary
             console.log('Error Summary:', errorSummary);
             console.log('Workflow Run:', workflowRun.name);
             console.log('Branch:', workflowRun.head_branch);
+            console.log('Workflow Run ID:', workflowRun.id);
             
             // Fallback if errorSummary is empty
             const summary = errorSummary && errorSummary.trim() !== '' 
               ? errorSummary 
-              : `## Build Failure Detected\n\n**Workflow:** ${workflowRun.name}\n**Branch:** ${workflowRun.head_branch}\n**Commit:** ${workflowRun.head_sha.substring(0, 7)}\n\nPlease check the workflow run for details.`;
+              : `## Build Failure Detected\n\n**Workflow:** ${workflowRun.name}\n**Branch:** ${workflowRun.head_branch}\n**Commit:** ${workflowRun.head_sha ? workflowRun.head_sha.substring(0, 7) : 'unknown'}\n\nPlease check the workflow run for details.`;
             
             const issueBody = `${summary}
             
@@ -189,7 +213,7 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: existingIssue.number,
-                body: `## Update: Build Still Failing\n\n${errorSummary}\n\n[View workflow run](${workflowRun.html_url})`
+                body: `## Update: Build Still Failing\n\n${summary}\n\n[View workflow run](${workflowRun.html_url})`
               });
             } else {
               // Create new issue
@@ -205,10 +229,21 @@ jobs:
             }
 
       - name: Create TODO File for Cursor
+        id: create-todo
         run: |
-          WORKFLOW_NAME="${{ github.event.workflow_run.name }}"
-          BRANCH="${{ github.event.workflow_run.head_branch }}"
-          COMMIT_SHA="${{ github.event.workflow_run.head_sha }}"
+          # Determine workflow run info based on event type
+          if [ "${{ github.event_name }}" == "workflow_run" ]; then
+            WORKFLOW_NAME="${{ github.event.workflow_run.name }}"
+            BRANCH="${{ github.event.workflow_run.head_branch }}"
+            COMMIT_SHA="${{ github.event.workflow_run.head_sha }}"
+            RUN_ID="${{ github.event.workflow_run.id }}"
+          else
+            # Manual trigger - use context or inputs
+            WORKFLOW_NAME="Auto-Create Fix Tasks (Manual)"
+            BRANCH="${{ github.ref_name }}"
+            COMMIT_SHA="${{ github.sha }}"
+            RUN_ID="${{ github.run_id }}"
+          fi
           
           TODO_FILE=".cursor-fix-tasks.md"
           
@@ -228,7 +263,7 @@ jobs:
           - **Name:** $WORKFLOW_NAME
           - **Branch:** $BRANCH
           - **Commit:** $COMMIT_SHA
-          - **View:** https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}
+          - **View:** https://github.com/${{ github.repository }}/actions/runs/$RUN_ID
           
           ### Action Required
           1. Review the failed workflow run logs
@@ -243,13 +278,35 @@ jobs:
           
           echo "Created TODO file: $TODO_FILE"
           cat "$TODO_FILE"
+          
+          # Set output for next step
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
 
       - name: Commit TODO file (if not in CI)
         if: github.event_name != 'pull_request'
         run: |
+          # Get branch name from previous step or context
+          BRANCH="${{ steps.create-todo.outputs.branch }}"
+          if [ -z "$BRANCH" ]; then
+            # Fallback to current branch
+            if [ "${{ github.event_name }}" == "workflow_run" ]; then
+              BRANCH="${{ github.event.workflow_run.head_branch }}"
+            else
+              BRANCH="${{ github.ref_name }}"
+            fi
+          fi
+          
+          echo "Attempting to commit and push to branch: $BRANCH"
+          
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add .cursor-fix-tasks.md
           git commit -m "chore: Add auto-generated fix tasks for failed build" || echo "No changes to commit"
-          git push origin ${{ github.event.workflow_run.head_branch }} || echo "Unable to push (may be protected branch)"
+          
+          # Only push if we have a valid branch name
+          if [ -n "$BRANCH" ] && [ "$BRANCH" != "null" ]; then
+            git push origin "$BRANCH" || echo "Unable to push to branch $BRANCH (may be protected branch)"
+          else
+            echo "Warning: Branch name is empty, skipping push"
+          fi
 

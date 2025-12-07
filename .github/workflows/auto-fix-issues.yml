@@ -135,18 +135,42 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const workflowRun = context.payload.workflow_run;
+            // Get workflow run info from previous step or context
+            let workflowRun;
+            if (context.payload.workflow_run) {
+              workflowRun = context.payload.workflow_run;
+            } else if (context.payload.inputs && context.payload.inputs.workflow_run_id) {
+              // Manual trigger - get workflow run from ID
+              const runId = context.payload.inputs.workflow_run_id;
+              const runResponse = await github.rest.actions.getWorkflowRun({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: parseInt(runId)
+              });
+              workflowRun = runResponse.data;
+            } else {
+              // Fallback: try to get from error summary or use defaults
+              workflowRun = {
+                name: 'Unknown Workflow',
+                head_branch: context.ref.replace('refs/heads/', ''),
+                head_sha: context.sha,
+                html_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+                id: context.runId
+              };
+            }
+            
             const errorSummary = `${{ steps.get-logs.outputs.errorSummary }}`;
             
             // Debug: Log the error summary
             console.log('Error Summary:', errorSummary);
             console.log('Workflow Run:', workflowRun.name);
             console.log('Branch:', workflowRun.head_branch);
+            console.log('Workflow Run ID:', workflowRun.id);
             
             // Fallback if errorSummary is empty
             const summary = errorSummary && errorSummary.trim() !== '' 
               ? errorSummary 
-              : `## Build Failure Detected\n\n**Workflow:** ${workflowRun.name}\n**Branch:** ${workflowRun.head_branch}\n**Commit:** ${workflowRun.head_sha.substring(0, 7)}\n\nPlease check the workflow run for details.`;
+              : `## Build Failure Detected\n\n**Workflow:** ${workflowRun.name}\n**Branch:** ${workflowRun.head_branch}\n**Commit:** ${workflowRun.head_sha ? workflowRun.head_sha.substring(0, 7) : 'unknown'}\n\nPlease check the workflow run for details.`;
             
             const issueBody = `${summary}
             
@@ -189,7 +213,7 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: existingIssue.number,
-                body: `## Update: Build Still Failing\n\n${errorSummary}\n\n[View workflow run](${workflowRun.html_url})`
+                body: `## Update: Build Still Failing\n\n${summary}\n\n[View workflow run](${workflowRun.html_url})`
               });
             } else {
               // Create new issue

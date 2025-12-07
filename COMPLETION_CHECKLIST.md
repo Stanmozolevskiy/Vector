@@ -36,7 +36,7 @@
 - [x] Mock interview video storage
 
 ### Testing
-- [x] Unit tests (89 tests, all passing)
+- [x] Unit tests (99 tests, all passing)
 - [x] Service layer tests
 - [x] Controller tests
 - [x] Authentication flow tests

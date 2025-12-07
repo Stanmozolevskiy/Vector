@@ -12,6 +12,7 @@ import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { ProfilePage } from './pages/profile/ProfilePage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import CoachApplicationPage from './pages/coach/CoachApplicationPage';
+import SubscriptionPlansPage from './pages/subscription/SubscriptionPlansPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
 import { ROUTES } from './utils/constants';
 
@@ -45,6 +46,11 @@ function App() {
         <Route path={ROUTES.COACH_APPLY} element={
           <ProtectedRoute requireAuth>
             <CoachApplicationPage />
+          </ProtectedRoute>
+        } />
+        <Route path={ROUTES.SUBSCRIPTION_PLANS} element={
+          <ProtectedRoute requireAuth>
+            <SubscriptionPlansPage />
           </ProtectedRoute>
         } />
         

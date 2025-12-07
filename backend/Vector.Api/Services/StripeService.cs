@@ -28,7 +28,7 @@ public class StripeService : IStripeService
 
     public async Task<Subscription> CreateSubscriptionAsync(string customerId, string priceId)
     {
-        var service = new SubscriptionService(_stripeClient);
+        var service = new Stripe.SubscriptionService(_stripeClient);
         var options = new SubscriptionCreateOptions
         {
             Customer = customerId,
@@ -44,7 +44,7 @@ public class StripeService : IStripeService
     {
         try
         {
-            var service = new SubscriptionService(_stripeClient);
+            var service = new Stripe.SubscriptionService(_stripeClient);
             var options = new SubscriptionCancelOptions();
             await service.CancelAsync(subscriptionId, options);
             return true;

@@ -12,4 +12,5 @@ export const ROUTES = {
   PROFILE: '/profile',
   COACH_APPLY: '/coach/apply',
   ADMIN: '/admin',
+  SUBSCRIPTION_PLANS: '/subscription/plans',
 };

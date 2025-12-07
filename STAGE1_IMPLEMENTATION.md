@@ -429,12 +429,12 @@ Before starting, ensure you have:
 **🎉 Day 21 100% COMPLETE!**
 
 ### Day 22: Coach Application
-- [ ] Create coach application endpoint
-- [ ] Create coach approval endpoint
-- [ ] Create application form UI
-- [ ] Add admin approval interface
-- [ ] Send approval/rejection emails
-- [ ] Change user's role after approval 
+- [x] Create coach application endpoint
+- [x] Create coach approval endpoint
+- [x] Create application form UI
+- [x] Add admin approval interface
+- [x] Send approval/rejection emails
+- [x] Change user's role after approval 
 ---
 
 ---

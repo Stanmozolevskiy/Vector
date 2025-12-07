@@ -2,6 +2,8 @@
 
 Simple step-by-step guide to connect to your AWS PostgreSQL and Redis instances.
 
+> **📘 For a complete database connection guide with Docker instructions, see [AWS_DATABASE_CONNECTION_GUIDE.md](./AWS_DATABASE_CONNECTION_GUIDE.md)**
+
 ---
 
 ## Prerequisites

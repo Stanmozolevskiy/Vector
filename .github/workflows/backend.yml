@@ -6,11 +6,19 @@ on:
       - develop
       - staging
       - main
+    # For staging and main, trigger on any push (deployments should always run)
+    # For develop, use path filters to avoid unnecessary builds
     paths:
       - 'backend/**'
       - '.github/workflows/backend.yml'
       - 'docker/Dockerfile.backend'
+      - 'infrastructure/**'
       - '.deployment-trigger'
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'README.md'
   workflow_dispatch:  # Allow manual triggering
   pull_request:
     branches:
@@ -21,6 +29,7 @@ on:
       - 'backend/**'
       - '.github/workflows/backend.yml'
       - 'docker/Dockerfile.backend'
+      - 'infrastructure/**'
 
 env:
   DOTNET_VERSION: '8.0.x'

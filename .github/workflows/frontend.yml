@@ -208,7 +208,7 @@ jobs:
           ECR_REGISTRY: ${{ steps.ecr-repo.outputs.registry }}
           ECR_REPOSITORY: vector-frontend
           IMAGE_TAG: ${{ github.sha }}
-          VITE_API_URL: ${{ secrets.STAGING_API_URL || 'http://staging-vector-alb-xxxxx.us-east-1.elb.amazonaws.com/api' }}
+          VITE_API_URL: ${{ secrets.STAGING_API_URL || 'http://staging-vector-alb-2020798622.us-east-1.elb.amazonaws.com/api' }}
         run: |
           # Build and push image with API URL
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \

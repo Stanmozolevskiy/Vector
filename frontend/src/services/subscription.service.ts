@@ -25,6 +25,15 @@ export interface Subscription {
   plan?: SubscriptionPlan;
 }
 
+export interface Invoice {
+  id: string;
+  amount: number;
+  currency: string;
+  status: string;
+  createdAt: string;
+  paidAt?: string;
+}
+
 const subscriptionService = {
   getPlans: async (): Promise<SubscriptionPlan[]> => {
     const response = await api.get<SubscriptionPlan[]>('/subscriptions/plans');
@@ -50,8 +59,8 @@ const subscriptionService = {
     await api.put('/subscriptions/cancel');
   },
 
-  getInvoices: async (): Promise<any[]> => {
-    const response = await api.get<any[]>('/subscriptions/invoices');
+  getInvoices: async (): Promise<Invoice[]> => {
+    const response = await api.get<Invoice[]>('/subscriptions/invoices');
     return response.data;
   },
 };

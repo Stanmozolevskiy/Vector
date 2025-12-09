@@ -55,7 +55,7 @@ jobs:
         working-directory: ${{ env.PROJECT_PATH }}
         run: npm run build
         env:
-          VITE_API_URL: ${{ secrets.DEV_API_URL || 'http://localhost:5000' }}
+          VITE_API_URL: ${{ secrets.DEV_API_URL || 'http://localhost:5000/api' }}
 
       - name: Check build artifacts
         run: |

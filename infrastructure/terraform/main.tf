@@ -81,7 +81,7 @@ module "bastion" {
   ssh_public_key           = var.bastion_ssh_public_key
   allowed_ssh_cidr_blocks  = var.bastion_allowed_ssh_cidr_blocks
   instance_type            = var.bastion_instance_type
-  use_elastic_ip           = true
+  use_elastic_ip           = var.use_elastic_ip
 }
 
 # ECR Module

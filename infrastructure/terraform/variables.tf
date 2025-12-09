@@ -89,3 +89,9 @@ variable "sendgrid_from_name" {
   default     = "Vector"
 }
 
+variable "use_elastic_ip" {
+  description = "Whether to use an Elastic IP for the bastion host"
+  type        = bool
+  default     = false
+}
+

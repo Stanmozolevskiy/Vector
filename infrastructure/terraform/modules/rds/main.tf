@@ -57,8 +57,8 @@ resource "aws_db_instance" "postgres" {
   db_subnet_group_name   = aws_db_subnet_group.main.name
   vpc_security_group_ids = [aws_security_group.rds.id]
 
-  # Free Tier allows 0-1 day backup retention. Use 1 day for dev, 7 for production
-  backup_retention_period = var.environment == "dev" ? 1 : 7
+  # Free Tier allows 0-1 day backup retention. Use 1 day for dev/staging, 7 for production
+  backup_retention_period = var.environment == "prod" ? 7 : 1
   backup_window          = "03:00-04:00"
   maintenance_window     = "mon:04:00-mon:05:00"
 

@@ -73,7 +73,9 @@ resource "aws_lb_target_group" "backend" {
   }
 }
 
-# ALB Listener for HTTP (redirects to HTTPS in production, forwards in dev)
+# ALB Listener for HTTP (staging/production)
+# For staging: forward to frontend by default, route /api/* to backend
+# For production: redirect to HTTPS (when certificate is available)
 resource "aws_lb_listener" "http" {
   count = var.environment != "dev" ? 1 : 0
 
@@ -82,30 +84,45 @@ resource "aws_lb_listener" "http" {
   protocol          = "HTTP"
 
   default_action {
-    type = "redirect"
-    redirect {
-      port        = "443"
-      protocol    = "HTTPS"
-      status_code = "HTTP_301"
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.frontend.arn
+  }
+}
+
+# Listener rule for backend API (staging/production)
+resource "aws_lb_listener_rule" "backend_api_staging" {
+  count        = var.environment != "dev" ? 1 : 0
+  listener_arn = aws_lb_listener.http[0].arn
+  priority     = 100
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.backend.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/api/*"]
     }
   }
 }
 
 # ALB Listener for HTTPS (placeholder - requires ACM certificate)
-resource "aws_lb_listener" "https" {
-  count = var.environment != "dev" ? 1 : 0
-
-  load_balancer_arn = aws_lb.main.arn
-  port              = "443"
-  protocol          = "HTTPS"
-  ssl_policy        = "ELBSecurityPolicy-TLS-1-2-2017-01"
-  # certificate_arn   = var.certificate_arn  # Add when SSL certificate is available
-
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.backend.arn
-  }
-}
+# Disabled for now - enable when SSL certificate is available
+# resource "aws_lb_listener" "https" {
+#   count = var.environment != "dev" && var.certificate_arn != "" ? 1 : 0
+#
+#   load_balancer_arn = aws_lb.main.arn
+#   port              = "443"
+#   protocol          = "HTTPS"
+#   ssl_policy        = "ELBSecurityPolicy-TLS-1-2-2017-01"
+#   certificate_arn   = var.certificate_arn
+#
+#   default_action {
+#     type             = "forward"
+#     target_group_arn = aws_lb_target_group.backend.arn
+#   }
+# }
 
 # Target Group for Frontend
 resource "aws_lb_target_group" "frontend" {

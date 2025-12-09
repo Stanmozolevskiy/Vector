@@ -123,6 +123,9 @@ jobs:
           echo "repository_url=$REPO_URL" >> $GITHUB_OUTPUT
           echo "registry=${REPO_URL%/*}" >> $GITHUB_OUTPUT
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build and push Docker image to ECR
         env:
           ECR_REGISTRY: ${{ steps.ecr-repo.outputs.registry }}
@@ -130,13 +133,15 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
           VITE_API_URL: ${{ secrets.DEV_API_URL || 'http://dev-vector-alb-1842167636.us-east-1.elb.amazonaws.com/api' }}
         run: |
-          # Build and push image with API URL
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+          # Build and push image with API URL using Docker Buildx
+          docker buildx build \
+            --platform linux/amd64 \
             --build-arg VITE_API_URL="$VITE_API_URL" \
-            -f docker/Dockerfile.frontend .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+            -f docker/Dockerfile.frontend \
+            --push \
+            .
           echo "Image pushed: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
       - name: Update ECS service
@@ -194,6 +199,9 @@ jobs:
           echo "repository_url=$REPO_URL" >> $GITHUB_OUTPUT
           echo "registry=${REPO_URL%/*}" >> $GITHUB_OUTPUT
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build and push Docker image to ECR
         env:
           ECR_REGISTRY: ${{ steps.ecr-repo.outputs.registry }}
@@ -201,13 +209,15 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
           VITE_API_URL: ${{ secrets.STAGING_API_URL || 'http://staging-vector-alb-xxxxx.us-east-1.elb.amazonaws.com/api' }}
         run: |
-          # Build and push image with API URL
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+          # Build and push image with API URL using Docker Buildx
+          docker buildx build \
+            --platform linux/amd64 \
             --build-arg VITE_API_URL="$VITE_API_URL" \
-            -f docker/Dockerfile.frontend .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+            -f docker/Dockerfile.frontend \
+            --push \
+            .
           echo "Image pushed: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
       - name: Update ECS service

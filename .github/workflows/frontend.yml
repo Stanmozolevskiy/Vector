@@ -6,19 +6,14 @@ on:
       - develop
       - staging
       - main
-    # For staging and main, trigger on any push (deployments should always run)
-    # For develop, use path filters to avoid unnecessary builds
+    # Trigger on frontend code, workflow files, Dockerfiles, infrastructure, or deployment trigger
+    # Exclude documentation-only changes by not including them in paths
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend.yml'
       - 'docker/Dockerfile.frontend'
       - 'infrastructure/**'
       - '.deployment-trigger'
-    paths-ignore:
-      - '*.md'
-      - 'docs/**'
-      - '.gitignore'
-      - 'README.md'
   workflow_dispatch:  # Allow manual triggering
   pull_request:
     branches:

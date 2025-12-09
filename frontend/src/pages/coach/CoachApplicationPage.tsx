@@ -3,7 +3,9 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { coachService, type CoachApplication } from '../../services/coach.service';
 import { ROUTES } from '../../utils/constants';
+import { Navbar } from '../../components/layout/Navbar';
 import '../../styles/style.css';
+import '../../styles/dashboard.css';
 
 const CoachApplicationPage = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -169,7 +171,10 @@ const CoachApplicationPage = () => {
   }
 
   return (
-    <div className="container" style={{ maxWidth: '800px', margin: '2rem auto', padding: '2rem' }}>
+    <div className="dashboard-page">
+      <Navbar />
+      <section className="dashboard-section">
+        <div className="container" style={{ maxWidth: '900px', margin: '0 auto', padding: '2rem' }}>
       {/* Header Section */}
       <div style={{ 
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -185,27 +190,102 @@ const CoachApplicationPage = () => {
         </p>
       </div>
 
-      {success && (
+      {success && success.includes('submitted successfully') && (
         <div style={{
-          background: '#efe',
-          color: '#3c3',
+          background: 'white',
+          padding: '3rem 2rem',
+          borderRadius: '12px',
+          marginBottom: '2rem',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+          textAlign: 'center',
+          border: '2px solid #d1fae5'
+        }}>
+          <div style={{
+            width: '80px',
+            height: '80px',
+            margin: '0 auto 1.5rem',
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+          }}>
+            <i className="fas fa-check" style={{ fontSize: '2.5rem', color: 'white' }}></i>
+          </div>
+          <h2 style={{
+            margin: '0 0 1rem 0',
+            fontSize: '1.75rem',
+            fontWeight: 'bold',
+            color: '#065f46'
+          }}>
+            Application Submitted Successfully!
+          </h2>
+          <p style={{
+            margin: '0 0 2rem 0',
+            fontSize: '1.1rem',
+            color: '#047857',
+            lineHeight: '1.6',
+            maxWidth: '600px',
+            marginLeft: 'auto',
+            marginRight: 'auto'
+          }}>
+            Thank you for your interest in becoming a coach! Your application has been received and is now under review. 
+            You will receive an email notification once your application has been reviewed by our team.
+          </p>
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link 
+              to={ROUTES.PROFILE}
+              className="btn-primary"
+              style={{ 
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                textDecoration: 'none',
+                padding: '0.75rem 1.5rem',
+                borderRadius: '8px',
+                fontWeight: '600',
+                transition: 'all 0.2s'
+              }}
+            >
+              <i className="fas fa-user"></i>
+              View Profile
+            </Link>
+            <Link 
+              to={ROUTES.DASHBOARD}
+              className="btn-secondary"
+              style={{ 
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                textDecoration: 'none',
+                padding: '0.75rem 1.5rem',
+                borderRadius: '8px',
+                fontWeight: '600',
+                background: 'var(--bg-gray-50)',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border-color)',
+                transition: 'all 0.2s'
+              }}
+            >
+              <i className="fas fa-tachometer-alt"></i>
+              Go to Dashboard
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {success && !success.includes('submitted successfully') && (
+        <div style={{
+          background: '#d1fae5',
+          borderLeft: '4px solid #10b981',
           padding: '1rem',
           borderRadius: '4px',
           marginBottom: '1rem',
+          color: '#065f46'
         }}>
+          <i className="fas fa-check-circle" style={{ marginRight: '0.5rem' }}></i>
           {success}
-          {success.includes('submitted successfully') && (
-            <div style={{ marginTop: '1rem' }}>
-              <Link 
-                to={ROUTES.DASHBOARD}
-                className="btn-primary"
-                style={{ display: 'inline-block', textDecoration: 'none' }}
-              >
-                <i className="fas fa-arrow-left" style={{ marginRight: '0.5rem' }}></i>
-                Back to Dashboard
-              </Link>
-            </div>
-          )}
         </div>
       )}
 
@@ -443,6 +523,8 @@ const CoachApplicationPage = () => {
           </button>
         </form>
       )}
+        </div>
+      </section>
     </div>
   );
 };

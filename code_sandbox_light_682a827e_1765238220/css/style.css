@@ -152,6 +152,20 @@ input, button, textarea, select {
     color: var(--primary-color);
 }
 
+.nav-menu .btn-primary,
+.nav-menu .btn-secondary {
+    padding: 0.625rem 1.5rem;
+    margin-left: 0.5rem;
+}
+
+.nav-menu .btn-primary {
+    color: white !important;
+}
+
+.nav-menu .btn-secondary {
+    color: var(--text-primary) !important;
+}
+
 .nav-toggle {
     display: none;
     font-size: 1.5rem;
@@ -163,24 +177,31 @@ input, button, textarea, select {
    Buttons
    =========================== */
 .btn-primary, .btn-secondary, .btn-outline {
-    display: inline-block;
-    padding: 0.75rem 1.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.625rem 1.75rem;
     border-radius: var(--radius-md);
     font-weight: 600;
     text-align: center;
     cursor: pointer;
     border: none;
     transition: var(--transition);
+    line-height: 1.5;
+    white-space: nowrap;
+    min-height: 42px;
 }
 
 .btn-primary {
     background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-    color: white;
+    color: #ffffff !important;
+    text-decoration: none;
 }
 
 .btn-primary:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
+    color: #ffffff !important;
 }
 
 .btn-secondary {
@@ -196,6 +217,7 @@ input, button, textarea, select {
     background: transparent;
     border: 2px solid var(--primary-color);
     color: var(--primary-color);
+    padding: 0.5rem 1.75rem;
 }
 
 .btn-outline:hover {
@@ -764,10 +786,18 @@ input, button, textarea, select {
         flex-direction: column;
         padding: var(--spacing-md);
         box-shadow: var(--shadow-lg);
+        gap: var(--spacing-sm);
     }
     
     .nav-menu.active {
         display: flex;
+    }
+    
+    .nav-menu .btn-primary,
+    .nav-menu .btn-secondary {
+        width: 100%;
+        margin-left: 0;
+        justify-content: center;
     }
     
     .nav-toggle {

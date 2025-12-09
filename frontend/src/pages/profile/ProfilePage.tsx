@@ -2,8 +2,11 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { ROUTES } from '../../utils/constants';
+import { Navbar } from '../../components/layout/Navbar';
 import api from '../../services/api';
 import { coachService } from '../../services/coach.service';
+import subscriptionService from '../../services/subscription.service';
+import type { Subscription } from '../../services/subscription.service';
 import '../../styles/style.css';
 import '../../styles/dashboard.css';
 import '../../styles/profile.css';
@@ -47,6 +50,8 @@ export const ProfilePage = () => {
   const [coachApplication, setCoachApplication] = useState<{ status: string; adminNotes?: string } | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [currentSubscription, setCurrentSubscription] = useState<Subscription | null>(null);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -92,8 +97,24 @@ export const ProfilePage = () => {
         setHasCoachApplication(false);
         setCoachApplication(null);
       }
+
+      // Fetch current subscription
+      if (isAuthenticated) {
+        setSubscriptionLoading(true);
+        subscriptionService.getCurrentSubscription()
+          .then(sub => {
+            setCurrentSubscription(sub);
+          })
+          .catch(err => {
+            console.error('Failed to fetch subscription:', err);
+            setCurrentSubscription(null);
+          })
+          .finally(() => {
+            setSubscriptionLoading(false);
+          });
+      }
     }
-  }, [user]);
+  }, [user, isAuthenticated]);
 
   const getUserInitials = () => {
     if (user?.firstName && user?.lastName) {
@@ -103,17 +124,6 @@ export const ProfilePage = () => {
       return user.email.substring(0, 2).toUpperCase();
     }
     return 'U';
-  };
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      // Even if logout fails, clear local storage and redirect
-      console.error('Logout error:', error);
-    } finally {
-      navigate(ROUTES.HOME);
-    }
   };
 
   const handleDeleteAccount = async () => {
@@ -147,6 +157,46 @@ export const ProfilePage = () => {
       ...passwordData,
       [e.target.name]: e.target.value,
     });
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setErrorMessage('New passwords do not match');
+      return;
+    }
+
+    if (passwordData.newPassword.length < 8) {
+      setErrorMessage('New password must be at least 8 characters');
+      return;
+    }
+
+    setIsSaving(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      await api.put('/users/me/password', {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
+        confirmPassword: passwordData.confirmPassword,
+      });
+
+      setSuccessMessage('Password changed successfully!');
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
+    } catch (err) {
+      const errorMsg = err && typeof err === 'object' && 'response' in err
+        ? (err.response as { data?: { error?: string } })?.data?.error
+        : undefined;
+      setErrorMessage(errorMsg || 'Failed to change password');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleProfilePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -226,45 +276,6 @@ export const ProfilePage = () => {
     }
   };
 
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setErrorMessage('New passwords do not match');
-      return;
-    }
-
-    if (passwordData.newPassword.length < 8) {
-      setErrorMessage('New password must be at least 8 characters');
-      return;
-    }
-
-    setIsSaving(true);
-    setErrorMessage('');
-    setSuccessMessage('');
-
-    try {
-      await api.put('/users/me/password', {
-        currentPassword: passwordData.currentPassword,
-        newPassword: passwordData.newPassword,
-        confirmPassword: passwordData.confirmPassword,
-      });
-
-      setSuccessMessage('Password changed successfully!');
-      setPasswordData({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      });
-    } catch (err) {
-      const errorMsg = err && typeof err === 'object' && 'response' in err
-        ? (err.response as { data?: { error?: string } })?.data?.error
-        : undefined;
-      setErrorMessage(errorMsg || 'Failed to change password');
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -279,40 +290,7 @@ export const ProfilePage = () => {
 
   return (
     <div className="profile-page">
-      {/* Navigation */}
-      <nav className="navbar">
-        <div className="container">
-          <div className="nav-brand">
-            <Link to={ROUTES.HOME}>
-              <i className="fas fa-vector-square"></i>
-              <span>Vector</span>
-            </Link>
-          </div>
-          <div className="nav-menu">
-            <div className="user-menu">
-              <div className="user-avatar">
-                {user?.profilePictureUrl ? (
-                  <img src={user.profilePictureUrl} alt="Profile" />
-                ) : (
-                  <span>{getUserInitials()}</span>
-                )}
-              </div>
-              <span>{user?.firstName || user?.email?.split('@')[0] || 'User'}</span>
-              <i className="fas fa-chevron-down"></i>
-              <div className="dropdown-menu">
-                <Link to={ROUTES.DASHBOARD}><i className="fas fa-tachometer-alt"></i> Dashboard</Link>
-                <Link to={ROUTES.PROFILE}><i className="fas fa-user"></i> Profile</Link>
-                {user?.role === 'admin' && (
-                  <Link to="/admin"><i className="fas fa-shield-alt"></i> Admin Panel</Link>
-                )}
-                <button onClick={handleLogout}>
-                  <i className="fas fa-sign-out-alt"></i> Logout
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Profile Content */}
       <section className="profile-section">
@@ -361,13 +339,6 @@ export const ProfilePage = () => {
                 >
                   <i className="fas fa-user"></i>
                   <span>Personal Information</span>
-                </button>
-                <button
-                  className={`profile-nav-item ${activeSection === 'security' ? 'active' : ''}`}
-                  onClick={() => setActiveSection('security')}
-                >
-                  <i className="fas fa-lock"></i>
-                  <span>Security</span>
                 </button>
                 <button
                   className={`profile-nav-item ${activeSection === 'subscription' ? 'active' : ''}`}
@@ -473,6 +444,43 @@ export const ProfilePage = () => {
                         style={{ background: 'var(--bg-gray-50)', cursor: 'not-allowed' }}
                       />
                       <small className="form-help">Your email is used for login and notifications</small>
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="role">Role</label>
+                      <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '0.5rem',
+                        padding: '0.75rem',
+                        background: 'var(--bg-gray-50)',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--border-color)'
+                      }}>
+                        <span style={{
+                          padding: '0.25rem 0.75rem',
+                          borderRadius: 'var(--radius-sm)',
+                          fontSize: '0.875rem',
+                          fontWeight: '600',
+                          textTransform: 'uppercase',
+                          backgroundColor: user?.role === 'admin' ? '#fbbf24' :
+                                         user?.role === 'coach' ? '#3b82f6' : '#10b981',
+                          color: 'white'
+                        }}>
+                          {user?.role === 'admin' ? 'Admin' :
+                           user?.role === 'coach' ? 'Coach' : 'Student'}
+                        </span>
+                        {user?.role === 'coach' && (
+                          <i className="fas fa-chalkboard-teacher" style={{ color: '#3b82f6' }}></i>
+                        )}
+                        {user?.role === 'admin' && (
+                          <i className="fas fa-shield-alt" style={{ color: '#fbbf24' }}></i>
+                        )}
+                        {user?.role === 'student' && (
+                          <i className="fas fa-user-graduate" style={{ color: '#10b981' }}></i>
+                        )}
+                      </div>
+                      <small className="form-help">Your current role on the platform</small>
                     </div>
 
                     <div className="form-group">
@@ -616,99 +624,6 @@ export const ProfilePage = () => {
                 )}
               </div>
 
-              {/* Security Section */}
-              <div className={`profile-section-content ${activeSection === 'security' ? 'active' : ''}`}>
-                <div className="section-header">
-                  <h2>Security Settings</h2>
-                  <p>Manage your password and security preferences</p>
-                </div>
-
-                {/* Change Password */}
-                <div className="profile-card">
-                  <h3>Change Password</h3>
-                  <form onSubmit={handleChangePassword}>
-                    <div className="form-group">
-                      <label htmlFor="currentPassword">Current Password</label>
-                      <input
-                        type="password"
-                        id="currentPassword"
-                        name="currentPassword"
-                        value={passwordData.currentPassword}
-                        onChange={handlePasswordInputChange}
-                        placeholder="Enter current password"
-                        required
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label htmlFor="newPassword">New Password</label>
-                      <input
-                        type="password"
-                        id="newPassword"
-                        name="newPassword"
-                        value={passwordData.newPassword}
-                        onChange={handlePasswordInputChange}
-                        placeholder="Enter new password"
-                        required
-                        minLength={8}
-                      />
-                      <small className="form-help">Must be at least 8 characters with letters and numbers</small>
-                    </div>
-
-                    <div className="form-group">
-                      <label htmlFor="confirmPassword">Confirm New Password</label>
-                      <input
-                        type="password"
-                        id="confirmPassword"
-                        name="confirmPassword"
-                        value={passwordData.confirmPassword}
-                        onChange={handlePasswordInputChange}
-                        placeholder="Confirm new password"
-                        required
-                        minLength={8}
-                      />
-                    </div>
-
-                    <div className="form-actions">
-                      <button
-                        type="button"
-                        className="btn-outline"
-                        onClick={() => {
-                          setPasswordData({
-                            currentPassword: '',
-                            newPassword: '',
-                            confirmPassword: '',
-                          });
-                        }}
-                        disabled={isSaving}
-                      >
-                        Cancel
-                      </button>
-                      <button type="submit" className="btn-primary" disabled={isSaving}>
-                        {isSaving ? 'Updating...' : 'Update Password'}
-                      </button>
-                    </div>
-                  </form>
-                </div>
-
-                {/* Active Sessions */}
-                <div className="profile-card">
-                  <h3>Active Sessions</h3>
-                  <div className="sessions-list">
-                    <div className="session-item">
-                      <div className="session-icon">
-                        <i className="fas fa-desktop"></i>
-                      </div>
-                      <div className="session-info">
-                        <h4>Current Browser</h4>
-                        <p>Last active: Now</p>
-                      </div>
-                      <span className="session-badge current">Current Session</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
               {/* Subscription Section */}
               <div className={`profile-section-content ${activeSection === 'subscription' ? 'active' : ''}`}>
                 <div className="section-header">
@@ -719,20 +634,112 @@ export const ProfilePage = () => {
                 {/* Current Plan */}
                 <div className="profile-card">
                   <h3>Current Plan</h3>
-                  <div className="current-plan">
-                    <div className="plan-badge free">
-                      <i className="fas fa-user"></i>
-                      <span>Free Plan</span>
+                  {subscriptionLoading ? (
+                    <div style={{ textAlign: 'center', padding: '2rem' }}>
+                      <i className="fas fa-spinner fa-spin" style={{ fontSize: '2rem', color: 'var(--primary)' }}></i>
+                      <p style={{ marginTop: '1rem', color: 'var(--text-secondary)' }}>Loading subscription...</p>
                     </div>
-                    <div className="plan-details">
-                      <div className="plan-info">
-                        <h4>Vector Free</h4>
-                        <p>$0.00 / month</p>
-                        <p className="renewal-date">Upgrade to unlock premium features</p>
+                  ) : currentSubscription ? (
+                    <div className="current-plan">
+                      <div className={`plan-badge ${currentSubscription.planType === 'free' ? 'free' : 'premium'}`}>
+                        <i className={currentSubscription.planType === 'free' ? 'fas fa-user' : 'fas fa-crown'}></i>
+                        <span>{currentSubscription.plan?.name || 'Current Plan'}</span>
                       </div>
-                      <div className="plan-actions">
-                        <Link to={ROUTES.DASHBOARD} className="btn-primary">Upgrade Plan</Link>
+                      <div className="plan-details">
+                        <div className="plan-info">
+                          <h4>{currentSubscription.plan?.name || 'Current Plan'}</h4>
+                          <p>
+                            {currentSubscription.plan?.price === 0 
+                              ? '$0.00 / month' 
+                              : `$${currentSubscription.plan?.price.toFixed(2) || '0.00'} / ${currentSubscription.plan?.billingPeriod || 'month'}`}
+                          </p>
+                          {currentSubscription.planType === 'free' ? (
+                            <p className="renewal-date">Upgrade to unlock premium features</p>
+                          ) : (
+                            <p className="renewal-date">
+                              {currentSubscription.currentPeriodEnd && new Date(currentSubscription.currentPeriodEnd) < new Date('2099-12-31')
+                                ? `Renews on ${new Date(currentSubscription.currentPeriodEnd).toLocaleDateString()}`
+                                : 'Active subscription'}
+                            </p>
+                          )}
+                        </div>
+                        <div className="plan-actions">
+                          {currentSubscription.planType === 'free' ? (
+                            <Link to={ROUTES.SUBSCRIPTION_PLANS} className="btn-primary">Upgrade Plan</Link>
+                          ) : (
+                            <Link to={ROUTES.SUBSCRIPTION_PLANS} className="btn-secondary">Change Plan</Link>
+                          )}
+                        </div>
                       </div>
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
+                      <p>Unable to load subscription information</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Subscription Management Actions */}
+                <div className="profile-card" style={{ marginTop: '24px' }}>
+                  <h3>Subscription Management</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'var(--bg-gray-50)', borderRadius: 'var(--radius-md)' }}>
+                      <div>
+                        <h4 style={{ marginBottom: '0.25rem', fontSize: '1rem', fontWeight: 600 }}>View Subscription Details</h4>
+                        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>See your current subscription status and billing information</p>
+                      </div>
+                      <Link to={ROUTES.SUBSCRIPTION_PLANS} className="btn-secondary">
+                        <i className="fas fa-eye"></i> View Details
+                      </Link>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'var(--bg-gray-50)', borderRadius: 'var(--radius-md)' }}>
+                      <div>
+                        <h4 style={{ marginBottom: '0.25rem', fontSize: '1rem', fontWeight: 600 }}>Update Subscription</h4>
+                        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Upgrade, downgrade, or change your subscription plan</p>
+                      </div>
+                      <Link to={ROUTES.SUBSCRIPTION_PLANS} className="btn-secondary">
+                        <i className="fas fa-edit"></i> Update Plan
+                      </Link>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'var(--bg-gray-50)', borderRadius: 'var(--radius-md)' }}>
+                      <div>
+                        <h4 style={{ marginBottom: '0.25rem', fontSize: '1rem', fontWeight: 600 }}>Payment Methods</h4>
+                        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Manage your payment methods and billing information</p>
+                      </div>
+                      <Link to={ROUTES.SUBSCRIPTION_PLANS} className="btn-secondary">
+                        <i className="fas fa-credit-card"></i> Manage Payment
+                      </Link>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'var(--bg-gray-50)', borderRadius: 'var(--radius-md)' }}>
+                      <div>
+                        <h4 style={{ marginBottom: '0.25rem', fontSize: '1rem', fontWeight: 600 }}>Billing History</h4>
+                        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>View and download your past invoices</p>
+                      </div>
+                      <Link to={ROUTES.SUBSCRIPTION_PLANS} className="btn-secondary">
+                        <i className="fas fa-file-invoice"></i> View Invoices
+                      </Link>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: '#fef2f2', borderRadius: 'var(--radius-md)', border: '1px solid #fecaca' }}>
+                      <div>
+                        <h4 style={{ marginBottom: '0.25rem', fontSize: '1rem', fontWeight: 600, color: '#991b1b' }}>Cancel Subscription</h4>
+                        <p style={{ fontSize: '0.875rem', color: '#b91c1c' }}>Cancel your recurring subscription. Access continues until the end of billing period.</p>
+                      </div>
+                      <button 
+                        className="btn-secondary" 
+                        style={{ borderColor: '#ef4444', color: '#ef4444' }}
+                        onClick={() => {
+                          if (window.confirm('Are you sure you want to cancel your subscription? You will continue to have access until the end of your billing period.')) {
+                            // TODO: Implement cancel subscription API call
+                            alert('Cancel subscription functionality will be available once backend endpoints are implemented.');
+                          }
+                        }}
+                      >
+                        <i className="fas fa-times-circle"></i> Cancel
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -833,6 +840,93 @@ export const ProfilePage = () => {
                       </label>
                     </div>
                   </div>
+                </div>
+
+                {/* Change Password */}
+                <div className="profile-card" style={{ marginTop: '24px' }}>
+                  <h3>Change Password</h3>
+                  <form onSubmit={handleChangePassword}>
+                    <div className="form-group">
+                      <label htmlFor="currentPassword">Current Password</label>
+                      <input
+                        type="password"
+                        id="currentPassword"
+                        name="currentPassword"
+                        value={passwordData.currentPassword}
+                        onChange={handlePasswordInputChange}
+                        placeholder="Enter current password"
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="newPassword">New Password</label>
+                      <input
+                        type="password"
+                        id="newPassword"
+                        name="newPassword"
+                        value={passwordData.newPassword}
+                        onChange={handlePasswordInputChange}
+                        placeholder="Enter new password"
+                        required
+                        minLength={8}
+                      />
+                      <small className="form-help">Must be at least 8 characters with letters and numbers</small>
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="confirmPassword">Confirm New Password</label>
+                      <input
+                        type="password"
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        value={passwordData.confirmPassword}
+                        onChange={handlePasswordInputChange}
+                        placeholder="Confirm new password"
+                        required
+                        minLength={8}
+                      />
+                    </div>
+
+                    <div className="form-actions">
+                      <button
+                        type="button"
+                        className="btn-outline"
+                        onClick={() => {
+                          setPasswordData({
+                            currentPassword: '',
+                            newPassword: '',
+                            confirmPassword: '',
+                          });
+                        }}
+                        disabled={isSaving}
+                      >
+                        Cancel
+                      </button>
+                      <button type="submit" className="btn-primary" disabled={isSaving}>
+                        {isSaving ? 'Updating...' : 'Update Password'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                {/* Two-Factor Authentication */}
+                <div className="profile-card" style={{ marginTop: '24px' }}>
+                  <h3>Two-Factor Authentication</h3>
+                  <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>
+                    Enhance your account security. Add an extra layer of protection by enabling two-factor authentication.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={() => {
+                      // TODO: Implement 2FA setup flow
+                      alert('Two-factor authentication setup will be available soon.');
+                    }}
+                    disabled={isSaving}
+                  >
+                    <i className="fas fa-shield-alt"></i> Enable 2FA
+                  </button>
                 </div>
 
                 <div className="profile-card danger-zone">

@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Question Management - Vector Admin</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/admin-questions.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container-wide">
+            <div class="nav-content">
+                <div class="nav-left">
+                    <a href="index.html" class="logo">
+                        <i class="fas fa-vector-square"></i>
+                        Vector <span class="admin-badge">Admin</span>
+                    </a>
+                </div>
+                <div class="nav-right">
+                    <a href="admin-dashboard.html" class="nav-link">
+                        <i class="fas fa-chart-line"></i> Dashboard
+                    </a>
+                    <a href="admin-users.html" class="nav-link">
+                        <i class="fas fa-users"></i> Users
+                    </a>
+                    <a href="admin-questions.html" class="nav-link active">
+                        <i class="fas fa-code"></i> Questions
+                    </a>
+                    <div class="user-menu">
+                        <button class="user-avatar" id="userMenuBtn">
+                            <img src="https://ui-avatars.com/api/?name=Admin&background=6366f1&color=fff" alt="Admin">
+                        </button>
+                        <div class="dropdown-menu" id="userDropdown">
+                            <div class="dropdown-inner">
+                                <a href="profile.html" class="dropdown-item">
+                                    <i class="fas fa-user"></i> Profile
+                                </a>
+                                <a href="dashboard.html" class="dropdown-item">
+                                    <i class="fas fa-tachometer-alt"></i> My Dashboard
+                                </a>
+                                <div class="dropdown-divider"></div>
+                                <a href="login.html" class="dropdown-item">
+                                    <i class="fas fa-sign-out-alt"></i> Logout
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="admin-content">
+        <div class="container-wide">
+            <!-- Header -->
+            <div class="admin-header">
+                <div>
+                    <h1><i class="fas fa-code"></i> Question Management</h1>
+                    <p class="subtitle">Manage LeetCode-style practice questions</p>
+                </div>
+                <button class="btn btn-primary" id="addQuestionBtn">
+                    <i class="fas fa-plus"></i> Add Question
+                </button>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        <i class="fas fa-code"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="totalQuestions">1,234</div>
+                        <div class="stat-label">Total Questions</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="easyQuestions">456</div>
+                        <div class="stat-label">Easy Questions</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                        <i class="fas fa-fire"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="mediumQuestions">623</div>
+                        <div class="stat-label">Medium Questions</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #ff6a00 0%, #ee0979 100%);">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="hardQuestions">155</div>
+                        <div class="stat-label">Hard Questions</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="filters-section">
+                <div class="filters-row">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchInput" placeholder="Search questions by title or tags...">
+                    </div>
+                    <select id="difficultyFilter" class="filter-select">
+                        <option value="">All Difficulties</option>
+                        <option value="Easy">Easy</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Hard">Hard</option>
+                    </select>
+                    <select id="categoryFilter" class="filter-select">
+                        <option value="">All Categories</option>
+                        <option value="Array">Array</option>
+                        <option value="String">String</option>
+                        <option value="Hash Table">Hash Table</option>
+                        <option value="Dynamic Programming">Dynamic Programming</option>
+                        <option value="Math">Math</option>
+                        <option value="Sorting">Sorting</option>
+                        <option value="Greedy">Greedy</option>
+                        <option value="Depth-First Search">Depth-First Search</option>
+                        <option value="Binary Search">Binary Search</option>
+                        <option value="Database">Database</option>
+                        <option value="Tree">Tree</option>
+                        <option value="Breadth-First Search">Breadth-First Search</option>
+                        <option value="Graph">Graph</option>
+                    </select>
+                    <select id="statusFilter" class="filter-select">
+                        <option value="">All Status</option>
+                        <option value="Published">Published</option>
+                        <option value="Draft">Draft</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Questions Table -->
+            <div class="table-card">
+                <div class="table-header">
+                    <h3>Questions Database</h3>
+                    <div class="table-actions">
+                        <button class="btn btn-outline btn-sm" id="exportBtn">
+                            <i class="fas fa-download"></i> Export CSV
+                        </button>
+                        <button class="btn btn-outline btn-sm" id="bulkDeleteBtn" disabled>
+                            <i class="fas fa-trash"></i> Delete Selected
+                        </button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="questions-table" id="questionsTable">
+                        <thead>
+                            <tr>
+                                <th width="40">
+                                    <input type="checkbox" id="selectAll">
+                                </th>
+                                <th width="60">ID</th>
+                                <th>Title</th>
+                                <th width="100">Difficulty</th>
+                                <th width="150">Category</th>
+                                <th width="100">Acceptance</th>
+                                <th width="100">Status</th>
+                                <th width="150">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="questionsTableBody">
+                            <!-- Questions will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="table-pagination">
+                    <div class="pagination-info">
+                        Showing <span id="paginationStart">1</span>-<span id="paginationEnd">20</span> of <span id="paginationTotal">1234</span> questions
+                    </div>
+                    <div class="pagination-controls">
+                        <button class="btn btn-outline btn-sm" id="prevPageBtn" disabled>
+                            <i class="fas fa-chevron-left"></i> Previous
+                        </button>
+                        <span id="pageNumbers" class="page-numbers"></span>
+                        <button class="btn btn-outline btn-sm" id="nextPageBtn">
+                            Next <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add/Edit Question Modal -->
+    <div class="modal" id="questionModal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add New Question</h2>
+                <button class="modal-close" id="closeModalBtn">&times;</button>
+            </div>
+            <form id="questionForm">
+                <div class="modal-body">
+                    <!-- Basic Information -->
+                    <div class="form-section">
+                        <h3>Basic Information</h3>
+                        <div class="form-row">
+                            <div class="form-group" style="flex: 2;">
+                                <label for="questionTitle">Question Title *</label>
+                                <input type="text" id="questionTitle" required placeholder="e.g., Two Sum">
+                            </div>
+                            <div class="form-group">
+                                <label for="questionDifficulty">Difficulty *</label>
+                                <select id="questionDifficulty" required>
+                                    <option value="">Select difficulty</option>
+                                    <option value="Easy">Easy</option>
+                                    <option value="Medium">Medium</option>
+                                    <option value="Hard">Hard</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="questionCategory">Primary Category *</label>
+                                <select id="questionCategory" required>
+                                    <option value="">Select category</option>
+                                    <option value="Array">Array</option>
+                                    <option value="String">String</option>
+                                    <option value="Hash Table">Hash Table</option>
+                                    <option value="Dynamic Programming">Dynamic Programming</option>
+                                    <option value="Math">Math</option>
+                                    <option value="Sorting">Sorting</option>
+                                    <option value="Greedy">Greedy</option>
+                                    <option value="Depth-First Search">Depth-First Search</option>
+                                    <option value="Binary Search">Binary Search</option>
+                                    <option value="Database">Database</option>
+                                    <option value="Tree">Tree</option>
+                                    <option value="Breadth-First Search">Breadth-First Search</option>
+                                    <option value="Graph">Graph</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="questionTags">Additional Tags (comma-separated)</label>
+                                <input type="text" id="questionTags" placeholder="e.g., two pointers, sliding window">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="questionCompanies">Asked by Companies (comma-separated)</label>
+                                <input type="text" id="questionCompanies" placeholder="e.g., Google, Amazon, Facebook">
+                            </div>
+                            <div class="form-group">
+                                <label for="questionAcceptance">Acceptance Rate (%)</label>
+                                <input type="number" id="questionAcceptance" min="0" max="100" step="0.1" placeholder="45.5">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Problem Description -->
+                    <div class="form-section">
+                        <h3>Problem Description</h3>
+                        <div class="form-group">
+                            <label for="questionDescription">Description *</label>
+                            <textarea id="questionDescription" rows="6" required placeholder="Enter the problem description..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="questionConstraints">Constraints</label>
+                            <textarea id="questionConstraints" rows="4" placeholder="Enter constraints (one per line)..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Examples -->
+                    <div class="form-section">
+                        <h3>Examples</h3>
+                        <div id="examplesContainer">
+                            <div class="example-item" data-example="1">
+                                <div class="example-header">
+                                    <h4>Example 1</h4>
+                                    <button type="button" class="btn btn-outline btn-sm remove-example-btn" data-example="1">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                <div class="form-group">
+                                    <label>Input</label>
+                                    <input type="text" class="example-input" placeholder="e.g., nums = [2,7,11,15], target = 9">
+                                </div>
+                                <div class="form-group">
+                                    <label>Output</label>
+                                    <input type="text" class="example-output" placeholder="e.g., [0,1]">
+                                </div>
+                                <div class="form-group">
+                                    <label>Explanation (optional)</label>
+                                    <textarea class="example-explanation" rows="2" placeholder="Explain the example..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-outline btn-sm" id="addExampleBtn">
+                            <i class="fas fa-plus"></i> Add Example
+                        </button>
+                    </div>
+
+                    <!-- Solution & Hints -->
+                    <div class="form-section">
+                        <h3>Solution & Hints</h3>
+                        <div class="form-group">
+                            <label for="questionSolution">Solution Code (optional)</label>
+                            <textarea id="questionSolution" rows="8" placeholder="Enter solution code..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="questionHints">Hints (one per line)</label>
+                            <textarea id="questionHints" rows="3" placeholder="Hint 1: Consider using a hash map...&#10;Hint 2: ..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="questionTimeComplexity">Time Complexity</label>
+                            <input type="text" id="questionTimeComplexity" placeholder="e.g., O(n)">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="questionSpaceComplexity">Space Complexity</label>
+                            <input type="text" id="questionSpaceComplexity" placeholder="e.g., O(1)">
+                        </div>
+                    </div>
+
+                    <!-- Status -->
+                    <div class="form-section">
+                        <h3>Publishing</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="questionStatus">Status *</label>
+                                <select id="questionStatus" required>
+                                    <option value="Draft">Draft</option>
+                                    <option value="Published">Published</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="questionOrder">Display Order</label>
+                                <input type="number" id="questionOrder" min="1" placeholder="1">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> <span id="submitBtnText">Save Question</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal" id="deleteModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Confirm Delete</h2>
+                <button class="modal-close" id="closeDeleteModalBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this question?</p>
+                <p class="warning-text"><i class="fas fa-exclamation-triangle"></i> This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelDeleteBtn">Cancel</button>
+                <button class="btn btn-danger" id="confirmDeleteBtn">
+                    <i class="fas fa-trash"></i> Delete Question
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMessage">Action completed successfully</span>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script src="js/admin-questions.js"></script>
+</body>
+</html>

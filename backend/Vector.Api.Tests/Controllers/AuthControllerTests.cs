@@ -105,9 +105,10 @@ public class AuthControllerTests : IDisposable
         };
 
         var accessToken = "test-token";
+        var refreshToken = "test-refresh-token";
 
         _authServiceMock.Setup(x => x.LoginAsync(dto))
-            .ReturnsAsync(accessToken);
+            .ReturnsAsync((accessToken, refreshToken));
 
         // Act
         var result = await _controller.Login(dto);

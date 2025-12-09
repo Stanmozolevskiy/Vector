@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Vector.Api.DTOs.Common;
 using Vector.Api.DTOs.User;
+using Vector.Api.Helpers;
 using Vector.Api.Services;
 using System.Security.Claims;
 
@@ -44,7 +46,7 @@ public class UserController : ControllerBase
 
         if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
         {
-            return Unauthorized(new { error = "Invalid token" });
+            return Unauthorized(new ApiErrorResponse("Invalid or expired authentication token", "INVALID_TOKEN"));
         }
 
         // Try to get user from Redis cache first (FAST)
@@ -63,7 +65,7 @@ public class UserController : ControllerBase
             
             if (user == null)
             {
-                return NotFound(new { error = "User not found" });
+                return NotFound(new ApiErrorResponse("User not found", "USER_NOT_FOUND"));
             }
 
             // Cache user session in Redis for 5 minutes
@@ -103,7 +105,7 @@ public class UserController : ControllerBase
 
         if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
         {
-            return Unauthorized(new { error = "Invalid token" });
+            return Unauthorized(new ApiErrorResponse("Invalid or expired authentication token", "INVALID_TOKEN"));
         }
 
         try
@@ -114,7 +116,7 @@ public class UserController : ControllerBase
             
             if (user == null)
             {
-                return NotFound(new { error = "User not found" });
+                return NotFound(new ApiErrorResponse("User not found", "USER_NOT_FOUND"));
             }
             
             // Invalidate Redis cache to ensure fresh data on next request
@@ -141,12 +143,12 @@ public class UserController : ControllerBase
         catch (InvalidOperationException ex)
         {
             _logger.LogWarning(ex, "User not found: {UserId}", userId);
-            return NotFound(new { error = ex.Message });
+            return NotFound(new ApiErrorResponse(ex.Message, "USER_NOT_FOUND"));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating profile for user {UserId}", userId);
-            return StatusCode(500, new { error = "An error occurred while updating profile" });
+            return StatusCode(500, new ApiErrorResponse("An error occurred while updating your profile. Please try again later.", "UPDATE_ERROR"));
         }
     }
 
@@ -165,12 +167,18 @@ public class UserController : ControllerBase
 
         if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
         {
-            return Unauthorized(new { error = "Invalid token" });
+            return Unauthorized(new ApiErrorResponse("Invalid or expired authentication token", "INVALID_TOKEN"));
         }
 
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            var errors = ModelState
+                .Where(x => x.Value?.Errors.Count > 0)
+                .ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => kvp.Value!.Errors.Select(e => e.ErrorMessage).ToArray()
+                );
+            return BadRequest(ApiErrorResponse.ValidationError(errors));
         }
 
         try
@@ -181,15 +189,16 @@ public class UserController : ControllerBase
         }
         catch (UnauthorizedAccessException ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return BadRequest(new ApiErrorResponse(ex.Message, "INVALID_PASSWORD"));
         }
         catch (InvalidOperationException ex)
         {
-            return NotFound(new { error = ex.Message });
+            return NotFound(new ApiErrorResponse(ex.Message, "USER_NOT_FOUND"));
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return StatusCode(500, new { error = "An error occurred while changing password" });
+            _logger.LogError(ex, "Error changing password for user {UserId}", userId);
+            return StatusCode(500, new ApiErrorResponse("An error occurred while changing your password. Please try again later.", "PASSWORD_CHANGE_ERROR"));
         }
     }
 
@@ -208,25 +217,14 @@ public class UserController : ControllerBase
         
         if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
         {
-            return Unauthorized(new { error = "Invalid token" });
+            return Unauthorized(new ApiErrorResponse("Invalid or expired authentication token", "INVALID_TOKEN"));
         }
 
-        if (file == null || file.Length == 0)
+        // Validate image file using helper
+        var (isValid, errorMessage, errorCode) = ImageHelper.ValidateImage(file);
+        if (!isValid)
         {
-            return BadRequest(new { error = "No file uploaded" });
-        }
-
-        // Validate file type
-        var allowedTypes = new[] { "image/jpeg", "image/jpg", "image/png", "image/gif" };
-        if (!allowedTypes.Contains(file.ContentType.ToLower()))
-        {
-            return BadRequest(new { error = "Invalid file type. Only JPEG, PNG, and GIF are allowed" });
-        }
-
-        // Validate file size (5MB max)
-        if (file.Length > 5 * 1024 * 1024)
-        {
-            return BadRequest(new { error = "File size exceeds 5MB limit" });
+            return BadRequest(new ApiErrorResponse(errorMessage ?? "Invalid image file", errorCode));
         }
 
         try
@@ -242,10 +240,15 @@ public class UserController : ControllerBase
             
             return Ok(new { profilePictureUrl = pictureUrl });
         }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Invalid operation while uploading profile picture for user {UserId}", userId);
+            return BadRequest(new ApiErrorResponse(ex.Message, "UPLOAD_FAILED"));
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to upload profile picture for user {UserId}", userId);
-            return StatusCode(500, new { error = "Failed to upload profile picture" });
+            return StatusCode(500, new ApiErrorResponse("An error occurred while uploading the profile picture. Please try again later.", "UPLOAD_ERROR"));
         }
     }
 
@@ -263,7 +266,7 @@ public class UserController : ControllerBase
         
         if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
         {
-            return Unauthorized(new { error = "Invalid token" });
+            return Unauthorized(new ApiErrorResponse("Invalid or expired authentication token", "INVALID_TOKEN"));
         }
 
         try
@@ -271,7 +274,7 @@ public class UserController : ControllerBase
             var deleted = await _userService.DeleteUserAsync(userId);
             if (!deleted)
             {
-                return NotFound(new { error = "User not found" });
+                return NotFound(new ApiErrorResponse("User not found", "USER_NOT_FOUND"));
             }
 
             _logger.LogInformation("Account deleted for user {UserId}", userId);
@@ -281,7 +284,7 @@ public class UserController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to delete account for user {UserId}", userId);
-            return StatusCode(500, new { error = "Failed to delete account" });
+            return StatusCode(500, new ApiErrorResponse("An error occurred while deleting your account. Please try again later.", "DELETE_ACCOUNT_ERROR"));
         }
     }
 
@@ -299,7 +302,7 @@ public class UserController : ControllerBase
         
         if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
         {
-            return Unauthorized(new { error = "Invalid token" });
+            return Unauthorized(new ApiErrorResponse("Invalid or expired authentication token", "INVALID_TOKEN"));
         }
 
         try
@@ -308,7 +311,7 @@ public class UserController : ControllerBase
             
             if (!success)
             {
-                return NotFound(new { error = "No profile picture to delete" });
+                return NotFound(new ApiErrorResponse("No profile picture found to delete", "NO_PICTURE"));
             }
             
             _logger.LogInformation("Profile picture deleted successfully for user {UserId}", userId);
@@ -322,7 +325,7 @@ public class UserController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to delete profile picture for user {UserId}", userId);
-            return StatusCode(500, new { error = "Failed to delete profile picture" });
+            return StatusCode(500, new ApiErrorResponse("An error occurred while deleting the profile picture. Please try again later.", "DELETE_ERROR"));
         }
     }
 

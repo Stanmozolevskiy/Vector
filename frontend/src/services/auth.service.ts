@@ -19,6 +19,7 @@ export interface AuthResponse {
 
 export interface LoginResponse {
   accessToken: string;
+  refreshToken: string;
   tokenType: string;
 }
 
@@ -54,7 +55,7 @@ export const authService = {
     await api.post('/auth/resend-verification', { email });
   },
 
-  async refreshToken(): Promise<{ accessToken: string }> {
+  async refreshToken(): Promise<{ accessToken: string; refreshToken: string }> {
     const refreshToken = localStorage.getItem('refreshToken');
     if (!refreshToken) {
       throw new Error('No refresh token available');

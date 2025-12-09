@@ -152,16 +152,16 @@ public class AuthServiceTests : IDisposable
             .Returns("test-refresh-token");
 
         // Act
-        var result = await _authService.LoginAsync(dto);
+        var (accessToken, refreshToken) = await _authService.LoginAsync(dto);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(expectedToken, result);
+        Assert.Equal(expectedToken, accessToken);
+        Assert.Equal("test-refresh-token", refreshToken);
         
         // Verify refresh token was created
-        var refreshToken = await _context.RefreshTokens.FirstOrDefaultAsync(rt => rt.UserId == user.Id);
-        Assert.NotNull(refreshToken);
-        Assert.Equal("test-refresh-token", refreshToken.Token);
+        var refreshTokenRecord = await _context.RefreshTokens.FirstOrDefaultAsync(rt => rt.UserId == user.Id);
+        Assert.NotNull(refreshTokenRecord);
+        Assert.Equal("test-refresh-token", refreshTokenRecord.Token);
     }
 
     [Fact]

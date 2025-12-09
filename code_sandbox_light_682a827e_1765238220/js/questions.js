@@ -49,13 +49,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Reset filters
-    const resetBtn = document.querySelector('.filters-sidebar .btn-outline');
+    const resetBtn = document.getElementById('resetFiltersBtn');
     if (resetBtn) {
         resetBtn.addEventListener('click', function() {
-            filterCheckboxes.forEach(checkbox => {
+            // Uncheck all status and company filters
+            document.querySelectorAll('input[name="status"]').forEach(checkbox => {
                 checkbox.checked = false;
             });
+            document.querySelectorAll('input[name="company"]').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            // Check all difficulty filters (default state)
+            document.querySelectorAll('input[name="difficulty"]').forEach(checkbox => {
+                checkbox.checked = true;
+            });
             window.vectorApp.showToast('Filters reset', 'info');
+            applyFilters();
         });
     }
     
@@ -70,16 +79,48 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Pagination
-    const pageButtons = document.querySelectorAll('.page-btn:not(.disabled)');
-    pageButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            if (!this.classList.contains('active')) {
-                document.querySelectorAll('.page-btn').forEach(btn => {
-                    btn.classList.remove('active');
-                });
-                this.classList.add('active');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
+    const pagination = document.querySelector('.pagination');
+    if (pagination) {
+        const pageButtons = pagination.querySelectorAll('.page-btn');
+        
+        pageButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Skip if disabled or already active
+                if (this.classList.contains('disabled') || this.classList.contains('active')) {
+                    return;
+                }
+                
+                // Handle prev/next buttons
+                if (this.querySelector('i')) {
+                    const isNext = this.querySelector('.fa-chevron-right');
+                    const activePage = pagination.querySelector('.page-btn.active');
+                    const pageNumber = parseInt(activePage.textContent);
+                    
+                    if (isNext) {
+                        // Go to next page
+                        console.log('Next page:', pageNumber + 1);
+                    } else {
+                        // Go to previous page
+                        console.log('Previous page:', pageNumber - 1);
+                    }
+                } else if (this.textContent !== '...') {
+                    // Handle numbered page buttons
+                    const pageNumber = parseInt(this.textContent);
+                    console.log('Go to page:', pageNumber);
+                    
+                    // Remove active class from all buttons
+                    pageButtons.forEach(btn => btn.classList.remove('active'));
+                    
+                    // Add active class to clicked button
+                    this.classList.add('active');
+                    
+                    // Scroll to top
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    
+                    // Show toast
+                    window.vectorApp.showToast(`Page ${pageNumber} loaded`, 'info');
+                }
+            });
         });
-    });
+    }
 });

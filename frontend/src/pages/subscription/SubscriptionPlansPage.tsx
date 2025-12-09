@@ -1,30 +1,38 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import subscriptionService from '../../services/subscription.service';
-import type { SubscriptionPlan } from '../../services/subscription.service';
+import type { SubscriptionPlan, Subscription } from '../../services/subscription.service';
 import { ROUTES } from '../../utils/constants';
 import '../../styles/style.css';
+import '../../styles/pricing.css';
 
 const SubscriptionPlansPage = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+  const [currentSubscription, setCurrentSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isAnnual, setIsAnnual] = useState(false);
+  const [activeFaq, setActiveFaq] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      navigate(ROUTES.LOGIN);
-    }
-  }, [isAuthenticated, isLoading, navigate]);
-
-  useEffect(() => {
-    const fetchPlans = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const data = await subscriptionService.getPlans();
-        setPlans(data);
+        const [plansData, subscriptionData] = await Promise.all([
+          subscriptionService.getPlans(),
+          isAuthenticated ? subscriptionService.getCurrentSubscription().catch(() => null) : Promise.resolve(null)
+        ]);
+        
+        // Filter out lifetime plan and keep only 3 plans (free, monthly, annual)
+        const filteredPlans = plansData.filter(plan => 
+          plan.id === 'free' || plan.id === 'monthly' || plan.id === 'annual'
+        );
+        
+        setPlans(filteredPlans);
+        setCurrentSubscription(subscriptionData);
       } catch (err: unknown) {
         const error = err as { response?: { data?: { error?: string } } };
         setError(error.response?.data?.error || 'Failed to load subscription plans');
@@ -33,16 +41,37 @@ const SubscriptionPlansPage = () => {
       }
     };
 
-    if (isAuthenticated) {
-      fetchPlans();
-    }
+    fetchData();
   }, [isAuthenticated]);
 
-  const handleSelectPlan = (planId: string) => {
-    // TODO: Navigate to payment page when Stripe integration is complete
-    console.log('Selected plan:', planId);
-    // For now, just show an alert
-    alert(`Plan selection coming soon! You selected: ${planId}`);
+  const handleSelectPlan = async (planId: string) => {
+    if (!isAuthenticated) {
+      navigate(ROUTES.LOGIN);
+      return;
+    }
+
+    // Don't allow selecting the current plan
+    if (currentSubscription?.planType === planId) {
+      return;
+    }
+
+    try {
+      // Update subscription
+      await subscriptionService.updateSubscription(planId);
+      
+      // Refresh subscription data
+      const updatedSubscription = await subscriptionService.getCurrentSubscription();
+      setCurrentSubscription(updatedSubscription);
+      
+      // Show success message
+      alert(`Successfully updated to ${updatedSubscription.plan?.name || planId} plan!`);
+      
+      // Optionally navigate back to profile
+      // navigate(ROUTES.PROFILE);
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } } };
+      alert(error.response?.data?.error || 'Failed to update subscription. Please try again.');
+    }
   };
 
   const formatPrice = (price: number, currency: string = 'USD') => {
@@ -52,7 +81,38 @@ const SubscriptionPlansPage = () => {
     }).format(price);
   };
 
-  if (isLoading || loading) {
+  const toggleFaq = (index: number) => {
+    setActiveFaq(activeFaq === index ? null : index);
+  };
+
+  const faqs = [
+    {
+      question: 'Can I cancel my subscription anytime?',
+      answer: "Yes! You can cancel your subscription at any time. If you cancel, you'll continue to have access until the end of your billing period."
+    },
+    {
+      question: 'What payment methods do you accept?',
+      answer: 'We accept all major credit cards (Visa, MasterCard, American Express), PayPal, and for Enterprise plans, we can arrange for invoicing.'
+    },
+    {
+      question: 'Do you offer student discounts?',
+      answer: 'Yes! We offer a 50% discount for students with a valid .edu email address. Contact our support team to apply for the discount.'
+    },
+    {
+      question: 'How do mock interviews work?',
+      answer: 'Mock interviews are 1-on-1 video sessions with experienced interviewers from top tech companies. You\'ll receive detailed feedback after each session to help you improve.'
+    },
+    {
+      question: 'Is there a free trial?',
+      answer: 'Yes! We offer a 7-day free trial for the Pro plan. No credit card required to start. You can upgrade at any time.'
+    },
+    {
+      question: 'Can I switch plans?',
+      answer: 'Absolutely! You can upgrade or downgrade your plan at any time. Changes will be reflected in your next billing cycle.'
+    }
+  ];
+
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -75,104 +135,147 @@ const SubscriptionPlansPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="container mx-auto px-4">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Choose Your Plan</h1>
-          <p className="text-xl text-gray-600">Select the perfect plan for your career development journey</p>
-        </div>
-
-        {/* Plans Grid */}
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {plans.map((plan) => (
-            <div
-              key={plan.id}
-              className={`bg-white rounded-lg shadow-lg p-8 relative ${
-                plan.isPopular ? 'ring-4 ring-blue-500 transform scale-105' : ''
-              }`}
-            >
-              {plan.isPopular && (
-                <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                  <span className="bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
-                    Most Popular
-                  </span>
-                </div>
-              )}
-
-              <div className="text-center mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
-                <p className="text-gray-600 mb-4">{plan.description}</p>
-                <div className="mb-4">
-                  <span className="text-4xl font-bold text-gray-900">
-                    {formatPrice(plan.price, plan.currency)}
-                  </span>
-                  {plan.billingPeriod !== 'one-time' && (
-                    <span className="text-gray-600 ml-2">/{plan.billingPeriod}</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Features List */}
-              <ul className="space-y-3 mb-8">
-                {plan.features.map((feature, index) => (
-                  <li key={index} className="flex items-start">
-                    <i className="fas fa-check text-green-500 mr-3 mt-1"></i>
-                    <span className="text-gray-700">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-
-              {/* Select Button */}
-              <button
-                onClick={() => handleSelectPlan(plan.id)}
-                className={`w-full py-3 px-6 rounded-lg font-semibold transition-colors ${
-                  plan.isPopular
-                    ? 'bg-blue-600 text-white hover:bg-blue-700'
-                    : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-                }`}
-              >
-                {plan.billingPeriod === 'one-time' ? 'Get Lifetime Access' : 'Subscribe Now'}
-              </button>
-            </div>
-          ))}
-        </div>
-
-        {/* Comparison Table */}
-        <div className="mt-16 max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-8">Plan Comparison</h2>
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Feature</th>
-                  {plans.map((plan) => (
-                    <th key={plan.id} className="px-6 py-4 text-center text-sm font-semibold text-gray-900">
-                      {plan.name}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {plans[0]?.features.map((feature, featureIndex) => (
-                  <tr key={featureIndex}>
-                    <td className="px-6 py-4 text-sm text-gray-700">{feature}</td>
-                    {plans.map((plan) => (
-                      <td key={plan.id} className="px-6 py-4 text-center">
-                        {plan.features.includes(feature) ? (
-                          <i className="fas fa-check text-green-500"></i>
-                        ) : (
-                          <i className="fas fa-times text-gray-300"></i>
-                        )}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+    <div className="min-h-screen bg-white">
+      {/* Pricing Header */}
+      <section className="pricing-header">
+        <div className="container">
+          <h1>Choose Your Plan</h1>
+          <p>Get started for free or upgrade for unlimited access</p>
+          <div className="billing-toggle">
+            <span>Monthly</span>
+            <label className="toggle-switch">
+              <input 
+                type="checkbox" 
+                checked={isAnnual}
+                onChange={(e) => setIsAnnual(e.target.checked)}
+              />
+              <span className="slider"></span>
+            </label>
+            <span>Annual <span className="save-badge">Save 30%</span></span>
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* Pricing Plans */}
+      <section className="pricing-section">
+        <div className="container">
+          <div className="pricing-grid">
+            {plans.map((plan) => {
+              const isCurrentPlan = currentSubscription?.planType === plan.id;
+              return (
+                <div
+                  key={plan.id}
+                  className={`pricing-card ${plan.isPopular ? 'featured' : ''} ${isCurrentPlan ? 'current-plan' : ''}`}
+                  style={isCurrentPlan ? { border: '2px solid var(--primary)', position: 'relative' } : {}}
+                >
+                  {isCurrentPlan && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '1rem',
+                      right: '1rem',
+                      background: 'var(--primary)',
+                      color: 'white',
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '4px',
+                      fontSize: '0.875rem',
+                      fontWeight: 'bold'
+                    }}>
+                      Current Plan
+                    </div>
+                  )}
+                  {plan.isPopular && !isCurrentPlan && (
+                    <div className="popular-badge">Most Popular</div>
+                  )}
+                  
+                  <div className="plan-header">
+                    <h3>{plan.name}</h3>
+                    <div className="plan-price">
+                      <span className="price">
+                        {formatPrice(plan.price, plan.currency)}
+                      </span>
+                      {plan.billingPeriod !== 'free' && plan.billingPeriod !== 'one-time' && (
+                        <span className="period">/{plan.billingPeriod}</span>
+                      )}
+                    </div>
+                    <p>{plan.description}</p>
+                  </div>
+
+                  {!isCurrentPlan ? (
+                    <button
+                      onClick={() => handleSelectPlan(plan.id)}
+                      className={plan.isPopular ? 'btn-primary btn-full' : 'btn-outline btn-full'}
+                    >
+                      Subscribe Now
+                    </button>
+                  ) : (
+                    <button
+                      disabled
+                      className="btn-outline btn-full"
+                      style={{ opacity: 0.6, cursor: 'not-allowed' }}
+                    >
+                      Current Plan
+                    </button>
+                  )}
+
+                  <div className="plan-features">
+                    <h4>Features:</h4>
+                    <ul>
+                      {plan.features.map((feature, index) => (
+                        <li key={index}>
+                          <i className="fas fa-check"></i>
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="faq-section">
+        <div className="container">
+          <h2>Frequently Asked Questions</h2>
+          <div className="faq-grid">
+            {faqs.map((faq, index) => (
+              <div
+                key={index}
+                className={`faq-item ${activeFaq === index ? 'active' : ''}`}
+              >
+                <div className="faq-question" onClick={() => toggleFaq(index)}>
+                  <h3>{faq.question}</h3>
+                  <i className="fas fa-chevron-down"></i>
+                </div>
+                <div className="faq-answer">
+                  <p>{faq.answer}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="cta-section">
+        <div className="container">
+          <div className="cta-content">
+            <h2>Ready to Land Your Dream Job?</h2>
+            <p>Join thousands of students who have transformed their interview skills</p>
+            {!isAuthenticated ? (
+              <Link to={ROUTES.REGISTER} className="btn-primary btn-large">
+                Start Your Free Trial
+              </Link>
+            ) : (
+              <Link to={ROUTES.DASHBOARD} className="btn-primary btn-large">
+                Go to Dashboard
+              </Link>
+            )}
+          </div>
+        </div>
+      </section>
     </div>
   );
 };

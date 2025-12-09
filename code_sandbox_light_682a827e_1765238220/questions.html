@@ -62,66 +62,92 @@
             <div class="questions-layout">
                 <!-- Filters Sidebar -->
                 <aside class="filters-sidebar">
-                    <div class="filter-group">
-                        <h3>Difficulty</h3>
-                        <label class="filter-option">
-                            <input type="checkbox" name="difficulty" value="easy">
-                            <span class="difficulty-label easy">Easy</span>
-                            <span class="count">234</span>
-                        </label>
-                        <label class="filter-option">
-                            <input type="checkbox" name="difficulty" value="medium">
-                            <span class="difficulty-label medium">Medium</span>
-                            <span class="count">456</span>
-                        </label>
-                        <label class="filter-option">
-                            <input type="checkbox" name="difficulty" value="hard">
-                            <span class="difficulty-label hard">Hard</span>
-                            <span class="count">310</span>
-                        </label>
+                    <!-- Difficulty Filter -->
+                    <div class="filter-section">
+                        <div class="filter-header">
+                            <h3>Difficulty</h3>
+                        </div>
+                        <div class="filter-content">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="difficulty" value="easy" checked>
+                                <span class="checkbox-custom"></span>
+                                <span class="label-text">Easy</span>
+                                <span class="label-count">234</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="difficulty" value="medium" checked>
+                                <span class="checkbox-custom"></span>
+                                <span class="label-text">Medium</span>
+                                <span class="label-count">456</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="difficulty" value="hard" checked>
+                                <span class="checkbox-custom"></span>
+                                <span class="label-text">Hard</span>
+                                <span class="label-count">310</span>
+                            </label>
+                        </div>
                     </div>
 
-                    <div class="filter-group">
-                        <h3>Status</h3>
-                        <label class="filter-option">
-                            <input type="checkbox" name="status" value="solved">
-                            <span>Solved</span>
-                        </label>
-                        <label class="filter-option">
-                            <input type="checkbox" name="status" value="attempted">
-                            <span>Attempted</span>
-                        </label>
-                        <label class="filter-option">
-                            <input type="checkbox" name="status" value="todo">
-                            <span>To Do</span>
-                        </label>
+                    <!-- Status Filter -->
+                    <div class="filter-section">
+                        <div class="filter-header">
+                            <h3>Status</h3>
+                        </div>
+                        <div class="filter-content">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="status" value="solved">
+                                <span class="checkbox-custom"></span>
+                                <span class="label-text">Solved</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="status" value="attempted">
+                                <span class="checkbox-custom"></span>
+                                <span class="label-text">Attempted</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="status" value="todo">
+                                <span class="checkbox-custom"></span>
+                                <span class="label-text">To Do</span>
+                            </label>
+                        </div>
                     </div>
 
-                    <div class="filter-group">
-                        <h3>Companies</h3>
-                        <label class="filter-option">
-                            <input type="checkbox" name="company" value="google">
-                            <span>Google</span>
-                        </label>
-                        <label class="filter-option">
-                            <input type="checkbox" name="company" value="meta">
-                            <span>Meta</span>
-                        </label>
-                        <label class="filter-option">
-                            <input type="checkbox" name="company" value="amazon">
-                            <span>Amazon</span>
-                        </label>
-                        <label class="filter-option">
-                            <input type="checkbox" name="company" value="microsoft">
-                            <span>Microsoft</span>
-                        </label>
-                        <label class="filter-option">
-                            <input type="checkbox" name="company" value="apple">
-                            <span>Apple</span>
-                        </label>
+                    <!-- Companies Filter -->
+                    <div class="filter-section">
+                        <div class="filter-header">
+                            <h3>Companies</h3>
+                        </div>
+                        <div class="filter-content">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="company" value="google">
+                                <span class="checkbox-custom"></span>
+                                <span class="label-text">Google</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="company" value="meta">
+                                <span class="checkbox-custom"></span>
+                                <span class="label-text">Meta</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="company" value="amazon">
+                                <span class="checkbox-custom"></span>
+                                <span class="label-text">Amazon</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="company" value="microsoft">
+                                <span class="checkbox-custom"></span>
+                                <span class="label-text">Microsoft</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="company" value="apple">
+                                <span class="checkbox-custom"></span>
+                                <span class="label-text">Apple</span>
+                            </label>
+                        </div>
                     </div>
 
-                    <button class="btn-outline btn-full">Reset Filters</button>
+                    <button class="btn-outline btn-full" id="resetFiltersBtn">Reset Filters</button>
                 </aside>
 
                 <!-- Questions List -->
@@ -237,13 +263,19 @@
 
                     <!-- Pagination -->
                     <div class="pagination">
-                        <button class="page-btn disabled"><i class="fas fa-chevron-left"></i></button>
+                        <button class="page-btn disabled" aria-label="Previous page">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
                         <button class="page-btn active">1</button>
                         <button class="page-btn">2</button>
                         <button class="page-btn">3</button>
-                        <button class="page-btn">...</button>
+                        <button class="page-btn">4</button>
+                        <button class="page-btn">5</button>
+                        <span class="page-btn disabled">...</span>
                         <button class="page-btn">50</button>
-                        <button class="page-btn"><i class="fas fa-chevron-right"></i></button>
+                        <button class="page-btn" aria-label="Next page">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
                     </div>
                 </div>
             </div>

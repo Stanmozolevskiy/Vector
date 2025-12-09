@@ -170,7 +170,7 @@ public class AuthController : ControllerBase
 
         try
         {
-            var accessToken = await _authService.LoginAsync(dto);
+            var (accessToken, refreshToken) = await _authService.LoginAsync(dto);
             
             // Reset rate limit on successful login
             await _redisService.ResetRateLimitAsync(rateLimitKey);
@@ -178,6 +178,7 @@ public class AuthController : ControllerBase
             return Ok(new 
             { 
                 accessToken,
+                refreshToken,
                 tokenType = "Bearer"
             });
         }
@@ -265,6 +266,46 @@ public class AuthController : ControllerBase
         {
             _logger.LogError(ex, "Error during password reset for email: {Email}", dto.Email);
             return StatusCode(500, new { error = "An error occurred while resetting the password." });
+        }
+    }
+
+    /// <summary>
+    /// Refresh access token using refresh token
+    /// </summary>
+    /// <param name="dto">Refresh token data</param>
+    /// <returns>New access token and refresh token</returns>
+    /// <response code="200">Tokens refreshed successfully</response>
+    /// <response code="401">Invalid or expired refresh token</response>
+    [HttpPost("refresh")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenDto dto)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            var (accessToken, refreshToken) = await _authService.RefreshTokenAsync(dto.RefreshToken);
+            
+            return Ok(new 
+            { 
+                accessToken,
+                refreshToken,
+                tokenType = "Bearer"
+            });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning(ex, "Refresh token failed: {Message}", ex.Message);
+            return Unauthorized(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during token refresh");
+            return StatusCode(500, new { error = "An error occurred while refreshing the token." });
         }
     }
 

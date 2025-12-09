@@ -104,7 +104,7 @@ public class AuthService : IAuthService
         return user;
     }
 
-    public async Task<string> LoginAsync(LoginDto dto)
+    public async Task<(string AccessToken, string RefreshToken)> LoginAsync(LoginDto dto)
     {
         // Find user by email
         var user = await _context.Users
@@ -154,7 +154,7 @@ public class AuthService : IAuthService
 
         _logger.LogInformation("User logged in successfully: {Email}, UserId: {UserId}. Refresh token stored in Redis and PostgreSQL", user.Email, user.Id);
 
-        return accessToken;
+        return (accessToken, refreshToken);
     }
 
     public async Task<bool> VerifyEmailAsync(string token)
@@ -438,7 +438,7 @@ public class AuthService : IAuthService
         }
     }
 
-    public async Task<string> RefreshTokenAsync(string refreshToken)
+    public async Task<(string AccessToken, string RefreshToken)> RefreshTokenAsync(string refreshToken)
     {
         try
         {
@@ -533,7 +533,7 @@ public class AuthService : IAuthService
 
             _logger.LogInformation("Refresh token rotated successfully for user {UserId}. Token stored in Redis and PostgreSQL", userId);
 
-            return newAccessToken;
+            return (newAccessToken, newRefreshToken);
         }
         catch (UnauthorizedAccessException)
         {

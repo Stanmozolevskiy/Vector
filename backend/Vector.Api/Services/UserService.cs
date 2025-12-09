@@ -86,34 +86,45 @@ public class UserService : IUserService
 
     public async Task<string> UploadProfilePictureAsync(Guid userId, Stream fileStream, string fileName, string contentType)
     {
-        var user = await _context.Users.FindAsync(userId);
+        // Optimize: Use AsNoTracking for initial check, then track for update
+        var user = await _context.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == userId);
         
         if (user == null)
         {
             throw new InvalidOperationException("User not found");
         }
 
-        // Delete old profile picture if exists
+        // Delete old profile picture if exists (fire and forget to avoid blocking)
         if (!string.IsNullOrEmpty(user.ProfilePictureUrl))
         {
-            try
+            _ = Task.Run(async () =>
             {
-                await _s3Service.DeleteFileAsync(user.ProfilePictureUrl);
-                _logger.LogInformation("Deleted old profile picture for user {UserId}", userId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to delete old profile picture for user {UserId}", userId);
-                // Continue with upload even if delete fails
-            }
+                try
+                {
+                    await _s3Service.DeleteFileAsync(user.ProfilePictureUrl);
+                    _logger.LogInformation("Deleted old profile picture for user {UserId}", userId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to delete old profile picture for user {UserId}", userId);
+                    // Continue with upload even if delete fails
+                }
+            });
         }
 
         // Upload new profile picture
         var pictureUrl = await _s3Service.UploadFileAsync(fileStream, fileName, contentType, "profile-pictures");
         
-        user.ProfilePictureUrl = pictureUrl;
-        user.UpdatedAt = DateTime.UtcNow;
-        await _context.SaveChangesAsync();
+        // Re-attach user for update
+        user = await _context.Users.FindAsync(userId);
+        if (user != null)
+        {
+            user.ProfilePictureUrl = pictureUrl;
+            user.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+        }
         
         _logger.LogInformation("Profile picture uploaded successfully for user {UserId}: {Url}", userId, pictureUrl);
         return pictureUrl;

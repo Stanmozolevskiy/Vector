@@ -13,7 +13,23 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    // Include XML comments for API documentation
+    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+    {
+        c.IncludeXmlComments(xmlPath);
+    }
+    
+    // JWT Bearer authentication for Swagger UI
+    // Note: Swagger JWT auth can be added later if needed
+    // The API endpoints are protected with [Authorize] attribute
+});
+
+// Memory cache for in-memory caching
+builder.Services.AddMemoryCache();
 
 // Database with connection pooling
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -162,19 +178,29 @@ var scope = app.Services.CreateScope();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     
     // Run migrations (separate try-catch so seeding can still run if migrations fail)
+    // Skip for InMemory database (used in integration tests)
     try
     {
-        logger.LogInformation("Checking for pending database migrations...");
-        var pendingMigrations = db.Database.GetPendingMigrations().ToList();
-        if (pendingMigrations.Any())
+        // Check if we're using InMemory database
+        var providerName = db.Database.ProviderName;
+        if (providerName != null && providerName.Contains("InMemory"))
         {
-            logger.LogInformation($"Applying {pendingMigrations.Count} pending migration(s)...");
-            db.Database.Migrate();
-            logger.LogInformation("Database migrations completed successfully.");
+            logger.LogInformation("Using InMemory database - skipping migrations");
         }
         else
         {
-            logger.LogInformation("Database is up to date. No migrations needed.");
+            logger.LogInformation("Checking for pending database migrations...");
+            var pendingMigrations = db.Database.GetPendingMigrations().ToList();
+            if (pendingMigrations.Any())
+            {
+                logger.LogInformation($"Applying {pendingMigrations.Count} pending migration(s)...");
+                db.Database.Migrate();
+                logger.LogInformation("Database migrations completed successfully.");
+            }
+            else
+            {
+                logger.LogInformation("Database is up to date. No migrations needed.");
+            }
         }
     }
     catch (Exception ex)
@@ -203,3 +229,6 @@ var scope = app.Services.CreateScope();
 }
 
 app.Run();
+
+// Make Program class accessible for integration tests
+public partial class Program { }

@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coach Dashboard - Vector</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="index.html">
+                    <i class="fas fa-vector-square"></i>
+                    <span>Vector</span>
+                </a>
+            </div>
+            <div class="nav-menu">
+                <a href="coach-dashboard.html" class="active">Dashboard</a>
+                <a href="coach-courses.html">My Courses</a>
+                <a href="coach-students.html">Students</a>
+                <a href="coach-schedule.html">Schedule</a>
+                <div class="user-menu">
+                    <div class="user-avatar coach-badge">CJ</div>
+                    <span>Coach John</span>
+                    <i class="fas fa-chevron-down"></i>
+                    <div class="dropdown-menu">
+                        <div class="dropdown-inner">
+                            <a href="coach-dashboard.html"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                            <a href="profile.html"><i class="fas fa-user"></i> Profile</a>
+                            <a href="#"><i class="fas fa-cog"></i> Settings</a>
+                            <a href="index.html"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Coach Dashboard -->
+    <section class="admin-section">
+        <div class="container-wide">
+            <div class="admin-header">
+                <div>
+                    <h1><i class="fas fa-chalkboard-teacher"></i> Coach Dashboard</h1>
+                    <p>Manage your courses and track student progress</p>
+                </div>
+                <a href="coach-course-create.html" class="btn-primary">
+                    <i class="fas fa-plus"></i> Create New Course
+                </a>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon blue">
+                        <i class="fas fa-book"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">12</div>
+                        <div class="stat-label">Active Courses</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">348</div>
+                        <div class="stat-label">Total Students</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon orange">
+                        <i class="fas fa-video"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">24</div>
+                        <div class="stat-label">Mock Interviews</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon purple">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">4.9</div>
+                        <div class="stat-label">Average Rating</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content Grid -->
+            <div class="admin-grid">
+                <!-- My Courses -->
+                <div class="admin-card full-width">
+                    <div class="card-header">
+                        <h2><i class="fas fa-graduation-cap"></i> My Courses</h2>
+                        <a href="coach-courses.html" class="view-all">View All <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                    <div class="courses-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Course Name</th>
+                                    <th>Students</th>
+                                    <th>Progress</th>
+                                    <th>Rating</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <div class="course-name">
+                                            <i class="fas fa-code"></i>
+                                            <span>Software Engineer Interview Prep</span>
+                                        </div>
+                                    </td>
+                                    <td>145</td>
+                                    <td>
+                                        <div class="progress-container">
+                                            <div class="progress-bar">
+                                                <div class="progress-fill" style="width: 78%"></div>
+                                            </div>
+                                            <span class="progress-text">78%</span>
+                                        </div>
+                                    </td>
+                                    <td><span class="rating"><i class="fas fa-star"></i> 4.9</span></td>
+                                    <td><span class="badge published">Published</span></td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn-icon" title="Edit"><i class="fas fa-edit"></i></button>
+                                            <button class="btn-icon" title="Analytics"><i class="fas fa-chart-line"></i></button>
+                                            <button class="btn-icon" title="Settings"><i class="fas fa-cog"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="course-name">
+                                            <i class="fas fa-sitemap"></i>
+                                            <span>System Design Masterclass</span>
+                                        </div>
+                                    </td>
+                                    <td>89</td>
+                                    <td>
+                                        <div class="progress-container">
+                                            <div class="progress-bar">
+                                                <div class="progress-fill" style="width: 45%"></div>
+                                            </div>
+                                            <span class="progress-text">45%</span>
+                                        </div>
+                                    </td>
+                                    <td><span class="rating"><i class="fas fa-star"></i> 4.8</span></td>
+                                    <td><span class="badge published">Published</span></td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn-icon" title="Edit"><i class="fas fa-edit"></i></button>
+                                            <button class="btn-icon" title="Analytics"><i class="fas fa-chart-line"></i></button>
+                                            <button class="btn-icon" title="Settings"><i class="fas fa-cog"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="course-name">
+                                            <i class="fas fa-comments"></i>
+                                            <span>Behavioral Interview Guide</span>
+                                        </div>
+                                    </td>
+                                    <td>67</td>
+                                    <td>
+                                        <div class="progress-container">
+                                            <div class="progress-bar">
+                                                <div class="progress-fill" style="width: 92%"></div>
+                                            </div>
+                                            <span class="progress-text">92%</span>
+                                        </div>
+                                    </td>
+                                    <td><span class="rating"><i class="fas fa-star"></i> 4.7</span></td>
+                                    <td><span class="badge draft">Draft</span></td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn-icon" title="Edit"><i class="fas fa-edit"></i></button>
+                                            <button class="btn-icon" title="Analytics"><i class="fas fa-chart-line"></i></button>
+                                            <button class="btn-icon" title="Settings"><i class="fas fa-cog"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Upcoming Sessions -->
+                <div class="admin-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-calendar-alt"></i> Upcoming Sessions</h2>
+                    </div>
+                    <div class="sessions-list">
+                        <div class="session-item">
+                            <div class="session-time">
+                                <div class="time-badge">11:00 AM</div>
+                                <div class="date-text">Today</div>
+                            </div>
+                            <div class="session-details">
+                                <h4>Technical Interview Mock</h4>
+                                <p>with Sarah Johnson</p>
+                                <span class="session-type technical">Technical</span>
+                            </div>
+                            <button class="btn-outline btn-sm">Join</button>
+                        </div>
+                        <div class="session-item">
+                            <div class="session-time">
+                                <div class="time-badge">2:00 PM</div>
+                                <div class="date-text">Today</div>
+                            </div>
+                            <div class="session-details">
+                                <h4>System Design Review</h4>
+                                <p>with Mike Chen</p>
+                                <span class="session-type system">System Design</span>
+                            </div>
+                            <button class="btn-outline btn-sm">Join</button>
+                        </div>
+                        <div class="session-item">
+                            <div class="session-time">
+                                <div class="time-badge">4:30 PM</div>
+                                <div class="date-text">Tomorrow</div>
+                            </div>
+                            <div class="session-details">
+                                <h4>Behavioral Interview</h4>
+                                <p>with Lisa Park</p>
+                                <span class="session-type behavioral">Behavioral</span>
+                            </div>
+                            <button class="btn-outline btn-sm">Schedule</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="admin-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-activity"></i> Recent Activity</h2>
+                    </div>
+                    <div class="activity-list">
+                        <div class="activity-item">
+                            <div class="activity-icon blue">
+                                <i class="fas fa-user-plus"></i>
+                            </div>
+                            <div class="activity-details">
+                                <p><strong>15 new students</strong> enrolled in your courses</p>
+                                <span class="activity-time">2 hours ago</span>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon green">
+                                <i class="fas fa-star"></i>
+                            </div>
+                            <div class="activity-details">
+                                <p><strong>New 5-star review</strong> on System Design course</p>
+                                <span class="activity-time">5 hours ago</span>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon orange">
+                                <i class="fas fa-question-circle"></i>
+                            </div>
+                            <div class="activity-details">
+                                <p><strong>3 new questions</strong> in course discussion</p>
+                                <span class="activity-time">1 day ago</span>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon purple">
+                                <i class="fas fa-trophy"></i>
+                            </div>
+                            <div class="activity-details">
+                                <p><strong>50 students completed</strong> your latest course</p>
+                                <span class="activity-time">2 days ago</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <p>&copy; 2025 Vector. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+    <script src="js/coach.js"></script>
+</body>
+</html>

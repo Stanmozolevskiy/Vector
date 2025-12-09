@@ -180,6 +180,40 @@ This document outlines the complete 4-stage implementation plan for building the
 
 ---
 
+## Stage 2 End: Payment Integration & Stripe
+
+**Timeline: 2-3 weeks (at end of Stage 2, before Stage 3)**
+
+### Goals
+- Complete Stripe payment integration
+- Subscription billing and management
+- Payment processing for mock interviews
+- Invoice generation and management
+
+### Key Features
+
+#### Payment Integration
+- Stripe account setup
+- Create Stripe products and prices
+- Implement subscription creation
+- Set up webhook endpoint
+- Test webhook handling
+- Payment method collection
+- Create payment form UI
+- Add payment success/failure handling
+- Create invoice generation
+- Subscription billing
+- Refund processing
+
+### Success Criteria
+- Users can subscribe to plans via Stripe
+- Payment webhooks are processed correctly
+- Invoices are generated and accessible
+- Subscription billing works automatically
+- Refunds can be processed when needed
+
+---
+
 ## Stage 3: Resume Review Service
 
 **Timeline: 4-5 weeks**

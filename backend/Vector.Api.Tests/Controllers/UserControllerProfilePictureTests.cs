@@ -83,8 +83,8 @@ public class UserControllerProfilePictureTests
 
         // Assert
         var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
-        dynamic value = badRequestResult.Value!;
-        Assert.NotNull(value.GetType().GetProperty("error")!.GetValue(value, null));
+        var errorResponse = Assert.IsType<Vector.Api.DTOs.Common.ApiErrorResponse>(badRequestResult.Value);
+        Assert.NotNull(errorResponse.Error);
     }
 
     [Fact]
@@ -103,9 +103,8 @@ public class UserControllerProfilePictureTests
 
         // Assert
         var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
-        dynamic value = badRequestResult.Value!;
-        var error = value.GetType().GetProperty("error")!.GetValue(value, null);
-        Assert.Contains("Invalid file type", error.ToString());
+        var errorResponse = Assert.IsType<Vector.Api.DTOs.Common.ApiErrorResponse>(badRequestResult.Value);
+        Assert.Contains("Invalid file type", errorResponse.Error);
     }
 
     [Fact]
@@ -124,9 +123,8 @@ public class UserControllerProfilePictureTests
 
         // Assert
         var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
-        dynamic value = badRequestResult.Value!;
-        var error = value.GetType().GetProperty("error")!.GetValue(value, null);
-        Assert.Contains("exceeds 5MB", error.ToString());
+        var errorResponse = Assert.IsType<Vector.Api.DTOs.Common.ApiErrorResponse>(badRequestResult.Value);
+        Assert.Contains("exceeds", errorResponse.Error);
     }
 
     [Fact]

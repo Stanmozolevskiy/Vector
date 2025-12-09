@@ -285,12 +285,26 @@ const AdminDashboardPage = () => {
             onClick={() => setActiveTab('coach-applications')}
             style={{
               padding: '0.75rem 1.5rem',
-              background: activeTab === 'coach-applications' ? '#667eea' : 'transparent',
-              color: activeTab === 'coach-applications' ? 'white' : '#333',
+              background: activeTab === 'coach-applications' 
+                ? '#667eea' 
+                : coachApplications.filter(a => a.status === 'pending').length > 0
+                  ? '#fbbf24' // Highlight with yellow/orange when there are pending reviews
+                  : 'transparent',
+              color: activeTab === 'coach-applications' 
+                ? 'white' 
+                : coachApplications.filter(a => a.status === 'pending').length > 0
+                  ? '#92400e' // Dark text on yellow background
+                  : '#333',
               border: 'none',
-              borderBottom: activeTab === 'coach-applications' ? '2px solid #667eea' : '2px solid transparent',
+              borderBottom: activeTab === 'coach-applications' 
+                ? '2px solid #667eea' 
+                : coachApplications.filter(a => a.status === 'pending').length > 0
+                  ? '2px solid #fbbf24'
+                  : '2px solid transparent',
               cursor: 'pointer',
-              fontWeight: activeTab === 'coach-applications' ? 'bold' : 'normal',
+              fontWeight: activeTab === 'coach-applications' || coachApplications.filter(a => a.status === 'pending').length > 0
+                ? 'bold' 
+                : 'normal',
             }}
           >
             Coach Applications ({coachApplications.filter(a => a.status === 'pending').length} pending)

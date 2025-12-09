@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Vector</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="index.html">
+                    <i class="fas fa-vector-square"></i>
+                    <span>Vector</span>
+                </a>
+            </div>
+            <div class="nav-menu">
+                <a href="admin-dashboard.html" class="active">Dashboard</a>
+                <a href="admin-users.html">Users</a>
+                <a href="admin-questions.html">Questions</a>
+                <a href="coach-course-create.html">Courses</a>
+                <div class="user-menu">
+                    <div class="user-avatar admin-badge">AD</div>
+                    <span>Admin</span>
+                    <i class="fas fa-chevron-down"></i>
+                    <div class="dropdown-menu">
+                        <div class="dropdown-inner">
+                            <a href="admin-dashboard.html"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                            <a href="profile.html"><i class="fas fa-user"></i> Profile</a>
+                            <a href="#"><i class="fas fa-cog"></i> Settings</a>
+                            <a href="index.html"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Admin Dashboard -->
+    <section class="admin-section">
+        <div class="container-wide">
+            <div class="admin-header">
+                <div>
+                    <h1><i class="fas fa-shield-alt"></i> Administrator Dashboard</h1>
+                    <p>Manage platform users, content, and analytics</p>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon blue">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">52,348</div>
+                        <div class="stat-label">Total Users</div>
+                        <div class="stat-change positive">+12% this month</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green">
+                        <i class="fas fa-book"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">156</div>
+                        <div class="stat-label">Total Courses</div>
+                        <div class="stat-change positive">+8 new</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon orange">
+                        <i class="fas fa-question-circle"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">1,248</div>
+                        <div class="stat-label">Questions</div>
+                        <div class="stat-change positive">+34 this week</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon purple">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-value">$127K</div>
+                        <div class="stat-label">Revenue</div>
+                        <div class="stat-change positive">+18% this month</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content Grid -->
+            <div class="admin-grid">
+                <!-- Recent Users -->
+                <div class="admin-card full-width">
+                    <div class="card-header">
+                        <h2><i class="fas fa-user-friends"></i> Recent Users</h2>
+                        <a href="admin-users.html" class="view-all">Manage All <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                    <div class="users-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Status</th>
+                                    <th>Joined</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <div class="user-info">
+                                            <div class="user-avatar">SM</div>
+                                            <span>Sarah Martinez</span>
+                                        </div>
+                                    </td>
+                                    <td>sarah.m@example.com</td>
+                                    <td><span class="role-badge student">Student</span></td>
+                                    <td><span class="status-badge active">Active</span></td>
+                                    <td>Jan 15, 2025</td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn-icon" title="View"><i class="fas fa-eye"></i></button>
+                                            <button class="btn-icon" title="Edit"><i class="fas fa-edit"></i></button>
+                                            <button class="btn-icon" title="More"><i class="fas fa-ellipsis-v"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="user-info">
+                                            <div class="user-avatar">JD</div>
+                                            <span>John Davis</span>
+                                        </div>
+                                    </td>
+                                    <td>john.davis@example.com</td>
+                                    <td><span class="role-badge coach">Coach</span></td>
+                                    <td><span class="status-badge active">Active</span></td>
+                                    <td>Jan 14, 2025</td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn-icon" title="View"><i class="fas fa-eye"></i></button>
+                                            <button class="btn-icon" title="Edit"><i class="fas fa-edit"></i></button>
+                                            <button class="btn-icon" title="More"><i class="fas fa-ellipsis-v"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="user-info">
+                                            <div class="user-avatar">EP</div>
+                                            <span>Emily Park</span>
+                                        </div>
+                                    </td>
+                                    <td>emily.p@example.com</td>
+                                    <td><span class="role-badge student">Student</span></td>
+                                    <td><span class="status-badge inactive">Inactive</span></td>
+                                    <td>Jan 13, 2025</td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn-icon" title="View"><i class="fas fa-eye"></i></button>
+                                            <button class="btn-icon" title="Edit"><i class="fas fa-edit"></i></button>
+                                            <button class="btn-icon" title="More"><i class="fas fa-ellipsis-v"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Platform Analytics -->
+                <div class="admin-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-chart-line"></i> User Growth</h2>
+                    </div>
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="userGrowthChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="admin-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-bolt"></i> Quick Actions</h2>
+                    </div>
+                    <div class="quick-actions">
+                        <a href="admin-question-create.html" class="quick-action-btn">
+                            <i class="fas fa-plus-circle"></i>
+                            <span>Add Question</span>
+                        </a>
+                        <a href="admin-users.html?action=add" class="quick-action-btn">
+                            <i class="fas fa-user-plus"></i>
+                            <span>Add User</span>
+                        </a>
+                        <a href="admin-courses.html" class="quick-action-btn">
+                            <i class="fas fa-book-medical"></i>
+                            <span>Manage Courses</span>
+                        </a>
+                        <a href="admin-analytics.html" class="quick-action-btn">
+                            <i class="fas fa-chart-bar"></i>
+                            <span>View Reports</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- System Status -->
+                <div class="admin-card full-width">
+                    <div class="card-header">
+                        <h2><i class="fas fa-server"></i> System Status</h2>
+                    </div>
+                    <div class="system-status-grid">
+                        <div class="status-item">
+                            <div class="status-icon green">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="status-details">
+                                <h4>API Status</h4>
+                                <p>Operational</p>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-icon green">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="status-details">
+                                <h4>Database</h4>
+                                <p>Healthy</p>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-icon orange">
+                                <i class="fas fa-exclamation-circle"></i>
+                            </div>
+                            <div class="status-details">
+                                <h4>Storage</h4>
+                                <p>78% Used</p>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-icon green">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="status-details">
+                                <h4>CDN</h4>
+                                <p>Online</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="admin-card full-width">
+                    <div class="card-header">
+                        <h2><i class="fas fa-history"></i> Recent Activity</h2>
+                    </div>
+                    <div class="activity-timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-marker blue"></div>
+                            <div class="timeline-content">
+                                <h4>New course published</h4>
+                                <p>"Advanced System Design" by Coach Alex Johnson</p>
+                                <span class="timeline-time">2 hours ago</span>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-marker green"></div>
+                            <div class="timeline-content">
+                                <h4>Question bank updated</h4>
+                                <p>15 new questions added to "Arrays & Strings" category</p>
+                                <span class="timeline-time">5 hours ago</span>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-marker purple"></div>
+                            <div class="timeline-content">
+                                <h4>User milestone reached</h4>
+                                <p>50,000 registered users on the platform</p>
+                                <span class="timeline-time">1 day ago</span>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-marker orange"></div>
+                            <div class="timeline-content">
+                                <h4>System maintenance scheduled</h4>
+                                <p>Planned downtime on Jan 20, 2025 at 2:00 AM</p>
+                                <span class="timeline-time">2 days ago</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <p>&copy; 2025 Vector. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>

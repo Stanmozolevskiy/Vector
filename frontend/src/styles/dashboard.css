@@ -373,6 +373,7 @@
 }
 
 /* Dropdown Menu Items - Clean styling */
+/* Override nav-menu styles for dropdown links - ensure they match button styling */
 .dropdown-menu a,
 .dropdown-menu button {
     position: relative;
@@ -380,8 +381,8 @@
     align-items: center;
     gap: var(--spacing-sm);
     width: 100%;
-    padding: 0.625rem 1rem; /* Comfortable padding */
-    color: var(--text-secondary);
+    padding: 0.625rem 1rem !important; /* Override nav-menu a padding */
+    color: var(--text-secondary) !important; /* Override nav-menu a color */
     font-size: 0.9375rem;
     text-decoration: none;
     text-align: left;
@@ -389,9 +390,10 @@
     border: none;
     background: none;
     font-family: inherit;
-    font-weight: 500;
+    font-weight: 500 !important; /* Override nav-menu a font-weight */
     cursor: pointer;
     z-index: 1;
+    margin: 0; /* Remove any margin from nav-menu styles */
 }
 
 .dropdown-menu a:first-child {

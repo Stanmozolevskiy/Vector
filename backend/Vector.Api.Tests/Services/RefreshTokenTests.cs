@@ -123,10 +123,11 @@ public class RefreshTokenTests : IDisposable
             .Returns("new-refresh-token");
 
         // Act
-        var result = await _authService.RefreshTokenAsync(oldToken.Token);
+        var (accessToken, refreshToken) = await _authService.RefreshTokenAsync(oldToken.Token);
 
         // Assert
-        Assert.Equal("new-access-token", result);
+        Assert.Equal("new-access-token", accessToken);
+        Assert.Equal("new-refresh-token", refreshToken);
 
         // Verify old token was revoked
         var revokedToken = await _context.RefreshTokens.FindAsync(oldToken.Id);

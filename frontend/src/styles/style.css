@@ -146,14 +146,15 @@ input, button, textarea, select {
 }
 
 /* Remove generic nav-menu anchor styles for buttons */
-.nav-menu a:not(.btn-primary):not(.btn-secondary):not(.btn-outline) {
+/* Exclude dropdown menu links - they have their own styling */
+.nav-menu > a:not(.btn-primary):not(.btn-secondary):not(.btn-outline) {
     font-weight: 500;
     color: var(--text-secondary);
     padding: 0.5rem 0;
     transition: var(--transition);
 }
 
-.nav-menu a:not(.btn-primary):not(.btn-secondary):not(.btn-outline):hover {
+.nav-menu > a:not(.btn-primary):not(.btn-secondary):not(.btn-outline):hover {
     color: var(--primary-color);
 }
 

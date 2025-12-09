@@ -132,25 +132,62 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
           VITE_API_URL: ${{ secrets.DEV_API_URL || 'http://dev-vector-alb-1842167636.us-east-1.elb.amazonaws.com/api' }}
         run: |
+          set -e  # Exit on any error
+          
           echo "Building Docker image..."
           echo "ECR Registry: $ECR_REGISTRY"
           echo "ECR Repository: $ECR_REPOSITORY"
           echo "Image Tag: $IMAGE_TAG"
           echo "VITE_API_URL: $VITE_API_URL"
+          echo "Working directory: $(pwd)"
+          echo "Dockerfile path: docker/Dockerfile.frontend"
+          
+          # Verify Dockerfile exists
+          if [ ! -f "docker/Dockerfile.frontend" ]; then
+            echo "❌ Error: Dockerfile not found at docker/Dockerfile.frontend"
+            exit 1
+          fi
+          
+          # Verify frontend directory exists
+          if [ ! -d "frontend" ]; then
+            echo "❌ Error: frontend directory not found"
+            exit 1
+          fi
           
           # Build image with API URL
+          echo "Starting Docker build..."
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
             --build-arg VITE_API_URL="$VITE_API_URL" \
-            -f docker/Dockerfile.frontend . || exit 1
+            -f docker/Dockerfile.frontend . || {
+              echo "❌ Docker build failed"
+              exit 1
+            }
+          
+          echo "✅ Docker build successful"
+          
+          # Verify image was created
+          if ! docker image inspect $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG > /dev/null 2>&1; then
+            echo "❌ Error: Docker image was not created"
+            exit 1
+          fi
           
           echo "Pushing image with tag $IMAGE_TAG..."
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG || exit 1
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG || {
+            echo "❌ Failed to push image with tag $IMAGE_TAG"
+            exit 1
+          }
           
           echo "Tagging as latest..."
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest || exit 1
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest || {
+            echo "❌ Failed to tag image as latest"
+            exit 1
+          }
           
           echo "Pushing latest tag..."
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest || exit 1
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest || {
+            echo "❌ Failed to push latest tag"
+            exit 1
+          }
           
           echo "✅ Image pushed successfully: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
@@ -218,25 +255,62 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
           VITE_API_URL: ${{ secrets.STAGING_API_URL || 'http://staging-vector-alb-xxxxx.us-east-1.elb.amazonaws.com/api' }}
         run: |
+          set -e  # Exit on any error
+          
           echo "Building Docker image..."
           echo "ECR Registry: $ECR_REGISTRY"
           echo "ECR Repository: $ECR_REPOSITORY"
           echo "Image Tag: $IMAGE_TAG"
           echo "VITE_API_URL: $VITE_API_URL"
+          echo "Working directory: $(pwd)"
+          echo "Dockerfile path: docker/Dockerfile.frontend"
+          
+          # Verify Dockerfile exists
+          if [ ! -f "docker/Dockerfile.frontend" ]; then
+            echo "❌ Error: Dockerfile not found at docker/Dockerfile.frontend"
+            exit 1
+          fi
+          
+          # Verify frontend directory exists
+          if [ ! -d "frontend" ]; then
+            echo "❌ Error: frontend directory not found"
+            exit 1
+          fi
           
           # Build image with API URL
+          echo "Starting Docker build..."
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
             --build-arg VITE_API_URL="$VITE_API_URL" \
-            -f docker/Dockerfile.frontend . || exit 1
+            -f docker/Dockerfile.frontend . || {
+              echo "❌ Docker build failed"
+              exit 1
+            }
+          
+          echo "✅ Docker build successful"
+          
+          # Verify image was created
+          if ! docker image inspect $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG > /dev/null 2>&1; then
+            echo "❌ Error: Docker image was not created"
+            exit 1
+          fi
           
           echo "Pushing image with tag $IMAGE_TAG..."
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG || exit 1
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG || {
+            echo "❌ Failed to push image with tag $IMAGE_TAG"
+            exit 1
+          }
           
           echo "Tagging as latest..."
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest || exit 1
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest || {
+            echo "❌ Failed to tag image as latest"
+            exit 1
+          }
           
           echo "Pushing latest tag..."
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest || exit 1
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest || {
+            echo "❌ Failed to push latest tag"
+            exit 1
+          }
           
           echo "✅ Image pushed successfully: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 

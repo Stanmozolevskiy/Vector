@@ -122,6 +122,8 @@ jobs:
           fi
           echo "repository_url=$REPO_URL" >> $GITHUB_OUTPUT
           echo "registry=${REPO_URL%/*}" >> $GITHUB_OUTPUT
+          echo "ECR Repository URL: $REPO_URL"
+          echo "ECR Registry: ${REPO_URL%/*}"
 
       - name: Build and push Docker image to ECR
         env:
@@ -130,14 +132,27 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
           VITE_API_URL: ${{ secrets.DEV_API_URL || 'http://dev-vector-alb-1842167636.us-east-1.elb.amazonaws.com/api' }}
         run: |
-          # Build and push image with API URL
+          echo "Building Docker image..."
+          echo "ECR Registry: $ECR_REGISTRY"
+          echo "ECR Repository: $ECR_REPOSITORY"
+          echo "Image Tag: $IMAGE_TAG"
+          echo "VITE_API_URL: $VITE_API_URL"
+          
+          # Build image with API URL
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
             --build-arg VITE_API_URL="$VITE_API_URL" \
-            -f docker/Dockerfile.frontend .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          echo "Image pushed: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+            -f docker/Dockerfile.frontend . || exit 1
+          
+          echo "Pushing image with tag $IMAGE_TAG..."
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG || exit 1
+          
+          echo "Tagging as latest..."
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest || exit 1
+          
+          echo "Pushing latest tag..."
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest || exit 1
+          
+          echo "✅ Image pushed successfully: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
       - name: Update ECS service
         run: |
@@ -193,6 +208,8 @@ jobs:
           fi
           echo "repository_url=$REPO_URL" >> $GITHUB_OUTPUT
           echo "registry=${REPO_URL%/*}" >> $GITHUB_OUTPUT
+          echo "ECR Repository URL: $REPO_URL"
+          echo "ECR Registry: ${REPO_URL%/*}"
 
       - name: Build and push Docker image to ECR
         env:
@@ -201,14 +218,27 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
           VITE_API_URL: ${{ secrets.STAGING_API_URL || 'http://staging-vector-alb-xxxxx.us-east-1.elb.amazonaws.com/api' }}
         run: |
-          # Build and push image with API URL
+          echo "Building Docker image..."
+          echo "ECR Registry: $ECR_REGISTRY"
+          echo "ECR Repository: $ECR_REPOSITORY"
+          echo "Image Tag: $IMAGE_TAG"
+          echo "VITE_API_URL: $VITE_API_URL"
+          
+          # Build image with API URL
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
             --build-arg VITE_API_URL="$VITE_API_URL" \
-            -f docker/Dockerfile.frontend .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          echo "Image pushed: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+            -f docker/Dockerfile.frontend . || exit 1
+          
+          echo "Pushing image with tag $IMAGE_TAG..."
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG || exit 1
+          
+          echo "Tagging as latest..."
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest || exit 1
+          
+          echo "Pushing latest tag..."
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest || exit 1
+          
+          echo "✅ Image pushed successfully: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
       - name: Update ECS service
         run: |

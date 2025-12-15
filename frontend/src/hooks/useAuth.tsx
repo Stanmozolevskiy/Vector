@@ -52,10 +52,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await api.get<User>('/users/me');
       setUser(response.data);
-    } catch {
+    } catch (error) {
       // Clear invalid tokens on error
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
+      // Don't redirect here - let the API interceptor handle it
+      // This prevents double redirects
     } finally {
       setIsLoading(false);
     }

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browse Coaches - Vector</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/coaches.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="index.html">
+                    <i class="fas fa-vector-square"></i>
+                    <span>Vector</span>
+                </a>
+            </div>
+            <div class="nav-menu" id="navMenu">
+                <a href="courses.html">Courses</a>
+                <a href="questions.html">Questions</a>
+                <a href="coaches.html" class="active">Coaches</a>
+                <a href="mock-interviews.html">Mock Interviews</a>
+                <a href="pricing.html">Pricing</a>
+                <a href="dashboard.html" class="btn-secondary">Dashboard</a>
+            </div>
+            <div class="nav-toggle" id="navToggle">
+                <i class="fas fa-bars"></i>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Header -->
+    <section class="page-header">
+        <div class="container">
+            <h1>Browse Expert Coaches</h1>
+            <p>Connect with experienced professionals from top tech companies</p>
+        </div>
+    </section>
+
+    <!-- Coaches Content -->
+    <section class="coaches-section">
+        <div class="container">
+            <!-- Search and View Toggle -->
+            <div class="coaches-header">
+                <div class="search-box-large">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Search by name, company, or expertise...">
+                </div>
+                <div class="view-toggle">
+                    <button class="view-btn active" data-view="grid" title="Grid View">
+                        <i class="fas fa-th"></i>
+                    </button>
+                    <button class="view-btn" data-view="list" title="List View">
+                        <i class="fas fa-list"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="coaches-layout">
+                <!-- Filters Sidebar -->
+                <aside class="filters-sidebar">
+                    <!-- Specialization Filter -->
+                    <div class="filter-section">
+                        <div class="filter-header">
+                            <h3>Specialization</h3>
+                        </div>
+                        <div class="filter-content">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="specialization" value="algorithms" checked>
+                                <span class="checkbox-custom"></span>
+                                <span class="label-text">Algorithms & DS</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="specialization" value="system-design" checked>
+                                <span class="checkbox-custom"></span>
+                                <span class="label-text">System Design</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="specialization" value="frontend" checked>
+                                <span class="checkbox-custom"></span>
+                                <span class="label-text">Frontend</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="specialization" value="backend" checked>
+                                <span class="checkbox-custom"></span>
+                                <span class="label-text">Backend</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="specialization" value="mobile" checked>
+                                <span class="checkbox-custom"></span>
+                                <span class="label-text">Mobile</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="specialization" value="behavioral" checked>
+                                <span class="checkbox-custom"></span>
+                                <span class="label-text">Behavioral</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Rating Filter -->
+                    <div class="filter-section">
+                        <div class="filter-header">
+                            <h3>Minimum Rating</h3>
+                        </div>
+                        <div class="filter-content">
+                            <label class="radio-label">
+                                <input type="radio" name="rating" value="all" checked>
+                                <span class="radio-custom"></span>
+                                <span class="label-text">All Ratings</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="rating" value="4">
+                                <span class="radio-custom"></span>
+                                <span class="label-text">4+ Stars</span>
+                                <span class="rating-stars">
+                                    <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                                </span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="rating" value="4.5">
+                                <span class="radio-custom"></span>
+                                <span class="label-text">4.5+ Stars</span>
+                                <span class="rating-stars">
+                                    <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Price Range Filter -->
+                    <div class="filter-section">
+                        <div class="filter-header">
+                            <h3>Hourly Rate</h3>
+                        </div>
+                        <div class="filter-content">
+                            <div class="price-range">
+                                <input type="range" id="priceRange" min="0" max="500" step="10" value="500">
+                                <div class="price-display">
+                                    <span>$0</span>
+                                    <span id="maxPrice">$500+</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Company Filter -->
+                    <div class="filter-section">
+                        <div class="filter-header">
+                            <h3>Company</h3>
+                        </div>
+                        <div class="filter-content">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="company" value="google">
+                                <span class="checkbox-custom"></span>
+                                <span class="label-text">Google</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="company" value="meta">
+                                <span class="checkbox-custom"></span>
+                                <span class="label-text">Meta</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="company" value="amazon">
+                                <span class="checkbox-custom"></span>
+                                <span class="label-text">Amazon</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="company" value="microsoft">
+                                <span class="checkbox-custom"></span>
+                                <span class="label-text">Microsoft</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="company" value="apple">
+                                <span class="checkbox-custom"></span>
+                                <span class="label-text">Apple</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <button class="btn-outline btn-full" id="resetFiltersBtn">Reset Filters</button>
+                </aside>
+
+                <!-- Coaches Grid/List -->
+                <div class="coaches-content">
+                    <div class="results-header">
+                        <div class="results-count">
+                            Showing <span id="resultsCount">24</span> coaches
+                        </div>
+                        <div class="sort-dropdown">
+                            <label for="sortBy">Sort by:</label>
+                            <select id="sortBy">
+                                <option value="recommended">Recommended</option>
+                                <option value="rating">Highest Rated</option>
+                                <option value="price-low">Price: Low to High</option>
+                                <option value="price-high">Price: High to Low</option>
+                                <option value="experience">Most Experienced</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="coaches-grid" id="coachesGrid">
+                        <!-- Coach cards will be dynamically inserted here -->
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="pagination">
+                        <button class="page-btn disabled" id="prevPageBtn" aria-label="Previous page">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <button class="page-btn active">1</button>
+                        <button class="page-btn">2</button>
+                        <button class="page-btn">3</button>
+                        <button class="page-btn">4</button>
+                        <span class="page-btn disabled">...</span>
+                        <button class="page-btn">12</button>
+                        <button class="page-btn" id="nextPageBtn" aria-label="Next page">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <div class="footer-brand">
+                        <i class="fas fa-vector-square"></i>
+                        <span>Vector</span>
+                    </div>
+                    <p>Master your interview skills and land your dream job.</p>
+                </div>
+                <div class="footer-col">
+                    <h4>Product</h4>
+                    <ul>
+                        <li><a href="courses.html">Courses</a></li>
+                        <li><a href="questions.html">Questions</a></li>
+                        <li><a href="coaches.html">Coaches</a></li>
+                        <li><a href="mock-interviews.html">Mock Interviews</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Company</h4>
+                    <ul>
+                        <li><a href="#">About</a></li>
+                        <li><a href="#">Careers</a></li>
+                        <li><a href="#">Blog</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Terms</a></li>
+                        <li><a href="#">Privacy</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Vector. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+    <script src="js/coaches.js"></script>
+</body>
+</html>

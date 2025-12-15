@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -16,7 +16,8 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 export const LoginPage = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const [searchParams] = useSearchParams();
+  const { login, isAuthenticated } = useAuth();
   const [error, setError] = useState<string>('');
 
   const {
@@ -27,11 +28,22 @@ export const LoginPage = () => {
     resolver: zodResolver(loginSchema),
   });
 
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      const returnUrl = searchParams.get('returnUrl');
+      navigate(returnUrl ? decodeURIComponent(returnUrl) : ROUTES.DASHBOARD, { replace: true });
+    }
+  }, [isAuthenticated, navigate, searchParams]);
+
   const onSubmit = async (data: LoginFormData) => {
     try {
       setError('');
       await login({ email: data.email, password: data.password });
-      navigate('/dashboard');
+      
+      // Redirect to returnUrl if provided, otherwise to dashboard
+      const returnUrl = searchParams.get('returnUrl');
+      navigate(returnUrl ? decodeURIComponent(returnUrl) : ROUTES.DASHBOARD, { replace: true });
     } catch (err) {
       const errorMessage = err && typeof err === 'object' && 'response' in err
         ? (err.response as { data?: { error?: string } })?.data?.error

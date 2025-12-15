@@ -13,4 +13,7 @@ export const ROUTES = {
   COACH_APPLY: '/coach/apply',
   ADMIN: '/admin',
   SUBSCRIPTION_PLANS: '/subscription/plans',
+  QUESTIONS: '/questions',
+  ADD_QUESTION: '/questions/add',
+  EDIT_QUESTION: '/questions/edit',
 };

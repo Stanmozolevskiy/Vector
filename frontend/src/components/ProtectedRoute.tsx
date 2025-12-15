@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 interface ProtectedRouteProps {
@@ -18,6 +18,7 @@ const ProtectedRoute = ({
   requireAuth = true 
 }: ProtectedRouteProps) => {
   const { isAuthenticated, isLoading, hasRole } = useAuth();
+  const location = useLocation();
 
   // Show loading state while checking auth
   if (isLoading) {
@@ -35,7 +36,9 @@ const ProtectedRoute = ({
 
   // Check authentication
   if (requireAuth && !isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    // Preserve the current location as returnUrl
+    const returnUrl = encodeURIComponent(location.pathname + location.search);
+    return <Navigate to={`/login?returnUrl=${returnUrl}`} replace />;
   }
 
   // Check role authorization

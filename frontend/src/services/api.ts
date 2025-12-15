@@ -51,7 +51,9 @@ api.interceptors.response.use(
     }
 
     // Handle 401 Unauthorized - attempt token refresh
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Skip refresh if this is already a refresh token request to avoid infinite loops
+    if (error.response?.status === 401 && !originalRequest._retry && 
+        !originalRequest.url?.includes('/auth/refresh')) {
       if (isRefreshing) {
         // If already refreshing, queue this request
         return new Promise((resolve, reject) => {
@@ -72,11 +74,12 @@ api.interceptors.response.use(
       const refreshToken = localStorage.getItem('refreshToken');
       
       if (!refreshToken) {
-        // No refresh token available - logout user
+        // No refresh token available - logout user and redirect to login with return URL
         processQueue(new Error('No refresh token'), null);
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
-        window.location.href = '/login';
+        const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+        window.location.href = `/login?returnUrl=${returnUrl}`;
         return Promise.reject(error);
       }
 
@@ -97,12 +100,13 @@ api.interceptors.response.use(
         // Retry the original request
         return api(originalRequest);
       } catch (refreshError) {
-        // Refresh failed - logout user
+        // Refresh failed - logout user and redirect to login with return URL
         processQueue(refreshError, null);
         isRefreshing = false;
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
-        window.location.href = '/login';
+        const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+        window.location.href = `/login?returnUrl=${returnUrl}`;
         return Promise.reject(refreshError);
       }
     }

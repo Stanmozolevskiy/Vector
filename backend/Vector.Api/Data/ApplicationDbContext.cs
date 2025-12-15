@@ -18,6 +18,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<RefreshToken> RefreshTokens { get; set; }
     public DbSet<MockInterview> MockInterviews { get; set; }
     public DbSet<CoachApplication> CoachApplications { get; set; }
+    public DbSet<InterviewQuestion> InterviewQuestions { get; set; }
+    public DbSet<QuestionTestCase> QuestionTestCases { get; set; }
+    public DbSet<QuestionSolution> QuestionSolutions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -125,6 +128,60 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("pending");
             entity.Property(e => e.AdminNotes).HasMaxLength(500);
             entity.HasIndex(e => e.UserId).IsUnique(); // One application per user
+        });
+
+        // Configure InterviewQuestion entity
+        modelBuilder.Entity<InterviewQuestion>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Description).IsRequired();
+            entity.Property(e => e.Difficulty).IsRequired().HasMaxLength(20);
+            entity.Property(e => e.QuestionType).IsRequired().HasMaxLength(50).HasDefaultValue("Coding");
+            entity.Property(e => e.Category).IsRequired().HasMaxLength(50);
+            entity.HasIndex(e => e.QuestionType); // For filtering by question type
+            entity.Property(e => e.TimeComplexityHint).HasMaxLength(50);
+            entity.Property(e => e.SpaceComplexityHint).HasMaxLength(50);
+            entity.HasOne(e => e.Creator)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedBy)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasIndex(e => e.Category); // For filtering
+            entity.HasIndex(e => e.Difficulty); // For filtering
+            entity.HasIndex(e => e.IsActive); // For filtering active questions
+        });
+
+        // Configure QuestionTestCase entity
+        modelBuilder.Entity<QuestionTestCase>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.Question)
+                .WithMany(q => q.TestCases)
+                .HasForeignKey(e => e.QuestionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.Input).IsRequired();
+            entity.Property(e => e.ExpectedOutput).IsRequired();
+            entity.HasIndex(e => e.QuestionId); // For querying test cases by question
+        });
+
+        // Configure QuestionSolution entity
+        modelBuilder.Entity<QuestionSolution>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.Question)
+                .WithMany(q => q.Solutions)
+                .HasForeignKey(e => e.QuestionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.Language).IsRequired().HasMaxLength(20);
+            entity.Property(e => e.Code).IsRequired();
+            entity.Property(e => e.TimeComplexity).HasMaxLength(50);
+            entity.Property(e => e.SpaceComplexity).HasMaxLength(50);
+            entity.HasOne(e => e.Creator)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedBy)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasIndex(e => e.QuestionId); // For querying solutions by question
+            entity.HasIndex(e => e.Language); // For filtering by language
         });
     }
 }

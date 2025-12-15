@@ -98,6 +98,9 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IS3Service, S3Service>();
 builder.Services.AddScoped<ICoachService, CoachService>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
+builder.Services.AddScoped<IQuestionService, QuestionService>();
+// CodeExecutionService will be implemented in Week 2, Day 7-8
+// builder.Services.AddScoped<ICodeExecutionService, CodeExecutionService>();
 // builder.Services.AddScoped<IStripeService, StripeService>();
 
 // CORS

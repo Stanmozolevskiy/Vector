@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interview Questions - Vector</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/questions.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="index.html">
+                    <i class="fas fa-vector-square"></i>
+                    <span>Vector</span>
+                </a>
+            </div>
+            <div class="nav-menu" id="navMenu">
+                <a href="courses.html">Courses</a>
+                <a href="questions.html" class="active">Questions</a>
+                <a href="mock-interviews.html">Mock Interviews</a>
+                <a href="pricing.html">Pricing</a>
+                <a href="dashboard.html" class="btn-secondary">Dashboard</a>
+            </div>
+            <div class="nav-toggle" id="navToggle">
+                <i class="fas fa-bars"></i>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Questions Content -->
+    <section class="questions-section">
+        <div class="container-wide">
+            <!-- Page Header -->
+            <div class="questions-header">
+                <div class="breadcrumb">
+                    <a href="index.html">Home</a>
+                    <i class="fas fa-chevron-right"></i>
+                    <span>Questions</span>
+                </div>
+                <h1>Interview Questions</h1>
+                <p class="subtitle">Review this list of 4,236 interview questions and answers verified by hiring managers and candidates.</p>
+            </div>
+
+            <div class="content-layout">
+                <!-- Main Content -->
+                <div class="main-content">
+                    <!-- Inline Filters -->
+                    <div class="inline-filters">
+                        <div class="dropdown-filter">
+                            <button class="filter-btn" id="typeBtn">
+                                <span>Type</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <div class="filter-dropdown" id="typeDropdown">
+                                <label class="filter-option">
+                                    <input type="checkbox" name="type" value="all" checked>
+                                    <span>All Types</span>
+                                </label>
+                                <label class="filter-option">
+                                    <input type="checkbox" name="type" value="coding">
+                                    <span>Coding</span>
+                                </label>
+                                <label class="filter-option">
+                                    <input type="checkbox" name="type" value="design">
+                                    <span>System Design</span>
+                                </label>
+                                <label class="filter-option">
+                                    <input type="checkbox" name="type" value="behavioral">
+                                    <span>Behavioral</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="dropdown-filter">
+                            <button class="filter-btn" id="companyBtn">
+                                <span>Company</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <div class="filter-dropdown scrollable" id="companyDropdown">
+                                <label class="filter-option">
+                                    <input type="checkbox" name="company" value="all" checked>
+                                    <span>All Companies</span>
+                                </label>
+                                <label class="filter-option">
+                                    <input type="checkbox" name="company" value="google">
+                                    <span>Google</span>
+                                </label>
+                                <label class="filter-option">
+                                    <input type="checkbox" name="company" value="amazon">
+                                    <span>Amazon</span>
+                                </label>
+                                <label class="filter-option">
+                                    <input type="checkbox" name="company" value="meta">
+                                    <span>Meta (Facebook)</span>
+                                </label>
+                                <label class="filter-option">
+                                    <input type="checkbox" name="company" value="microsoft">
+                                    <span>Microsoft</span>
+                                </label>
+                                <label class="filter-option">
+                                    <input type="checkbox" name="company" value="apple">
+                                    <span>Apple</span>
+                                </label>
+                                <label class="filter-option">
+                                    <input type="checkbox" name="company" value="netflix">
+                                    <span>Netflix</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="dropdown-filter">
+                            <button class="filter-btn" id="categoryBtn">
+                                <span>Category</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <div class="filter-dropdown scrollable" id="categoryDropdown">
+                                <label class="filter-option">
+                                    <input type="checkbox" name="category" value="all" checked>
+                                    <span>All Categories</span>
+                                </label>
+                                <label class="filter-option">
+                                    <input type="checkbox" name="category" value="array">
+                                    <span>Array</span>
+                                </label>
+                                <label class="filter-option">
+                                    <input type="checkbox" name="category" value="string">
+                                    <span>String</span>
+                                </label>
+                                <label class="filter-option">
+                                    <input type="checkbox" name="category" value="dp">
+                                    <span>Dynamic Programming</span>
+                                </label>
+                                <label class="filter-option">
+                                    <input type="checkbox" name="category" value="tree">
+                                    <span>Tree</span>
+                                </label>
+                                <label class="filter-option">
+                                    <input type="checkbox" name="category" value="graph">
+                                    <span>Graph</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="dropdown-filter">
+                            <button class="filter-btn" id="difficultyBtn">
+                                <span>Difficulty</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <div class="filter-dropdown" id="difficultyDropdown">
+                                <label class="filter-option">
+                                    <input type="checkbox" name="difficulty" value="all" checked>
+                                    <span>All Levels</span>
+                                </label>
+                                <label class="filter-option">
+                                    <input type="checkbox" name="difficulty" value="easy">
+                                    <span>Easy</span>
+                                </label>
+                                <label class="filter-option">
+                                    <input type="checkbox" name="difficulty" value="medium">
+                                    <span>Medium</span>
+                                </label>
+                                <label class="filter-option">
+                                    <input type="checkbox" name="difficulty" value="hard">
+                                    <span>Hard</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <button class="btn-hot">
+                            <i class="fas fa-fire"></i>
+                            Hot
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                    </div>
+
+                    <!-- Featured Topics -->
+                    <div class="featured-topics">
+                        <div class="topic-card">
+                            <div class="topic-icon coding">
+                                <i class="fas fa-code"></i>
+                            </div>
+                            <div class="topic-content">
+                                <h3>Top coding questions to practice</h3>
+                            </div>
+                        </div>
+                        <div class="topic-card">
+                            <div class="topic-icon design">
+                                <i class="fas fa-cloud"></i>
+                            </div>
+                            <div class="topic-content">
+                                <h3>Latest Amazon Solution Architect questions</h3>
+                            </div>
+                        </div>
+                        <div class="topic-card">
+                            <div class="topic-icon behavioral">
+                                <i class="fas fa-microchip"></i>
+                            </div>
+                            <div class="topic-content">
+                                <h3>Popular machine learning questions</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Questions List -->
+                    <div class="questions-list">
+                        <!-- Question Card 1 -->
+                        <div class="question-card">
+                            <div class="question-header">
+                                <div class="question-source">
+                                    <img src="https://logo.clearbit.com/google.com" alt="Google" class="company-logo">
+                                    <span>Asked at Google</span>
+                                    <span class="time-ago">• a month ago</span>
+                                </div>
+                            </div>
+                            <h3 class="question-title">
+                                <a href="question-detail-coding.html">How would you improve a water bottle?</a>
+                            </h3>
+                            <div class="question-meta">
+                                <span class="badge role">Product Manager</span>
+                                <span class="badge role">Product Design</span>
+                            </div>
+                            <div class="question-footer">
+                                <button class="action-btn">
+                                    <i class="far fa-bookmark"></i>
+                                    Save
+                                </button>
+                                <div class="question-stats">
+                                    <span><i class="far fa-comment"></i> 17 answers</span>
+                                    <span><i class="far fa-eye"></i> 1 was asked this</span>
+                                </div>
+                            </div>
+                            <div class="question-preview">
+                                <div class="avatar-stack">
+                                    <img src="https://i.pravatar.cc/40?img=1" alt="User">
+                                    <img src="https://i.pravatar.cc/40?img=2" alt="User">
+                                    <img src="https://i.pravatar.cc/40?img=3" alt="User">
+                                    <span class="avatar-count">+16</span>
+                                </div>
+                                <p class="preview-text">"How would you improve a water bottle? To start, I want to ask a few clarifying..."</p>
+                                <button class="expand-btn">
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Question Card 2 -->
+                        <div class="question-card">
+                            <div class="question-header">
+                                <div class="question-source">
+                                    <img src="https://logo.clearbit.com/google.com" alt="Google" class="company-logo">
+                                    <span>Asked at ADP, Google</span>
+                                    <span class="time-ago">• 2 months ago</span>
+                                </div>
+                            </div>
+                            <h3 class="question-title">
+                                <a href="question-detail-design.html">How would you improve YouTube's recommendation algorithm?</a>
+                            </h3>
+                            <div class="question-meta">
+                                <span class="badge role">Product Manager</span>
+                                <span class="badge role">Product Design</span>
+                                <span class="badge more">+3 more</span>
+                            </div>
+                            <div class="question-footer">
+                                <button class="action-btn">
+                                    <i class="far fa-bookmark"></i>
+                                    Save
+                                </button>
+                                <div class="question-stats">
+                                    <span><i class="far fa-comment"></i> 38 answers</span>
+                                    <span><i class="far fa-eye"></i> 1 was asked this</span>
+                                </div>
+                            </div>
+                            <div class="question-preview">
+                                <div class="avatar-stack">
+                                    <img src="https://i.pravatar.cc/40?img=4" alt="User">
+                                    <img src="https://i.pravatar.cc/40?img=5" alt="User">
+                                    <img src="https://i.pravatar.cc/40?img=6" alt="User">
+                                    <span class="avatar-count">+28</span>
+                                </div>
+                                <p class="preview-text">"To improve, we first need to understand the problems or opportunities for..."</p>
+                                <button class="expand-btn">
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Question Card 3 -->
+                        <div class="question-card">
+                            <div class="question-header">
+                                <div class="question-source">
+                                    <span class="text-source">Asked at Meta</span>
+                                    <span class="time-ago">• 3 months ago</span>
+                                </div>
+                            </div>
+                            <h3 class="question-title">
+                                <a href="question-detail-behavioral.html">Tell me about a time when you had a conflict with a team member</a>
+                            </h3>
+                            <div class="question-meta">
+                                <span class="badge role">Software Engineer</span>
+                                <span class="badge role">Engineering Manager</span>
+                            </div>
+                            <div class="question-footer">
+                                <button class="action-btn">
+                                    <i class="far fa-bookmark"></i>
+                                    Save
+                                </button>
+                                <div class="question-stats">
+                                    <span><i class="far fa-comment"></i> 24 answers</span>
+                                    <span><i class="far fa-eye"></i> 3 were asked this</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Question Card 4 -->
+                        <div class="question-card">
+                            <div class="question-header">
+                                <div class="question-source">
+                                    <img src="https://logo.clearbit.com/amazon.com" alt="Amazon" class="company-logo">
+                                    <span>Asked at Amazon</span>
+                                    <span class="time-ago">• 1 week ago</span>
+                                </div>
+                            </div>
+                            <h3 class="question-title">
+                                <a href="question-detail-coding.html">Two Sum - Find indices of two numbers that add up to target</a>
+                            </h3>
+                            <div class="question-meta">
+                                <span class="badge difficulty easy">Easy</span>
+                                <span class="badge topic">Array</span>
+                                <span class="badge topic">Hash Table</span>
+                            </div>
+                            <div class="question-footer">
+                                <button class="action-btn">
+                                    <i class="far fa-bookmark"></i>
+                                    Save
+                                </button>
+                                <div class="question-stats">
+                                    <span><i class="far fa-comment"></i> 142 answers</span>
+                                    <span>48.5% acceptance</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Question Card 5 -->
+                        <div class="question-card">
+                            <div class="question-header">
+                                <div class="question-source">
+                                    <img src="https://logo.clearbit.com/microsoft.com" alt="Microsoft" class="company-logo">
+                                    <span>Asked at Microsoft</span>
+                                    <span class="time-ago">• 2 weeks ago</span>
+                                </div>
+                            </div>
+                            <h3 class="question-title">
+                                <a href="question-detail-design.html">Design a URL Shortener like bit.ly</a>
+                            </h3>
+                            <div class="question-meta">
+                                <span class="badge difficulty medium">Medium</span>
+                                <span class="badge topic">System Design</span>
+                                <span class="badge topic">Scalability</span>
+                            </div>
+                            <div class="question-footer">
+                                <button class="action-btn">
+                                    <i class="far fa-bookmark"></i>
+                                    Save
+                                </button>
+                                <div class="question-stats">
+                                    <span><i class="far fa-comment"></i> 67 answers</span>
+                                    <span>42.3% acceptance</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="pagination">
+                        <button class="page-btn disabled">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <button class="page-btn active">1</button>
+                        <button class="page-btn">2</button>
+                        <button class="page-btn">3</button>
+                        <button class="page-btn">4</button>
+                        <button class="page-btn">5</button>
+                        <span class="page-btn disabled">...</span>
+                        <button class="page-btn">50</button>
+                        <button class="page-btn">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right Sidebar -->
+                <aside class="sidebar">
+                    <!-- Search -->
+                    <div class="sidebar-search">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search for questions, companies...">
+                    </div>
+
+                    <!-- Popular Roles -->
+                    <div class="sidebar-section">
+                        <h3>Popular roles</h3>
+                        <div class="role-tags">
+                            <a href="#" class="role-tag">Product Manager</a>
+                            <a href="#" class="role-tag">Software Engineer</a>
+                            <a href="#" class="role-tag">Technical Program Manager</a>
+                            <a href="#" class="role-tag">Data Engineer</a>
+                            <a href="#" class="role-tag">Data Scientist</a>
+                        </div>
+                    </div>
+
+                    <!-- Interviewed Recently -->
+                    <div class="sidebar-section">
+                        <h3>Interviewed recently?</h3>
+                        <p class="section-description">Help improve our question database (and earn karma) by telling us about your experience</p>
+                        <button class="btn-share">
+                            <i class="fas fa-plus"></i>
+                            Share interview experience
+                        </button>
+                    </div>
+
+                    <!-- Trending Companies -->
+                    <div class="sidebar-section">
+                        <h3>Trending companies</h3>
+                        <div class="company-list">
+                            <a href="#" class="company-item">
+                                <img src="https://logo.clearbit.com/meta.com" alt="Meta">
+                                <span>Meta (Facebook)</span>
+                            </a>
+                            <a href="#" class="company-item">
+                                <img src="https://logo.clearbit.com/google.com" alt="Google">
+                                <span>Google</span>
+                            </a>
+                            <a href="#" class="company-item">
+                                <img src="https://logo.clearbit.com/amazon.com" alt="Amazon">
+                                <span>Amazon</span>
+                            </a>
+                            <a href="#" class="company-item">
+                                <img src="https://logo.clearbit.com/microsoft.com" alt="Microsoft">
+                                <span>Microsoft</span>
+                            </a>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <div class="footer-brand">
+                        <i class="fas fa-vector-square"></i>
+                        <span>Vector</span>
+                    </div>
+                    <p>Master your interview skills and land your dream job.</p>
+                </div>
+                <div class="footer-col">
+                    <h4>Product</h4>
+                    <ul>
+                        <li><a href="courses.html">Courses</a></li>
+                        <li><a href="questions.html">Questions</a></li>
+                        <li><a href="mock-interviews.html">Mock Interviews</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Company</h4>
+                    <ul>
+                        <li><a href="#">About</a></li>
+                        <li><a href="#">Careers</a></li>
+                        <li><a href="#">Blog</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Terms</a></li>
+                        <li><a href="#">Privacy</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Vector. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+    <script src="js/questions.js"></script>
+</body>
+</html>

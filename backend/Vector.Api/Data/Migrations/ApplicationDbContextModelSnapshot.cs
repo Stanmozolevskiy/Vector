@@ -113,6 +113,91 @@ namespace Vector.Api.Data.Migrations
                     b.ToTable("EmailVerifications");
                 });
 
+            modelBuilder.Entity("Vector.Api.Models.InterviewQuestion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<double?>("AcceptanceRate")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("CompanyTags")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Constraints")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Difficulty")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Examples")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Hints")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("QuestionType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("Coding");
+
+                    b.Property<string>("SpaceComplexityHint")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Tags")
+                        .HasColumnType("text");
+
+                    b.Property<string>("TimeComplexityHint")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Category");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("Difficulty");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("QuestionType");
+
+                    b.ToTable("InterviewQuestions");
+                });
+
             modelBuilder.Entity("Vector.Api.Models.MockInterview", b =>
                 {
                     b.Property<Guid>("Id")
@@ -252,6 +337,94 @@ namespace Vector.Api.Data.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Payments");
+                });
+
+            modelBuilder.Entity("Vector.Api.Models.QuestionSolution", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Explanation")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsOfficial")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("QuestionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SpaceComplexity")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("TimeComplexity")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("Language");
+
+                    b.HasIndex("QuestionId");
+
+                    b.ToTable("QuestionSolutions");
+                });
+
+            modelBuilder.Entity("Vector.Api.Models.QuestionTestCase", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ExpectedOutput")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Explanation")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Input")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsHidden")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("QuestionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("TestCaseNumber")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuestionId");
+
+                    b.ToTable("QuestionTestCases");
                 });
 
             modelBuilder.Entity("Vector.Api.Models.RefreshToken", b =>
@@ -434,6 +607,16 @@ namespace Vector.Api.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Vector.Api.Models.InterviewQuestion", b =>
+                {
+                    b.HasOne("Vector.Api.Models.User", "Creator")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Creator");
+                });
+
             modelBuilder.Entity("Vector.Api.Models.PasswordReset", b =>
                 {
                     b.HasOne("Vector.Api.Models.User", "User")
@@ -463,6 +646,35 @@ namespace Vector.Api.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Vector.Api.Models.QuestionSolution", b =>
+                {
+                    b.HasOne("Vector.Api.Models.User", "Creator")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Vector.Api.Models.InterviewQuestion", "Question")
+                        .WithMany("Solutions")
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Creator");
+
+                    b.Navigation("Question");
+                });
+
+            modelBuilder.Entity("Vector.Api.Models.QuestionTestCase", b =>
+                {
+                    b.HasOne("Vector.Api.Models.InterviewQuestion", "Question")
+                        .WithMany("TestCases")
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Question");
+                });
+
             modelBuilder.Entity("Vector.Api.Models.RefreshToken", b =>
                 {
                     b.HasOne("Vector.Api.Models.User", "User")
@@ -483,6 +695,13 @@ namespace Vector.Api.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Vector.Api.Models.InterviewQuestion", b =>
+                {
+                    b.Navigation("Solutions");
+
+                    b.Navigation("TestCases");
                 });
 #pragma warning restore 612, 618
         }

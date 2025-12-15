@@ -27,12 +27,16 @@ export const Navbar = () => {
     <nav className="navbar">
       <div className="container">
         <div className="nav-brand">
-          <Link to={ROUTES.HOME}>
+          <Link to={user ? ROUTES.DASHBOARD : ROUTES.HOME}>
             <i className="fas fa-vector-square"></i>
             <span>Vector</span>
           </Link>
         </div>
         <div className="nav-menu">
+          <Link to={ROUTES.QUESTIONS}>Questions</Link>
+          {(user?.role === 'admin' || user?.role === 'coach') && (
+            <Link to={ROUTES.ADD_QUESTION}>Add Question</Link>
+          )}
           <div className="user-menu">
             <div className="user-avatar">
               {user?.profilePictureUrl ? (

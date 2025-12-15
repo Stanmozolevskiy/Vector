@@ -43,14 +43,53 @@ Vector is a comprehensive frontend website for live mock interview preparation, 
 
 ### 4. Interview Question Bank
 - ✅ **Question Browser** (`questions.html`) - Searchable database with:
-  - 1000+ curated interview questions
-  - Filter by difficulty (Easy, Medium, Hard)
-  - Filter by topic/category
-  - Filter by company (Google, Meta, Amazon, etc.)
-  - Status tracking (Solved, Attempted, To Do)
-- ✅ **Question Table** - Display with title, difficulty, acceptance rate, tags
-- ✅ **Statistics Dashboard** - Track solved/attempted problems
-- ✅ **Search Functionality** - Real-time question search
+  - 1000+ curated interview questions across 3 types
+  - **Question Type Filter** - Coding (642), Whiteboard Design (218), Behavioral (140)
+  - **Difficulty Filter** - Easy (334), Medium (456), Hard (210)
+  - **Topic Filter** - Array, String, Hash Table, Dynamic Programming, Tree, Graph, Binary Search, Two Pointers
+  - **Company Filter** - Google, Meta, Amazon, Microsoft, Apple, Netflix, Uber, Airbnb
+  - **Status Tracking** - Solved (234), Attempted (67), To Do (699)
+  - Scrollable filter sections with custom checkboxes
+  - Question ID display in monospace font
+  - Type badges with icons (Coding, Design, Behavioral)
+- ✅ **Question Table** - Enhanced display with:
+  - Status icon (solved/attempted/todo)
+  - Question ID in monospace
+  - Title with tags
+  - Type badge (Coding/Design/Behavioral)
+  - Difficulty badge with color coding
+  - Acceptance rate
+  - Solve button with navigation
+- ✅ **Three Question Types with Custom Templates:**
+  - **Coding Questions** (`question-detail-coding.html`) - LeetCode-style interface:
+    - Split panel layout (problem description + code editor)
+    - Dark theme code editor with syntax highlighting
+    - Multiple language support (JavaScript, Python, Java, C++, C#, Go)
+    - Test case input and console output
+    - Run Code and Submit buttons
+    - Problem description with examples, constraints, and hints
+    - Resizable panels for custom workspace
+  - **Whiteboard Design Questions** (`question-detail-design.html`) - System design template:
+    - Problem statement and requirements (functional/non-functional)
+    - Scale estimation with metrics cards
+    - Whiteboard canvas for drawing architecture diagrams
+    - Notes area for calculations and key points
+    - Hints and solution tabs with component diagrams
+    - Database schema examples
+    - API endpoint definitions
+    - Discussion points and trade-offs
+  - **Behavioral Questions** (`question-detail-behavioral.html`) - STAR method template:
+    - Question variations and alternative phrasings
+    - STAR framework guide (Situation, Task, Action, Result)
+    - Tips for answering with expert advice
+    - Sample answers with analysis
+    - Interactive answer builder with character counters
+    - Timer for practice sessions
+    - Quick tips sidebar
+    - Category selection (Leadership, Conflict, Failure, etc.)
+- ✅ **Statistics Dashboard** - Track progress by question type and difficulty
+- ✅ **Search & Filters** - Real-time question search with advanced filtering
+- ✅ **Professional Pagination** - 20 questions per page with modern controls
 
 ### 5. Mock Interview Scheduling
 - ✅ **Booking Interface** (`mock-interviews.html`) - Complete scheduling system with:
@@ -98,6 +137,30 @@ Vector is a comprehensive frontend website for live mock interview preparation, 
 - ✅ **Progress Visualization** - Charts and progress bars for learning metrics
 
 ### 8. Coach Role & Features
+- ✅ **Browse Coaches** (`coaches.html`) - Discover and filter expert coaches:
+  - Search by name, company, or expertise
+  - Filter by specialization, rating, price range, company
+  - Grid/List view toggle
+  - Sort by recommended, rating, price, experience
+  - Coach cards with rating, rate, specializations
+  - Pagination support
+  - 50+ sample coaches
+- ✅ **Coach Detail** (`coach-detail.html`) - View individual coach profiles:
+  - Complete coach information
+  - Bio and specializations
+  - Experience and statistics
+  - Student reviews and ratings
+  - Booking card with session types
+  - Quick facts and availability
+  - Secure booking system
+- ✅ **Coach Profile** (`coach-profile.html`) - Manage coach profile (Coach role):
+  - View/Edit mode toggle
+  - Profile information (name, title, company, bio)
+  - Coaching information (specializations, rate, availability)
+  - Professional links (LinkedIn, GitHub, website)
+  - Profile preview
+  - Form validation
+  - Character count for bio
 - ✅ **Coach Dashboard** (`coach-dashboard.html`) - Overview for coaches with:
   - Course statistics and performance metrics
   - Student engagement and completion rates
@@ -162,50 +225,62 @@ Vector is a comprehensive frontend website for live mock interview preparation, 
 
 ```
 vector/
-├── index.html                 # Landing page with hero, features, testimonials
-├── login.html                 # User login page
-├── register.html              # User registration page
-├── forgot-password.html       # Password recovery page
-├── courses.html               # Course catalog with filters
-├── course-detail.html         # Individual course details
-├── lesson-player.html         # Video lesson player
-├── questions.html             # Interview question bank
-├── question-detail.html       # Individual question with code editor
-├── mock-interviews.html       # Mock interview booking
-├── pricing.html               # Pricing plans and FAQ
-├── dashboard.html             # User dashboard
-├── profile.html               # User profile settings
-├── coach-dashboard.html       # Coach overview and statistics
-├── coach-course-create.html   # Course creation tool for coaches
-├── admin-dashboard.html       # Administrator dashboard
-├── admin-users.html           # User management interface
-├── admin-questions.html       # Question database management
+├── index.html                    # Landing page with hero, features, testimonials
+├── login.html                    # User login page
+├── register.html                 # User registration page
+├── forgot-password.html          # Password recovery page
+├── courses.html                  # Course catalog with filters
+├── course-detail.html            # Individual course details
+├── lesson-player.html            # Video lesson player
+├── questions.html                # Interview question bank with type filters
+├── question-detail.html          # Original question detail (legacy)
+├── question-detail-coding.html   # Coding question template (LeetCode-style)
+├── question-detail-design.html   # Whiteboard design question template
+├── question-detail-behavioral.html # Behavioral question template (STAR method)
+├── mock-interviews.html          # Mock interview booking
+├── pricing.html                  # Pricing plans and FAQ
+├── dashboard.html                # User dashboard
+├── profile.html                  # User profile settings
+├── coaches.html                  # Browse coaches page
+├── coach-detail.html             # Individual coach profile view
+├── coach-profile.html            # Coach profile management (coach role)
+├── coach-dashboard.html          # Coach overview and statistics
+├── coach-course-create.html      # Course creation tool for coaches
+├── admin-dashboard.html          # Administrator dashboard
+├── admin-users.html              # User management interface
+├── admin-questions.html          # Question database management
 ├── css/
-│   ├── style.css             # Global styles and components
-│   ├── auth.css              # Authentication page styles
-│   ├── courses.css           # Course page styles
-│   ├── player.css            # Video player styles
-│   ├── questions.css         # Question bank styles
-│   ├── question-detail.css   # Question detail and code editor styles
-│   ├── mock.css              # Mock interview styles
-│   ├── pricing.css           # Pricing page styles
-│   ├── dashboard.css         # Dashboard styles
-│   ├── profile.css           # Profile page styles
-│   ├── admin.css             # Admin interface styles
-│   └── admin-questions.css   # Admin question management styles
+│   ├── style.css                # Global styles and components
+│   ├── auth.css                 # Authentication page styles
+│   ├── courses.css              # Course page styles
+│   ├── coaches.css              # Coach browsing and profile styles
+│   ├── player.css               # Video player styles
+│   ├── questions.css            # Question bank styles with type filters
+│   ├── question-detail.css      # Base question detail and code editor styles
+│   ├── question-design.css      # Whiteboard design question styles
+│   ├── question-behavioral.css  # Behavioral question styles
+│   ├── mock.css                 # Mock interview styles
+│   ├── pricing.css              # Pricing page styles
+│   ├── dashboard.css            # Dashboard styles
+│   ├── profile.css              # Profile page styles
+│   ├── admin.css                # Admin interface styles
+│   └── admin-questions.css      # Admin question management styles
 ├── js/
-│   ├── main.js               # Core functionality, navigation, utilities
-│   ├── auth.js               # Authentication logic
-│   ├── courses.js            # Course page interactions
-│   ├── player.js             # Video player controls
-│   ├── questions.js          # Question filtering and search
-│   ├── question-detail.js    # Code editor and test execution
-│   ├── mock.js               # Mock interview booking logic
-│   ├── pricing.js            # Pricing toggle and FAQ
-│   ├── dashboard.js          # Dashboard charts and interactions
-│   ├── profile.js            # Profile settings and account management
-│   └── admin-questions.js    # Admin question management logic
-└── README.md                 # Project documentation
+│   ├── main.js                  # Core functionality, navigation, utilities
+│   ├── auth.js                  # Authentication logic
+│   ├── courses.js               # Course page interactions
+│   ├── coaches.js               # Coach browsing and filtering
+│   ├── player.js                # Video player controls
+│   ├── questions.js             # Question filtering, search, and type support
+│   ├── question-detail.js       # Code editor and test execution (coding)
+│   ├── question-design.js       # Whiteboard canvas and design question logic
+│   ├── question-behavioral.js   # STAR framework and behavioral question logic
+│   ├── mock.js                  # Mock interview booking logic
+│   ├── pricing.js               # Pricing toggle and FAQ
+│   ├── dashboard.js             # Dashboard charts and interactions
+│   ├── profile.js               # Profile settings and account management
+│   └── admin-questions.js       # Admin question management logic
+└── README.md                    # Project documentation
 ```
 
 ## 🚀 Getting Started
@@ -245,7 +320,12 @@ Since this is a frontend demo, any email/password combination will work:
 ### Public Pages (No Authentication Required)
 - **/** (`index.html`) - Landing page with platform overview
 - **/courses** (`courses.html`) - Browse all available courses
-- **/questions** (`questions.html`) - View question bank (limited access)
+- **/questions** (`questions.html`) - View question bank with type filters (Coding, Design, Behavioral)
+- **/question/coding/:id** (`question-detail-coding.html`) - LeetCode-style coding challenge
+- **/question/design/:id** (`question-detail-design.html`) - System design whiteboard problem
+- **/question/behavioral/:id** (`question-detail-behavioral.html`) - Behavioral interview question with STAR framework
+- **/coaches** (`coaches.html`) - Browse expert coaches with advanced filters
+- **/coach/:id** (`coach-detail.html`) - View individual coach profiles
 - **/mock-interviews** (`mock-interviews.html`) - View mock interview options
 - **/pricing** (`pricing.html`) - View pricing plans and FAQ
 - **/login** (`login.html`) - User login
@@ -261,6 +341,7 @@ Since this is a frontend demo, any email/password combination will work:
 ### Coach Pages (Coach Role Required)
 - **/coach-dashboard** (`coach-dashboard.html`) - Coach overview with course and student metrics
 - **/coach-course-create** (`coach-course-create.html`) - Create and manage courses
+- **/coach-profile** (`coach-profile.html`) - Manage public coach profile with edit mode
 
 ### Administrator Pages (Admin Role Required)
 - **/admin-dashboard** (`admin-dashboard.html`) - Platform-wide statistics and management
@@ -291,13 +372,33 @@ Since this is a frontend demo, any email/password combination will work:
 7. Receive confirmation
 
 ### 4. Problem Solving Flow
+
+#### Coding Questions
 1. Go to Questions page
-2. Filter by difficulty, topic, or company
+2. Filter by type (Coding), difficulty, topic, or company
 3. Search for specific questions
-4. Click "Solve" → Open question detail
-5. View problem description and examples
-6. Write solution in code editor
-7. Submit and receive feedback
+4. Click "Solve" → Open coding question (LeetCode-style)
+5. View problem description, examples, and constraints
+6. Write solution in code editor (multi-language support)
+7. Run test cases and submit solution
+
+#### Whiteboard Design Questions
+1. Navigate to Questions → Filter by "Whiteboard Design"
+2. Select a system design problem
+3. Read requirements (functional, non-functional, scale estimation)
+4. Use whiteboard canvas to draw architecture diagrams
+5. Take notes on key decisions and trade-offs
+6. Review hints and solution approaches
+7. Save progress or submit design
+
+#### Behavioral Questions
+1. Browse Questions → Filter by "Behavioral"
+2. Choose a behavioral question
+3. Read the STAR framework guide
+4. Fill in Situation, Task, Action, Result sections
+5. Use timer to practice answering aloud
+6. Get feedback on answer structure and completeness
+7. Save draft or submit answer for review
 
 ## 🎨 Technologies Used
 

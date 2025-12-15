@@ -13,6 +13,10 @@ import { ProfilePage } from './pages/profile/ProfilePage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import CoachApplicationPage from './pages/coach/CoachApplicationPage';
 import SubscriptionPlansPage from './pages/subscription/SubscriptionPlansPage';
+import { QuestionsPage } from './pages/questions/QuestionsPage';
+import { QuestionDetailPage } from './pages/questions/QuestionDetailPage';
+import { AddQuestionPage } from './pages/questions/AddQuestionPage';
+import { EditQuestionPage } from './pages/questions/EditQuestionPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
 import { ROUTES } from './utils/constants';
 
@@ -51,6 +55,26 @@ function App() {
         <Route path={ROUTES.SUBSCRIPTION_PLANS} element={
           <ProtectedRoute requireAuth>
             <SubscriptionPlansPage />
+          </ProtectedRoute>
+        } />
+        <Route path={ROUTES.QUESTIONS} element={
+          <ProtectedRoute requireAuth>
+            <QuestionsPage />
+          </ProtectedRoute>
+        } />
+        <Route path={`${ROUTES.QUESTIONS}/:id`} element={
+          <ProtectedRoute requireAuth>
+            <QuestionDetailPage />
+          </ProtectedRoute>
+        } />
+        <Route path={ROUTES.ADD_QUESTION} element={
+          <ProtectedRoute requireAuth requiredRole={['admin', 'coach']}>
+            <AddQuestionPage />
+          </ProtectedRoute>
+        } />
+        <Route path={`${ROUTES.EDIT_QUESTION}/:id`} element={
+          <ProtectedRoute requireAuth requiredRole={['admin', 'coach']}>
+            <EditQuestionPage />
           </ProtectedRoute>
         } />
         

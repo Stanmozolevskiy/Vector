@@ -1,25 +1,63 @@
-import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 import { ROUTES } from '../../utils/constants';
 import '../../styles/style.css';
 
+const IndexPageNavbar = () => {
+  const { user } = useAuth();
+  return (
+    <nav className="navbar">
+      <div className="container">
+        <div className="nav-brand">
+          <Link to={user ? ROUTES.DASHBOARD : ROUTES.HOME}>
+            <i className="fas fa-vector-square"></i>
+            <span>Vector</span>
+          </Link>
+        </div>
+        <div className="nav-menu">
+          <Link to={ROUTES.LOGIN} className="btn-secondary">Log In</Link>
+          <Link to={ROUTES.REGISTER} className="btn-primary">Get Started</Link>
+        </div>
+      </div>
+    </nav>
+  );
+};
+
 export const IndexPage = () => {
+  const { isAuthenticated, isLoading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Redirect logged-in users to dashboard
+    if (!isLoading && isAuthenticated) {
+      navigate(ROUTES.DASHBOARD, { replace: true });
+    }
+  }, [isAuthenticated, isLoading, navigate]);
+
+  // Show loading state while checking auth
+  if (isLoading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh' 
+      }}>
+        <div className="loading-spinner">Loading...</div>
+      </div>
+    );
+  }
+
+  // Don't render the page if user is authenticated (will redirect)
+  if (isAuthenticated) {
+    return null;
+  }
+
   return (
     <div className="landing-page">
       {/* Navigation */}
-      <nav className="navbar">
-        <div className="container">
-          <div className="nav-brand">
-            <Link to={ROUTES.HOME}>
-              <i className="fas fa-vector-square"></i>
-              <span>Vector</span>
-            </Link>
-          </div>
-          <div className="nav-menu">
-            <Link to={ROUTES.LOGIN} className="btn-secondary">Log In</Link>
-            <Link to={ROUTES.REGISTER} className="btn-primary">Get Started</Link>
-          </div>
-        </div>
-      </nav>
+      <IndexPageNavbar />
 
       {/* Hero Section */}
       <section className="hero">

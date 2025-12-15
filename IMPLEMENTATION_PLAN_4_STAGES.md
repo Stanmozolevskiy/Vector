@@ -106,77 +106,98 @@ This document outlines the complete 4-stage implementation plan for building the
 
 ---
 
-## Stage 2: Mock Interviews System
+## Stage 2: Courses & Learning Content with Peer Mock Interviews
 
-**Timeline: 6-8 weeks**
+**Timeline: 8-10 weeks**
 
 ### Goals
-- Complete mock interview scheduling system
-- Coach profile and availability management
-- Video conferencing integration
-- Interview feedback and rating system
+- Complete LeetCode-style problem solving platform
+- Interview question bank with problem management
+- Peer-to-peer mock interview system
+- Code editor and execution environment
+- Progress tracking and analytics
 
 ### Key Features
 
-#### 2.1 Coach Management
-- Coach profile creation/editing
-- Coach specialization selection (PM, SWE, DS, etc.)
-- Coach availability management (weekly schedule)
-- Coach hourly rate setting
-- Coach bio and credentials
-- Coach application/approval workflow
-- Coach ratings and reviews display
+#### 2.1 Interview Question Bank
+- Question database (by domain, difficulty, company)
+- Question CRUD operations (admin/coaches can add questions)
+- Question categories (Arrays, Strings, Trees, Graphs, Dynamic Programming, etc.)
+- Difficulty levels (Easy, Medium, Hard)
+- Company tags (Google, Amazon, Facebook, etc.)
+- Question metadata (time complexity hints, space complexity hints)
+- Question search and filtering
+- Question bookmarks and favorites
 
-#### 2.2 Interview Scheduling
-- Browse available coaches
-- Filter coaches by specialization, availability, rating
-- View coach calendar and available slots
-- Book interview slot
-- Reschedule interviews
-- Cancel interviews (with policies)
-- Interview confirmation emails
+#### 2.2 LeetCode-Style Problem Solving
+- Code editor with syntax highlighting
+- Multiple language support (Python, JavaScript, Java, C++, etc.)
+- Test case execution
+- Code submission and validation
+- Solution comparison and discussion
+- Time and space complexity analysis
+- Hint system (progressive hints)
+- Solution explanations and video walkthroughs
 
-#### 2.3 Video Conferencing
-- Zoom API integration (or Google Meet)
-- Automatic meeting creation on booking
-- Meeting link delivery
-- Meeting reminder notifications
-- Join meeting functionality
-- Recording consent and handling
+#### 2.3 Peer Mock Interview System
+- Find and match with peer interview partners
+- Schedule peer mock interviews
+- Real-time collaborative coding sessions
+- Screen sharing and video chat integration
+- Interview timer and question selection
+- Role assignment (interviewer/interviewee)
+- Session recording (optional, with consent)
+- Post-interview feedback exchange
 
-#### 2.4 Interview Management
-- Interview status tracking (scheduled, in-progress, completed, cancelled)
-- Interview history view
-- Upcoming interviews dashboard
-- Interview details page
+#### 2.4 Question Management
+- Admin/coach ability to add new questions
+- Question approval workflow
+- Question versioning and history
+- Question templates and formats
+- Bulk question import
+- Question tagging and categorization
+- Question difficulty calibration
+- Question usage analytics
 
-#### 2.5 Feedback System
-- Post-interview feedback form (for coach)
-- Student rating and feedback (for student)
-- Feedback templates
-- Feedback viewing (for both parties)
-- Feedback analytics
+#### 2.5 Practice Modes
+- Practice mode (solve problems individually)
+- Mock interview mode (with peer)
+- Timed challenges
+- Daily problem recommendations
+- Personalized problem sets based on skill level
+- Progress tracking per problem category
+- Streak tracking and gamification
 
-#### 2.6 Notifications
-- Interview booking confirmation (email)
-- Interview reminder (24 hours before, 1 hour before)
-- Interview cancellation notifications
-- Feedback submission notifications
+#### 2.6 Learning Analytics
+- Problem-solving statistics
+- Time spent per problem
+- Success rate by category
+- Weak areas identification
+- Improvement tracking over time
+- Comparison with peers (anonymized)
+- Performance reports
 
 ### Database Tables
-- `coach_profiles` (extends user profiles)
-- `mock_interviews`
-- `coach_availability_slots`
-- `interview_feedback`
-- `coach_ratings`
+- `interview_questions`
+- `question_test_cases`
+- `question_solutions`
+- `user_solutions`
+- `solution_submissions`
+- `peer_interview_sessions`
+- `interview_session_recordings`
+- `question_bookmarks`
+- `practice_sessions`
+- `learning_analytics`
 
 ### Success Criteria
-- Coaches can create profiles and set availability
-- Students can browse and book interviews
-- Video meetings are automatically created
-- Interviews can be rescheduled/cancelled
-- Feedback and ratings can be submitted
-- All notifications are sent correctly
+- Users can browse and solve LeetCode-style problems
+- Code editor works with multiple languages
+- Test cases execute correctly
+- Users can find and connect with peer interview partners
+- Mock interview sessions can be scheduled and conducted
+- Admins/coaches can add new questions
+- Progress tracking works accurately
+- Analytics provide meaningful insights
 
 ---
 
@@ -281,87 +302,77 @@ This document outlines the complete 4-stage implementation plan for building the
 
 ---
 
-## Stage 4: Courses & Learning Content
+## Stage 4: Mock Interviews System with Coaches
 
-**Timeline: 8-10 weeks**
+**Timeline: 6-8 weeks**
 
 ### Goals
-- Complete course management system
-- Lesson delivery (video streaming)
-- Progress tracking
-- Interview question bank
+- Complete mock interview scheduling system with professional coaches
+- Coach profile and availability management
+- Video conferencing integration
+- Interview feedback and rating system
 
 ### Key Features
 
-#### 4.1 Course Management
-- Course creation (admin/instructors)
-- Course CRUD operations
-- Course categorization (by domain)
-- Course previews and descriptions
-- Course pricing (free/premium)
-- Course publishing workflow
+#### 4.1 Coach Management
+- Coach profile creation/editing
+- Coach specialization selection (PM, SWE, DS, etc.)
+- Coach availability management (weekly schedule)
+- Coach hourly rate setting
+- Coach bio and credentials
+- Coach application/approval workflow
+- Coach ratings and reviews display
 
-#### 4.2 Lesson Management
-- Lesson creation within courses
-- Lesson ordering and organization
-- Multiple lesson types (video, reading, quiz)
-- Lesson content editing
-- Lesson resources (downloadable materials)
+#### 4.2 Interview Scheduling
+- Browse available coaches
+- Filter coaches by specialization, availability, rating
+- View coach calendar and available slots
+- Book interview slot
+- Reschedule interviews
+- Cancel interviews (with policies)
+- Interview confirmation emails
 
-#### 4.3 Video Streaming
-- Video upload to S3
-- Video transcoding (multiple qualities)
-- Video streaming via CDN (CloudFront)
-- Video player integration (Video.js)
-- Progress tracking (watch time)
-- Video subtitles/captions (optional)
+#### 4.3 Video Conferencing
+- Zoom API integration (or Google Meet)
+- Automatic meeting creation on booking
+- Meeting link delivery
+- Meeting reminder notifications
+- Join meeting functionality
+- Recording consent and handling
 
-#### 4.4 Enrollment System
-- Course browsing and search
-- Course enrollment (free/premium)
-- Enrollment verification (subscription check)
-- Course access control
-- Enrollment history
+#### 4.4 Interview Management
+- Interview status tracking (scheduled, in-progress, completed, cancelled)
+- Interview history view
+- Upcoming interviews dashboard
+- Interview details page
 
-#### 4.5 Progress Tracking
-- Lesson completion tracking
-- Course progress percentage
-- Learning path visualization
-- Completion certificates
-- Progress analytics
+#### 4.5 Feedback System
+- Post-interview feedback form (for coach)
+- Student rating and feedback (for student)
+- Feedback templates
+- Feedback viewing (for both parties)
+- Feedback analytics
 
-#### 4.6 Interview Question Bank
-- Question database (by domain, difficulty)
-- Question CRUD operations
-- Expert answer videos
-- Question browsing and filtering
-- Practice mode
-- Question bookmarks
-
-#### 4.7 Community Features (Basic)
-- Course reviews and ratings
-- Discussion forums (per course)
-- Q&A sections
-- User interactions (likes, comments)
+#### 4.6 Notifications
+- Interview booking confirmation (email)
+- Interview reminder (24 hours before, 1 hour before)
+- Interview cancellation notifications
+- Feedback submission notifications
 
 ### Database Tables
-- `courses`
-- `lessons`
-- `course_enrollments`
-- `lesson_completions`
-- `interview_questions`
-- `question_answers`
-- `course_reviews`
-- `forum_posts`
-- `forum_comments`
+- `coach_profiles` (extends user profiles)
+- `coach_interviews` (professional coach interviews)
+- `coach_availability_slots`
+- `interview_feedback`
+- `coach_ratings`
 
 ### Success Criteria
-- Courses can be created and published
-- Users can enroll in courses
-- Video lessons stream correctly
-- Progress is tracked accurately
-- Interview question bank is searchable
-- Community features work as expected
+- Coaches can create profiles and set availability
+- Students can browse and book interviews with coaches
+- Video meetings are automatically created
+- Interviews can be rescheduled/cancelled
+- Feedback and ratings can be submitted
+- All notifications are sent correctly
 
 ---
 
@@ -370,11 +381,11 @@ This document outlines the complete 4-stage implementation plan for building the
 ```
 Stage 1 (Foundation)
     ↓
-Stage 2 (Mock Interviews) - Requires Stage 1
+Stage 2 (Courses & Learning with Peer Interviews) - Requires Stage 1
     ↓
 Stage 3 (Resume Reviews) - Requires Stage 1
     ↓
-Stage 4 (Courses) - Requires Stage 1
+Stage 4 (Professional Coach Interviews) - Requires Stage 1
 ```
 
 **Note**: Stages 2, 3, and 4 can be developed in parallel after Stage 1 is complete, as they are independent features that build on the authentication and user management foundation.
@@ -416,9 +427,9 @@ Stage 4 (Courses) - Requires Stage 1
 ## Overall Timeline Estimate
 
 - **Stage 1**: 4-6 weeks
-- **Stage 2**: 6-8 weeks
+- **Stage 2**: 8-10 weeks (Courses & Learning with Peer Interviews)
 - **Stage 3**: 4-5 weeks
-- **Stage 4**: 8-10 weeks
+- **Stage 4**: 6-8 weeks (Professional Coach Interviews)
 
 **Total Estimated Timeline**: 22-29 weeks (5.5-7 months)
 
@@ -432,9 +443,11 @@ Stage 4 (Courses) - Requires Stage 1
 - Role-based access control enforced
 
 ### Stage 2
-- Interviews being booked and conducted
-- Video meetings functioning
-- Feedback system operational
+- LeetCode-style problems can be solved
+- Code editor and execution working
+- Peer mock interviews functioning
+- Question management system operational
+- Progress tracking accurate
 
 ### Stage 3
 - Resume reviews being completed
@@ -442,10 +455,10 @@ Stage 4 (Courses) - Requires Stage 1
 - Feedback delivered timely
 
 ### Stage 4
-- Courses published and accessible
-- Video streaming working smoothly
-- Progress tracking accurate
-- Question bank searchable
+- Professional coach interviews being booked and conducted
+- Video meetings functioning
+- Feedback system operational
+- Coach management system working
 
 ---
 

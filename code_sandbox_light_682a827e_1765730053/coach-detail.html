@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coach Profile - Vector</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/coaches.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        .coach-detail-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 3rem 0;
+            color: white;
+        }
+
+        .coach-detail-container {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 2rem;
+            padding: 2rem 0;
+        }
+
+        .coach-detail-main {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+
+        .coach-detail-sidebar {
+            position: sticky;
+            top: 90px;
+            height: fit-content;
+        }
+
+        .booking-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            margin-bottom: 1.5rem;
+        }
+
+        .coach-header-content {
+            display: flex;
+            gap: 2rem;
+            align-items: start;
+        }
+
+        .coach-detail-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 4px solid white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .coach-header-info h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .coach-header-title {
+            font-size: 1.125rem;
+            opacity: 0.95;
+            margin-bottom: 0.75rem;
+        }
+
+        .coach-header-meta {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-title i {
+            color: var(--primary-color);
+        }
+
+        .review-item {
+            padding: 1.5rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .review-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+        }
+
+        .reviewer-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .reviewer-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+        }
+
+        .time-slot {
+            padding: 0.75rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .time-slot:hover {
+            border-color: var(--primary-color);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .time-slot.selected {
+            border-color: var(--primary-color);
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .price-breakdown {
+            padding: 1rem 0;
+            border-top: 1px solid #e5e7eb;
+            border-bottom: 1px solid #e5e7eb;
+            margin: 1rem 0;
+        }
+
+        .price-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            color: var(--text-light);
+        }
+
+        .price-total {
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 968px) {
+            .coach-detail-container {
+                grid-template-columns: 1fr;
+            }
+
+            .coach-detail-sidebar {
+                position: static;
+            }
+
+            .coach-header-content {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="index.html">
+                    <i class="fas fa-vector-square"></i>
+                    <span>Vector</span>
+                </a>
+            </div>
+            <div class="nav-menu" id="navMenu">
+                <a href="courses.html">Courses</a>
+                <a href="questions.html">Questions</a>
+                <a href="coaches.html">Coaches</a>
+                <a href="mock-interviews.html">Mock Interviews</a>
+                <a href="pricing.html">Pricing</a>
+                <a href="dashboard.html" class="btn-secondary">Dashboard</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Coach Detail Header -->
+    <section class="coach-detail-header">
+        <div class="container">
+            <a href="coaches.html" style="color: white; opacity: 0.9; display: inline-flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">
+                <i class="fas fa-arrow-left"></i> Back to Coaches
+            </a>
+            <div class="coach-header-content">
+                <img src="" alt="" class="coach-detail-avatar" id="coachAvatar">
+                <div class="coach-header-info">
+                    <h1 id="coachName">Loading...</h1>
+                    <p class="coach-header-title" id="coachTitle"></p>
+                    <div class="coach-header-meta">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span class="rating-stars" id="coachStars"></span>
+                            <strong id="coachRating">0</strong>
+                            <span style="opacity: 0.8;" id="coachReviews">(0 reviews)</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-building"></i>
+                            <span id="coachCompany"></span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Verified</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Coach Detail Content -->
+    <section class="coaches-section">
+        <div class="container">
+            <div class="coach-detail-container">
+                <!-- Main Content -->
+                <div class="coach-detail-main">
+                    <!-- About -->
+                    <div style="margin-bottom: 2.5rem;">
+                        <h2 class="section-title">
+                            <i class="fas fa-user"></i>
+                            About
+                        </h2>
+                        <p style="color: var(--text-light); line-height: 1.8;" id="coachBio">
+                            With over 8 years of experience at Google, I specialize in helping engineers ace their technical interviews. I've conducted 200+ interviews and coached hundreds of candidates to land offers at top tech companies. My approach focuses on building strong fundamentals and developing problem-solving strategies that work under pressure.
+                        </p>
+                    </div>
+
+                    <!-- Specializations -->
+                    <div style="margin-bottom: 2.5rem;">
+                        <h2 class="section-title">
+                            <i class="fas fa-star"></i>
+                            Specializations
+                        </h2>
+                        <div class="coach-specializations" id="coachSpecializations">
+                            <!-- Dynamically populated -->
+                        </div>
+                    </div>
+
+                    <!-- Experience -->
+                    <div style="margin-bottom: 2.5rem;">
+                        <h2 class="section-title">
+                            <i class="fas fa-briefcase"></i>
+                            Experience
+                        </h2>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+                            <div style="text-align: center; padding: 1.5rem; background: #f9fafb; border-radius: 8px;">
+                                <div style="font-size: 2rem; font-weight: 700; color: var(--primary-color);" id="sessionsCount">0</div>
+                                <div style="color: var(--text-light); font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em;">Sessions Completed</div>
+                            </div>
+                            <div style="text-align: center; padding: 1.5rem; background: #f9fafb; border-radius: 8px;">
+                                <div style="font-size: 2rem; font-weight: 700; color: var(--primary-color);" id="yearsExp">0</div>
+                                <div style="color: var(--text-light); font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em;">Years Experience</div>
+                            </div>
+                            <div style="text-align: center; padding: 1.5rem; background: #f9fafb; border-radius: 8px;">
+                                <div style="font-size: 2rem; font-weight: 700; color: var(--primary-color);">95%</div>
+                                <div style="color: var(--text-light); font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em;">Success Rate</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reviews -->
+                    <div>
+                        <h2 class="section-title">
+                            <i class="fas fa-comments"></i>
+                            Reviews
+                        </h2>
+                        <div id="reviewsList">
+                            <!-- Reviews will be dynamically populated -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sidebar -->
+                <div class="coach-detail-sidebar">
+                    <!-- Booking Card -->
+                    <div class="booking-card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                            <div>
+                                <div style="font-size: 2rem; font-weight: 700; color: var(--text-dark);" id="hourlyRate">$0</div>
+                                <div style="color: var(--text-light); font-size: 0.875rem;">per hour</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="color: var(--text-light); font-size: 0.875rem;">Response time</div>
+                                <div style="font-weight: 600; color: var(--text-dark);">Within 2 hours</div>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-dark);">Session Type</label>
+                            <select style="width: 100%; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 0.9375rem;">
+                                <option>1-on-1 Coaching (1 hour)</option>
+                                <option>Mock Interview (1 hour)</option>
+                                <option>Resume Review (30 min)</option>
+                                <option>Quick Consultation (30 min)</option>
+                            </select>
+                        </div>
+
+                        <button class="btn btn-primary" style="width: 100%; padding: 1rem; font-size: 1rem; margin-top: 0.5rem;" onclick="bookSession()">
+                            <i class="fas fa-calendar-check"></i> Book Session
+                        </button>
+                        <p style="text-align: center; font-size: 0.75rem; color: var(--text-light); margin-top: 0.75rem;">
+                            <i class="fas fa-shield-alt"></i> Protected by Vector's money-back guarantee
+                        </p>
+                    </div>
+
+                    <!-- Quick Stats -->
+                    <div class="booking-card">
+                        <h3 style="font-weight: 600; margin-bottom: 1rem; color: var(--text-dark);">Quick Facts</h3>
+                        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                            <div style="display: flex; justify-content: space-between; color: var(--text-light);">
+                                <span>Languages</span>
+                                <strong style="color: var(--text-dark);">English, Spanish</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; color: var(--text-light);">
+                                <span>Timezone</span>
+                                <strong style="color: var(--text-dark);">PST (UTC-8)</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; color: var(--text-light);">
+                                <span>Availability</span>
+                                <strong style="color: var(--text-dark);">Weekdays</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <div class="footer-brand">
+                        <i class="fas fa-vector-square"></i>
+                        <span>Vector</span>
+                    </div>
+                    <p>Master your interview skills and land your dream job.</p>
+                </div>
+                <div class="footer-col">
+                    <h4>Product</h4>
+                    <ul>
+                        <li><a href="courses.html">Courses</a></li>
+                        <li><a href="questions.html">Questions</a></li>
+                        <li><a href="coaches.html">Coaches</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Company</h4>
+                    <ul>
+                        <li><a href="#">About</a></li>
+                        <li><a href="#">Careers</a></li>
+                        <li><a href="#">Blog</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Terms</a></li>
+                        <li><a href="#">Privacy</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Vector. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+    <script src="js/coaches.js"></script>
+    <script>
+        // Get coach ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const coachId = parseInt(urlParams.get('id')) || 1;
+
+        // Load coach details
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCoachDetail(coachId);
+        });
+
+        function loadCoachDetail(id) {
+            const coach = coachesData.find(c => c.id === id);
+            if (!coach) {
+                window.location.href = 'coaches.html';
+                return;
+            }
+
+            // Populate coach details
+            document.getElementById('coachAvatar').src = coach.avatar;
+            document.getElementById('coachAvatar').alt = coach.name;
+            document.getElementById('coachName').textContent = coach.name;
+            document.getElementById('coachTitle').textContent = coach.title;
+            document.getElementById('coachCompany').textContent = coach.company;
+            document.getElementById('coachRating').textContent = coach.rating;
+            document.getElementById('coachReviews').textContent = `(${coach.reviewCount} reviews)`;
+            document.getElementById('coachStars').innerHTML = generateStars(coach.rating);
+            document.getElementById('hourlyRate').textContent = `$${coach.hourlyRate}`;
+            document.getElementById('sessionsCount').textContent = coach.sessionsCompleted;
+            document.getElementById('yearsExp').textContent = coach.yearsExperience;
+
+            // Specializations
+            const specsContainer = document.getElementById('coachSpecializations');
+            specsContainer.innerHTML = coach.specializations.map(spec => 
+                `<span class="specialization-tag" style="padding: 0.5rem 1rem; font-size: 0.9375rem;">${spec}</span>`
+            ).join('');
+
+            // Load reviews
+            loadReviews(coach.reviewCount);
+        }
+
+        function loadReviews(count) {
+            const reviewsList = document.getElementById('reviewsList');
+            const reviews = [];
+
+            for (let i = 0; i < Math.min(count, 5); i++) {
+                const rating = 4 + Math.random();
+                reviews.push(`
+                    <div class="review-item">
+                        <div class="review-header">
+                            <div class="reviewer-info">
+                                <img src="https://ui-avatars.com/api/?name=User+${i}&size=40" class="reviewer-avatar" alt="Reviewer">
+                                <div>
+                                    <strong style="display: block; margin-bottom: 0.25rem;">Student ${i + 1}</strong>
+                                    <span class="rating-stars" style="font-size: 0.75rem;">${generateStars(rating)}</span>
+                                </div>
+                            </div>
+                            <span style="color: var(--text-light); font-size: 0.875rem;">${Math.floor(Math.random() * 30) + 1} days ago</span>
+                        </div>
+                        <p style="color: var(--text-light); line-height: 1.6;">
+                            ${getRandomReview()}
+                        </p>
+                    </div>
+                `);
+            }
+
+            reviewsList.innerHTML = reviews.join('');
+        }
+
+        function getRandomReview() {
+            const reviews = [
+                "Excellent coach! Really helped me understand system design concepts and gave me practical tips for interviews.",
+                "Very knowledgeable and patient. The mock interview was incredibly helpful and realistic.",
+                "Great session! Got valuable feedback on my problem-solving approach and learned new techniques.",
+                "Highly recommend! The coaching was tailored to my needs and helped me land my dream job.",
+                "Amazing experience. Clear explanations and actionable advice. Worth every penny!"
+            ];
+            return reviews[Math.floor(Math.random() * reviews.length)];
+        }
+
+        function bookSession() {
+            window.vectorApp.showToast('Redirecting to booking page...', 'info');
+            setTimeout(() => {
+                window.location.href = 'mock-interviews.html';
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

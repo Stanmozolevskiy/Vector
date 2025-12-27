@@ -1,4 +1,4 @@
-namespace Vector.Api.Services;
+﻿namespace Vector.Api.Services;
 
 public interface IEmailService
 {
@@ -8,4 +8,8 @@ public interface IEmailService
     Task SendSubscriptionConfirmationEmailAsync(string email, string planName);
     Task SendEmailAsync(string email, string subject, string body);
 }
+
+
+
+
 

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+﻿import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { ROUTES } from '../../utils/constants';
@@ -160,7 +160,7 @@ export const IndexPage = () => {
               <div className="feature-icon">
                 <i className="fas fa-calendar-alt"></i>
               </div>
-              <h3>Flexible Scheduling</h3>
+              <h3>Flexible MatchingRequest</h3>
               <p>Book mock interviews at your convenience. Choose your preferred time, interviewer, and interview type.</p>
             </div>
             <div className="feature-card">
@@ -306,4 +306,6 @@ export const IndexPage = () => {
     </div>
   );
 };
+
+
 

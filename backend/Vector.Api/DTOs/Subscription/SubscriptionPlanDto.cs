@@ -1,4 +1,4 @@
-namespace Vector.Api.DTOs.Subscription;
+﻿namespace Vector.Api.DTOs.Subscription;
 
 public class SubscriptionPlanDto
 {
@@ -12,4 +12,8 @@ public class SubscriptionPlanDto
     public bool IsPopular { get; set; }
     public string? StripePriceId { get; set; } // Stripe price ID for this plan
 }
+
+
+
+
 

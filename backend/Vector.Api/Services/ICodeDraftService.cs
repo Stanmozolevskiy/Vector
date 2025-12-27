@@ -1,4 +1,4 @@
-using Vector.Api.DTOs.Solution;
+﻿using Vector.Api.DTOs.Solution;
 
 namespace Vector.Api.Services;
 
@@ -8,4 +8,8 @@ public interface ICodeDraftService
     Task<CodeDraftDto> SaveCodeDraftAsync(Guid userId, SaveCodeDraftDto dto);
     Task<bool> DeleteCodeDraftAsync(Guid userId, Guid questionId, string language);
 }
+
+
+
+
 

@@ -1334,7 +1334,7 @@ namespace Vector.Api.Data.Migrations
 
             modelBuilder.Entity("Vector.Api.Models.UserSessionParticipant", b =>
                 {
-                    b.HasOne("Vector.Api.Models.PeerInterviewSession", "Session")
+                    b.HasOne("Vector.Api.Models.PeerInterviewSession", "PeerInterviewSession")
                         .WithMany()
                         .HasForeignKey("SessionId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1346,7 +1346,7 @@ namespace Vector.Api.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Session");
+                    b.Navigation("PeerInterviewSession");
 
                     b.Navigation("User");
                 });
@@ -1391,13 +1391,13 @@ namespace Vector.Api.Data.Migrations
 
             modelBuilder.Entity("Vector.Api.Models.VideoSession", b =>
                 {
-                    b.HasOne("Vector.Api.Models.PeerInterviewSession", "Session")
+                    b.HasOne("Vector.Api.Models.PeerInterviewSession", "PeerInterviewSession")
                         .WithMany()
                         .HasForeignKey("SessionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Session");
+                    b.Navigation("PeerInterviewSession");
                 });
 
             modelBuilder.Entity("Vector.Api.Models.InterviewQuestion", b =>
@@ -1415,3 +1415,7 @@ namespace Vector.Api.Data.Migrations
         }
     }
 }
+
+
+
+

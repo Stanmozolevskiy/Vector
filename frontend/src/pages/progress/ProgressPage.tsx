@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+﻿import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Navbar } from '../../components/layout/Navbar';
 import { AnalyticsDashboard } from '../../components/analytics/AnalyticsDashboard';
@@ -345,4 +345,6 @@ export const ProgressPage = () => {
     </div>
   );
 };
+
+
 

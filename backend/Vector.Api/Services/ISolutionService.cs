@@ -1,4 +1,4 @@
-using Vector.Api.DTOs.Solution;
+﻿using Vector.Api.DTOs.Solution;
 
 namespace Vector.Api.Services;
 
@@ -50,4 +50,8 @@ public class SolutionStatisticsDto
     public Dictionary<string, int> SolutionsByLanguage { get; set; } = new();
     public Dictionary<string, int> SolutionsByStatus { get; set; } = new();
 }
+
+
+
+
 

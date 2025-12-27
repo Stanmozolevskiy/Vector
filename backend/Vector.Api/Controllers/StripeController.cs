@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 
 namespace Vector.Api.Controllers;
 
@@ -9,4 +9,8 @@ public class StripeController : ControllerBase
     // TODO: Implement Stripe webhook endpoint
     // - POST /api/stripe/webhook
 }
+
+
+
+
 

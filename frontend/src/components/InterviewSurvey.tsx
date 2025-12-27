@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import './InterviewSurvey.css';
 
 interface InterviewSurveyProps {
@@ -21,7 +21,7 @@ export const InterviewSurvey: React.FC<InterviewSurveyProps> = ({ sessionId, onC
     e.preventDefault();
     
     if (!formData.didSessionHappen) {
-      alert('Please answer if the session happened');
+      alert('Please answer if the PeerInterviewSession happened');
       return;
     }
 
@@ -31,12 +31,12 @@ export const InterviewSurvey: React.FC<InterviewSurveyProps> = ({ sessionId, onC
       // await peerInterviewService.submitSurvey(sessionId, formData);
       console.log('Survey data:', formData);
       
-      // Mark session as Completed to prevent rejoin popup
+      // Mark PeerInterviewSession as Completed to prevent rejoin popup
       try {
         const { peerInterviewService } = await import('../services/peerInterview.service');
         await peerInterviewService.updateSessionStatus(sessionId, 'Completed');
       } catch (error) {
-        console.error('Failed to update session status:', error);
+        console.error('Failed to update PeerInterviewSession status:', error);
         // Continue even if status update fails
       }
       
@@ -68,7 +68,7 @@ export const InterviewSurvey: React.FC<InterviewSurveyProps> = ({ sessionId, onC
 
         <form onSubmit={handleSubmit} className="survey-form">
           <div className="survey-question">
-            <label>Did this session happen? *</label>
+            <label>Did this PeerInterviewSession happen? *</label>
             <div className="survey-buttons">
               <button
                 type="button"
@@ -88,7 +88,7 @@ export const InterviewSurvey: React.FC<InterviewSurveyProps> = ({ sessionId, onC
           </div>
 
           <div className="survey-question">
-            <label>Did you experience any audio or video issues during today's session?</label>
+            <label>Did you experience any audio or video issues during today's PeerInterviewSession?</label>
             <div className="survey-buttons">
               <button
                 type="button"
@@ -108,7 +108,7 @@ export const InterviewSurvey: React.FC<InterviewSurveyProps> = ({ sessionId, onC
           </div>
 
           <div className="survey-question">
-            <label>Did you experience any issues with the code editor during today's session?</label>
+            <label>Did you experience any issues with the code editor during today's PeerInterviewSession?</label>
             <div className="survey-buttons">
               <button
                 type="button"
@@ -175,4 +175,6 @@ export const InterviewSurvey: React.FC<InterviewSurveyProps> = ({ sessionId, onC
     </div>
   );
 };
+
+
 

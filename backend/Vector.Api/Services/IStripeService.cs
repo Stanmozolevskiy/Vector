@@ -1,4 +1,4 @@
-using Stripe;
+﻿using Stripe;
 
 namespace Vector.Api.Services;
 
@@ -10,4 +10,8 @@ public interface IStripeService
     Task<Event> ConstructWebhookEventAsync(string json, string signature);
     Task HandleWebhookEventAsync(Event stripeEvent);
 }
+
+
+
+
 

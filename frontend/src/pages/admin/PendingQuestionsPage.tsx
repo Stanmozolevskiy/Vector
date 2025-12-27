@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Navbar } from '../../components/layout/Navbar';
 import { questionService } from '../../services/question.service';
@@ -248,4 +248,6 @@ export const PendingQuestionsPage = () => {
     </div>
   );
 };
+
+
 

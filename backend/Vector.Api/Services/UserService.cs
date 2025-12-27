@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vector.Api.Data;
 using Vector.Api.DTOs.User;
 using Vector.Api.Helpers;
@@ -192,7 +192,7 @@ public class UserService : IUserService
 
             // Handle foreign key constraints by cleaning up related data
             // Delete PeerInterviewSessions where user is involved (has Restrict constraint)
-            // We need to delete sessions entirely since we can't set foreign keys to null with Restrict
+            // We need to delete PeerInterviewSessions entirely since we can't set foreign keys to null with Restrict
             var sessionsAsInterviewer = await _context.PeerInterviewSessions
                 .Where(s => s.InterviewerId == userId)
                 .ToListAsync();
@@ -201,41 +201,41 @@ public class UserService : IUserService
                 .Where(s => s.IntervieweeId == userId)
                 .ToListAsync();
             
-            // Get all unique sessions (user might be both interviewer and interviewee in different sessions)
+            // Get all unique PeerInterviewSessions (user might be both interviewer and interviewee in different PeerInterviewSessions)
             var allSessions = sessionsAsInterviewer
                 .Concat(sessionsAsInterviewee)
                 .GroupBy(s => s.Id)
                 .Select(g => g.First())
                 .ToList();
             
-            // Delete all related data for these sessions first
+            // Delete all related data for these PeerInterviewSessions first
             var sessionIds = allSessions.Select(s => s.Id).ToList();
             if (sessionIds.Any())
             {
-                // Delete VideoSessions for these sessions (has Cascade on SessionId, but explicit deletion is safer)
+                // Delete VideoSessions for these PeerInterviewSessions (has Cascade on SessionId, but explicit deletion is safer)
                 var videoSessions = await _context.VideoSessions
                     .Where(v => sessionIds.Contains(v.SessionId))
                     .ToListAsync();
                 _context.VideoSessions.RemoveRange(videoSessions);
                 
-                // Delete all participants for these sessions
+                // Delete all participants for these PeerInterviewSessions
                 var participantsToDelete = await _context.UserSessionParticipants
                     .Where(p => sessionIds.Contains(p.SessionId))
                     .ToListAsync();
                 _context.UserSessionParticipants.RemoveRange(participantsToDelete);
                 
-                // Delete all matching requests for these sessions
+                // Delete all matching requests for these PeerInterviewSessions
                 var matchingRequestsForSessions = await _context.InterviewMatchingRequests
                     .Where(r => sessionIds.Contains(r.ScheduledSessionId))
                     .ToListAsync();
                 _context.InterviewMatchingRequests.RemoveRange(matchingRequestsForSessions);
             }
             
-            // Now delete the sessions
+            // Now delete the PeerInterviewSessions
             _context.PeerInterviewSessions.RemoveRange(allSessions);
 
             // Delete UserSessionParticipants where user is participant (has Restrict constraint)
-            // Do this after deleting sessions to avoid conflicts
+            // Do this after deleting PeerInterviewSessions to avoid conflicts
             var userParticipants = await _context.UserSessionParticipants
                 .Where(p => p.UserId == userId)
                 .ToListAsync();
@@ -269,4 +269,8 @@ public class UserService : IUserService
         }
     }
 }
+
+
+
+
 

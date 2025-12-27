@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Vector.Api.DTOs.Auth;
 
@@ -7,4 +7,8 @@ public class RefreshTokenDto
     [Required]
     public string RefreshToken { get; set; } = string.Empty;
 }
+
+
+
+
 

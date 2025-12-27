@@ -1,4 +1,4 @@
-using BCrypt.Net;
+﻿using BCrypt.Net;
 
 namespace Vector.Api.Helpers;
 
@@ -14,4 +14,8 @@ public static class PasswordHasher
         return BCrypt.Net.BCrypt.Verify(password, hashedPassword);
     }
 }
+
+
+
+
 

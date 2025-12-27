@@ -1,4 +1,4 @@
-namespace Vector.Api.DTOs.Analytics;
+﻿namespace Vector.Api.DTOs.Analytics;
 
 public class CategoryProgressDto
 {
@@ -9,4 +9,8 @@ public class CategoryProgressDto
     public decimal AverageExecutionTime { get; set; }
     public long AverageMemoryUsed { get; set; }
 }
+
+
+
+
 

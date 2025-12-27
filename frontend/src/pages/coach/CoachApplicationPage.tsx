@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { coachService, type CoachApplication } from '../../services/coach.service';
@@ -159,7 +159,7 @@ const CoachApplicationPage = () => {
   const getStatusBadge = (status: string) => {
     const badges: Record<string, { text: string; className: string }> = {
       pending: { text: 'Pending Review', className: 'status-pending' },
-      approved: { text: 'Approved ✓', className: 'status-approved' },
+      approved: { text: 'Approved âœ“', className: 'status-approved' },
       rejected: { text: 'Rejected', className: 'status-rejected' },
     };
     const badge = badges[status] || badges.pending;
@@ -491,7 +491,7 @@ const CoachApplicationPage = () => {
                       }}
                       title="Remove image"
                     >
-                      ×
+                      Ã—
                     </button>
                   </div>
                 ))}
@@ -530,4 +530,6 @@ const CoachApplicationPage = () => {
 };
 
 export default CoachApplicationPage;
+
+
 

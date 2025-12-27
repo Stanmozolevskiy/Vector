@@ -1,4 +1,4 @@
-namespace Vector.Api.DTOs.CodeExecution;
+﻿namespace Vector.Api.DTOs.CodeExecution;
 
 /// <summary>
 /// DTO for complete run result with all test cases
@@ -18,4 +18,8 @@ public class TestCaseParseErrorDto
     public string Message { get; set; } = string.Empty;
     public int? LineNumber { get; set; }
 }
+
+
+
+
 

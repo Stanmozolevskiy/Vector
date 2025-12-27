@@ -1,4 +1,4 @@
-namespace Vector.Api.DTOs.Solution;
+﻿namespace Vector.Api.DTOs.Solution;
 
 public class SolutionFilterDto
 {
@@ -8,4 +8,8 @@ public class SolutionFilterDto
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 20;
 }
+
+
+
+
 

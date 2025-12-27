@@ -1,4 +1,4 @@
-namespace Vector.Api.Middleware;
+﻿namespace Vector.Api.Middleware;
 
 public class ErrorHandlingMiddleware
 {
@@ -41,4 +41,8 @@ public class ErrorHandlingMiddleware
         return context.Response.WriteAsJsonAsync(response);
     }
 }
+
+
+
+
 

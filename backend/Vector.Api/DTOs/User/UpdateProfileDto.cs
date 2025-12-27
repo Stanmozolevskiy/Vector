@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Vector.Api.DTOs.User;
 
@@ -18,4 +18,8 @@ public class UpdateProfileDto
     [MaxLength(200)]
     public string? Location { get; set; }
 }
+
+
+
+
 

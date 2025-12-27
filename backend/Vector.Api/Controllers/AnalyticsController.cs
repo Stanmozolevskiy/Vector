@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using Vector.Api.DTOs.Analytics;
@@ -142,4 +142,8 @@ public class AnalyticsController : ControllerBase
         return userId;
     }
 }
+
+
+
+
 

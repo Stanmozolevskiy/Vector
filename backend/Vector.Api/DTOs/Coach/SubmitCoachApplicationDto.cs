@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Vector.Api.DTOs.Coach;
 
@@ -23,4 +23,8 @@ public class SubmitCoachApplicationDto
     /// </summary>
     public List<string>? ImageUrls { get; set; }
 }
+
+
+
+
 

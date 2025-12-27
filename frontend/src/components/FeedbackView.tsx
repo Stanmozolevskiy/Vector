@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import './FeedbackView.css';
 
 export interface FeedbackData {
@@ -117,4 +117,6 @@ export const FeedbackView: React.FC<FeedbackViewProps> = ({ feedback, onClose })
     </div>
   );
 };
+
+
 

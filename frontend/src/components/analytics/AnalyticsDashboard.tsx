@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { analyticsService, type LearningAnalytics } from '../../services/analytics.service';
 import { ProgressChart } from './ProgressChart';
 
@@ -355,4 +355,6 @@ export const AnalyticsDashboard = () => {
     </div>
   );
 };
+
+
 

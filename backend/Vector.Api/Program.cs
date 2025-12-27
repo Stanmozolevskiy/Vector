@@ -1,4 +1,4 @@
-using Amazon.S3;
+﻿using Amazon.S3;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -6,7 +6,6 @@ using StackExchange.Redis;
 using System.Security.Claims;
 using System.Text;
 using Vector.Api.Data;
-using Vector.Api.Hubs;
 using Vector.Api.Middleware;
 using Vector.Api.Services;
 
@@ -97,23 +96,6 @@ builder.Services.AddAuthentication(options =>
         NameClaimType = ClaimTypes.NameIdentifier,
         RoleClaimType = ClaimTypes.Role
     };
-    
-    // Configure JWT for SignalR
-    options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
-    {
-        OnMessageReceived = context =>
-        {
-            var accessToken = context.Request.Query["access_token"];
-            var path = context.HttpContext.Request.Path;
-            
-            // If the request is for the SignalR hub, get the token from query string
-            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/api/collaboration"))
-            {
-                context.Token = accessToken;
-            }
-            return Task.CompletedTask;
-        }
-    };
 });
 
 // AWS Services
@@ -134,9 +116,6 @@ builder.Services.AddScoped<ICodeDraftService, CodeDraftService>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 builder.Services.AddScoped<IPeerInterviewService, PeerInterviewService>();
 builder.Services.AddScoped<IVideoSessionService, VideoSessionService>();
-
-// SignalR for real-time collaboration
-builder.Services.AddSignalR();
 
 // Code Execution Service (Judge0 Official API)
 builder.Services.AddHttpClient(nameof(CodeExecutionService), (serviceProvider, client) =>
@@ -219,9 +198,6 @@ app.UseAuthorization();
 // app.UseMiddleware<ErrorHandlingMiddleware>(); // Will be created later
 
 app.MapControllers();
-
-// Map SignalR hub
-app.MapHub<CollaborationHub>("/api/collaboration/{sessionId}");
 
 // Health check endpoints are handled by HealthController
 // Removed duplicate MapGet endpoints to avoid conflicts

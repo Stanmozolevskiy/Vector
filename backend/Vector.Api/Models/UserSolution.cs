@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Vector.Api.Models;
 
@@ -66,4 +66,8 @@ public class UserSolution
     // Navigation property for test case results
     public ICollection<SolutionSubmission> TestCaseResults { get; set; } = new List<SolutionSubmission>();
 }
+
+
+
+
 

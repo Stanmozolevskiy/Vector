@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Vector.Api.DTOs.Question;
 
@@ -32,4 +32,8 @@ public class CreateQuestionDto
     public string? SpaceComplexityHint { get; set; }
     public double? AcceptanceRate { get; set; }
 }
+
+
+
+
 

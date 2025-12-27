@@ -1,4 +1,4 @@
-using Vector.Api.DTOs.Question;
+﻿using Vector.Api.DTOs.Question;
 using Vector.Api.Models;
 
 namespace Vector.Api.Services;
@@ -18,4 +18,8 @@ public interface IQuestionService
     Task<InterviewQuestion> RejectQuestionAsync(Guid questionId, Guid rejectedBy, string? rejectionReason = null);
     Task<IEnumerable<InterviewQuestion>> GetPendingQuestionsAsync();
 }
+
+
+
+
 

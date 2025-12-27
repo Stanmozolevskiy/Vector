@@ -10,7 +10,7 @@ namespace Vector.Api.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // Mark all InProgress and Scheduled sessions as Completed
+            // Mark all InProgress and Scheduled PeerInterviewSessions as Completed
             migrationBuilder.Sql(@"
                 UPDATE ""PeerInterviewSessions""
                 SET ""Status"" = 'Completed', ""UpdatedAt"" = NOW()
@@ -32,3 +32,7 @@ namespace Vector.Api.Data.Migrations
         }
     }
 }
+
+
+
+

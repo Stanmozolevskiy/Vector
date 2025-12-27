@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { peerInterviewService } from '../../services/peerInterview.service';
@@ -7,11 +7,11 @@ import { CollaborativeCodeEditor } from '../../components/CollaborativeCodeEdito
 import { VideoChat } from '../../components/VideoChat';
 import '../../styles/peer-interview-session.css';
 
-const PeerInterviewSessionPage: React.FC = () => {
+const SessionPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [session, setSession] = useState<PeerInterviewSession | null>(null);
+  const [PeerInterviewSession, setSession] = useState<PeerInterviewSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [code, setCode] = useState('');
@@ -52,7 +52,7 @@ const PeerInterviewSessionPage: React.FC = () => {
       const sessionData = await peerInterviewService.getSession(id);
       setSession(sessionData);
       
-      // Initialize timer if session is in progress
+      // Initialize timer if PeerInterviewSession is in progress
       if (sessionData.status === 'InProgress' && sessionData.duration) {
         const startTime = sessionData.scheduledTime 
           ? new Date(sessionData.scheduledTime).getTime()
@@ -62,7 +62,7 @@ const PeerInterviewSessionPage: React.FC = () => {
         setTimeRemaining(Math.max(0, remaining));
       }
     } catch (error: any) {
-      setError(error?.response?.data?.message || 'Failed to load session');
+      setError(error?.response?.data?.message || 'Failed to load PeerInterviewSession');
     } finally {
       setLoading(false);
     }
@@ -72,11 +72,11 @@ const PeerInterviewSessionPage: React.FC = () => {
     if (!id) return;
     try {
       await peerInterviewService.updateSessionStatus(id, 'InProgress');
-      if (session) {
-        const duration = session.duration * 60; // Convert to seconds
+      if (PeerInterviewSession) {
+        const duration = PeerInterviewSession.duration * 60; // Convert to seconds
         setTimeRemaining(duration);
         setIsTimerRunning(true);
-        setSession({ ...session, status: 'InProgress' });
+        setSession({ ...PeerInterviewSession, status: 'InProgress' });
       }
     } catch (error: any) {
       setError(error?.response?.data?.message || 'Failed to start interview');
@@ -87,8 +87,8 @@ const PeerInterviewSessionPage: React.FC = () => {
     if (!id) return;
     try {
       await peerInterviewService.updateSessionStatus(id, 'Completed');
-      if (session) {
-        setSession({ ...session, status: 'Completed' });
+      if (PeerInterviewSession) {
+        setSession({ ...PeerInterviewSession, status: 'Completed' });
         setIsTimerRunning(false);
       }
     } catch (error: any) {
@@ -103,28 +103,28 @@ const PeerInterviewSessionPage: React.FC = () => {
   };
 
   const getRole = (): 'interviewer' | 'interviewee' | null => {
-    if (!session || !user) return null;
-    if (session.interviewerId === user.id) return 'interviewer';
-    if (session.intervieweeId === user.id) return 'interviewee';
+    if (!PeerInterviewSession || !user) return null;
+    if (PeerInterviewSession.interviewerId === user.id) return 'interviewer';
+    if (PeerInterviewSession.intervieweeId === user.id) return 'interviewee';
     return null;
   };
 
   const getPartner = () => {
-    if (!session || !user) return null;
-    return session.interviewerId === user.id ? session.interviewee : session.interviewer;
+    if (!PeerInterviewSession || !user) return null;
+    return PeerInterviewSession.interviewerId === user.id ? PeerInterviewSession.interviewee : PeerInterviewSession.interviewer;
   };
 
   if (loading) {
     return (
-      <div className="session-page">
-        <div className="loading">Loading session...</div>
+      <div className="PeerInterviewSession-page">
+        <div className="loading">Loading PeerInterviewSession...</div>
       </div>
     );
   }
 
-  if (error && !session) {
+  if (error && !PeerInterviewSession) {
     return (
-      <div className="session-page">
+      <div className="PeerInterviewSession-page">
         <div className="error-message">{error}</div>
         <button onClick={() => navigate('/peer-interviews/find')} className="btn-back">
           Back to Find Peer
@@ -133,10 +133,10 @@ const PeerInterviewSessionPage: React.FC = () => {
     );
   }
 
-  if (!session) {
+  if (!PeerInterviewSession) {
     return (
-      <div className="session-page">
-        <div className="error-message">Session not found</div>
+      <div className="PeerInterviewSession-page">
+        <div className="error-message">PeerInterviewSession not found</div>
       </div>
     );
   }
@@ -146,20 +146,20 @@ const PeerInterviewSessionPage: React.FC = () => {
   const isInterviewer = role === 'interviewer';
 
   return (
-    <div className="session-page">
-      <div className="session-header">
-        <div className="session-info">
-          <h1>Peer Interview Session</h1>
-          <div className="session-meta">
-            <span className={`status-badge status-${session.status.toLowerCase()}`}>
-              {session.status}
+    <div className="PeerInterviewSession-page">
+      <div className="PeerInterviewSession-header">
+        <div className="PeerInterviewSession-info">
+          <h1>Peer Interview PeerInterviewSession</h1>
+          <div className="PeerInterviewSession-meta">
+            <span className={`status-badge status-${PeerInterviewSession.status.toLowerCase()}`}>
+              {PeerInterviewSession.status}
             </span>
             <span className="role-badge">
               You are: <strong>{isInterviewer ? 'Interviewer' : 'Interviewee'}</strong>
             </span>
             {partner && (
               <span className="partner-info">
-                Partner: {session.interviewerId === user?.id ? 'Interviewee' : 'Interviewer'}
+                Partner: {PeerInterviewSession.interviewerId === user?.id ? 'Interviewee' : 'Interviewer'}
               </span>
             )}
           </div>
@@ -171,18 +171,18 @@ const PeerInterviewSessionPage: React.FC = () => {
         )}
       </div>
 
-      <div className="session-content">
-        <div className="session-main-layout">
+      <div className="PeerInterviewSession-content">
+        <div className="PeerInterviewSession-main-layout">
           {/* Left Column: Question Panel */}
           <div className="question-panel">
-            {session.question ? (
+            {PeerInterviewSession.question ? (
               <div className="question-display">
-                <h2>{session.question.title}</h2>
-                <span className={`difficulty-badge difficulty-${session.question.difficulty.toLowerCase()}`}>
-                  {session.question.difficulty}
+                <h2>{PeerInterviewSession.question.title}</h2>
+                <span className={`difficulty-badge difficulty-${PeerInterviewSession.question.difficulty.toLowerCase()}`}>
+                  {PeerInterviewSession.question.difficulty}
                 </span>
                 <button
-                  onClick={() => navigate(`/questions/${session.questionId}`)}
+                  onClick={() => navigate(`/questions/${PeerInterviewSession.questionId}`)}
                   className="btn-view-full"
                 >
                   View Full Question
@@ -205,8 +205,8 @@ const PeerInterviewSessionPage: React.FC = () => {
 
           {/* Right Column: Video Chat and Editor */}
           <div className="collaboration-panel">
-            {/* Video Chat Panel - Only show when session is InProgress */}
-            {session.status === 'InProgress' && (
+            {/* Video Chat Panel - Only show when PeerInterviewSession is InProgress */}
+            {PeerInterviewSession.status === 'InProgress' && (
               <div className="video-panel">
                 <h3 className="panel-title">Video Chat</h3>
                 {videoError && (
@@ -241,13 +241,13 @@ const PeerInterviewSessionPage: React.FC = () => {
                     <i className="fas fa-exclamation-triangle"></i> Collaboration offline
                   </span>
                 )}
-                {!collaborationError && session.status === 'InProgress' && (
+                {!collaborationError && PeerInterviewSession.status === 'InProgress' && (
                   <span className="collaboration-status active">
                     <i className="fas fa-circle"></i> Live collaboration
                   </span>
                 )}
               </div>
-              {session.status === 'InProgress' ? (
+              {PeerInterviewSession.status === 'InProgress' ? (
                 <CollaborativeCodeEditor
                   value={code}
                   language={selectedLanguage}
@@ -267,13 +267,13 @@ const PeerInterviewSessionPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="session-actions">
-        {session.status === 'Scheduled' && (
+      <div className="PeerInterviewSession-actions">
+        {PeerInterviewSession.status === 'Scheduled' && (
           <button onClick={handleStartInterview} className="btn-start">
             Start Interview
           </button>
         )}
-        {session.status === 'InProgress' && (
+        {PeerInterviewSession.status === 'InProgress' && (
           <button onClick={handleEndInterview} className="btn-end">
             End Interview
           </button>
@@ -286,5 +286,8 @@ const PeerInterviewSessionPage: React.FC = () => {
   );
 };
 
-export default PeerInterviewSessionPage;
+export default SessionPage;
+
+
+
 

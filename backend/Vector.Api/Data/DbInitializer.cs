@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vector.Api.Models;
 
 namespace Vector.Api.Data;
@@ -24,4 +24,8 @@ public static class DbInitializer
         }
     }
 }
+
+
+
+
 

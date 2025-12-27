@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import * as signalR from '@microsoft/signalr';
 import { CodeEditor } from './CodeEditor';
 import './CollaborativeCodeEditor.css';
@@ -132,7 +132,7 @@ export const CollaborativeCodeEditor: React.FC<CollaborativeCodeEditorProps> = (
       await connection.start();
       connectionRef.current = connection;
 
-      // Join the session
+      // Join the PeerInterviewSession
       await connection.invoke('JoinSession', sessionId);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to initialize collaboration';
@@ -250,4 +250,6 @@ export const CollaborativeCodeEditor: React.FC<CollaborativeCodeEditorProps> = (
     </div>
   );
 };
+
+
 

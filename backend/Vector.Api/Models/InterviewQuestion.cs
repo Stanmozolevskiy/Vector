@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Vector.Api.Models;
 
@@ -125,4 +125,8 @@ public class InterviewQuestion
     public ICollection<QuestionTestCase> TestCases { get; set; } = new List<QuestionTestCase>();
     public ICollection<QuestionSolution> Solutions { get; set; } = new List<QuestionSolution>();
 }
+
+
+
+
 

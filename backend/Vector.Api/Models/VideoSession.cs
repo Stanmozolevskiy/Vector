@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Vector.Api.Models;
@@ -9,9 +9,9 @@ public class VideoSession
     public Guid Id { get; set; }
 
     [Required]
-    [ForeignKey("PeerInterviewSession")]
+    [ForeignKey("Session")]
     public Guid SessionId { get; set; }
-    public PeerInterviewSession Session { get; set; } = null!;
+    public Session Session { get; set; } = null!;
 
     [Required]
     [MaxLength(500)]
@@ -27,4 +27,8 @@ public class VideoSession
     [MaxLength(1000)]
     public string? SignalingData { get; set; } // JSON data for WebRTC signaling
 }
+
+
+
+
 

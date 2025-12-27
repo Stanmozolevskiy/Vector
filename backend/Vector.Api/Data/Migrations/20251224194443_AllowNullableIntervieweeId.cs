@@ -40,25 +40,25 @@ namespace Vector.Api.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_InterviewMatchingRequests", x => x.Id);
+                    table.PrimaryKey("PK_Schedulings", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_InterviewMatchingRequests_InterviewMatchingRequests_Matched~",
+                        name: "FK_Schedulings_Schedulings_Matched~",
                         column: x => x.MatchedRequestId,
                         principalTable: "InterviewMatchingRequests",
                         principalColumn: "Id");
                     table.ForeignKey(
-                        name: "FK_InterviewMatchingRequests_PeerInterviewSessions_ScheduledSe~",
+                        name: "FK_Schedulings_Sessions_ScheduledSe~",
                         column: x => x.ScheduledSessionId,
                         principalTable: "PeerInterviewSessions",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_InterviewMatchingRequests_Users_MatchedUserId",
+                        name: "FK_Schedulings_Users_MatchedUserId",
                         column: x => x.MatchedUserId,
                         principalTable: "Users",
                         principalColumn: "Id");
                     table.ForeignKey(
-                        name: "FK_InterviewMatchingRequests_Users_UserId",
+                        name: "FK_Schedulings_Users_UserId",
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "Id",
@@ -72,22 +72,22 @@ namespace Vector.Api.Data.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_InterviewMatchingRequests_MatchedRequestId",
+                name: "IX_Schedulings_MatchedRequestId",
                 table: "InterviewMatchingRequests",
                 column: "MatchedRequestId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_InterviewMatchingRequests_MatchedUserId",
+                name: "IX_Schedulings_MatchedUserId",
                 table: "InterviewMatchingRequests",
                 column: "MatchedUserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_InterviewMatchingRequests_ScheduledSessionId",
+                name: "IX_Schedulings_ScheduledSessionId",
                 table: "InterviewMatchingRequests",
                 column: "ScheduledSessionId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_InterviewMatchingRequests_UserId",
+                name: "IX_Schedulings_UserId",
                 table: "InterviewMatchingRequests",
                 column: "UserId");
         }
@@ -115,3 +115,7 @@ namespace Vector.Api.Data.Migrations
         }
     }
 }
+
+
+
+

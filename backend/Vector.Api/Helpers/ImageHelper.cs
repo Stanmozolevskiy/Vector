@@ -1,4 +1,4 @@
-namespace Vector.Api.Helpers;
+﻿namespace Vector.Api.Helpers;
 
 /// <summary>
 /// Helper class for image validation
@@ -75,4 +75,8 @@ public static class ImageHelper
         return $"{len:0.##} {sizes[order]}";
     }
 }
+
+
+
+
 

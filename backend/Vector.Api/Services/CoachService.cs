@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vector.Api.Data;
 using Vector.Api.DTOs.Coach;
 using Vector.Api.Models;
@@ -204,4 +204,8 @@ public class CoachService : ICoachService
         return application;
     }
 }
+
+
+
+
 

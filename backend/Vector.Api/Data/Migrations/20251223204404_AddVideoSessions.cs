@@ -27,7 +27,7 @@ namespace Vector.Api.Data.Migrations
                 {
                     table.PrimaryKey("PK_VideoSessions", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_VideoSessions_PeerInterviewSessions_SessionId",
+                        name: "FK_VideoSessions_Sessions_SessionId",
                         column: x => x.SessionId,
                         principalTable: "PeerInterviewSessions",
                         principalColumn: "Id",
@@ -48,3 +48,7 @@ namespace Vector.Api.Data.Migrations
         }
     }
 }
+
+
+
+

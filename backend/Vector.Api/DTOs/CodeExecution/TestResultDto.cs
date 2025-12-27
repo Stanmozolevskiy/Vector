@@ -1,4 +1,4 @@
-namespace Vector.Api.DTOs.CodeExecution;
+﻿namespace Vector.Api.DTOs.CodeExecution;
 
 public class TestResultDto
 {
@@ -14,4 +14,8 @@ public class TestResultDto
     public string Status { get; set; } = string.Empty;
     public string? Input { get; set; } // Added to show input in results
 }
+
+
+
+
 

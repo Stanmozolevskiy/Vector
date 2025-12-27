@@ -1,4 +1,4 @@
-namespace Vector.Api.DTOs.Question;
+﻿namespace Vector.Api.DTOs.Question;
 
 public class QuestionFilterDto
 {
@@ -15,4 +15,8 @@ public class QuestionFilterDto
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 20;
 }
+
+
+
+
 

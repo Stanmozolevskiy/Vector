@@ -1,4 +1,4 @@
-using Vector.Api.DTOs.Subscription;
+﻿using Vector.Api.DTOs.Subscription;
 
 namespace Vector.Api.Services;
 
@@ -12,4 +12,8 @@ public interface ISubscriptionService
     Task<List<InvoiceDto>> GetInvoicesAsync(Guid userId);
     Task<SubscriptionDto> GetOrCreateFreeSubscriptionAsync(Guid userId);
 }
+
+
+
+
 

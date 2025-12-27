@@ -1,4 +1,4 @@
-import api from './api';
+﻿import api from './api';
 
 export interface RegisterData {
   email: string;
@@ -68,4 +68,6 @@ export const authService = {
     return response.data;
   },
 };
+
+
 

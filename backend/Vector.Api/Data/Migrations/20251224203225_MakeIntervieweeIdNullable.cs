@@ -12,19 +12,19 @@ namespace Vector.Api.Data.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropForeignKey(
-                name: "FK_InterviewMatchingRequests_InterviewMatchingRequests_Matched~",
+                name: "FK_Schedulings_Schedulings_Matched~",
                 table: "InterviewMatchingRequests");
 
             migrationBuilder.DropForeignKey(
-                name: "FK_InterviewMatchingRequests_PeerInterviewSessions_ScheduledSe~",
+                name: "FK_Schedulings_Sessions_ScheduledSe~",
                 table: "InterviewMatchingRequests");
 
             migrationBuilder.DropForeignKey(
-                name: "FK_InterviewMatchingRequests_Users_MatchedUserId",
+                name: "FK_Schedulings_Users_MatchedUserId",
                 table: "InterviewMatchingRequests");
 
             migrationBuilder.DropForeignKey(
-                name: "FK_InterviewMatchingRequests_Users_UserId",
+                name: "FK_Schedulings_Users_UserId",
                 table: "InterviewMatchingRequests");
 
             migrationBuilder.AlterColumn<Guid>(
@@ -47,12 +47,12 @@ namespace Vector.Api.Data.Migrations
                 oldMaxLength: 50);
 
             migrationBuilder.CreateIndex(
-                name: "IX_InterviewMatchingRequests_Status",
+                name: "IX_Schedulings_Status",
                 table: "InterviewMatchingRequests",
                 column: "Status");
 
             migrationBuilder.AddForeignKey(
-                name: "FK_InterviewMatchingRequests_InterviewMatchingRequests_Matched~",
+                name: "FK_Schedulings_Schedulings_Matched~",
                 table: "InterviewMatchingRequests",
                 column: "MatchedRequestId",
                 principalTable: "InterviewMatchingRequests",
@@ -60,7 +60,7 @@ namespace Vector.Api.Data.Migrations
                 onDelete: ReferentialAction.Restrict);
 
             migrationBuilder.AddForeignKey(
-                name: "FK_InterviewMatchingRequests_PeerInterviewSessions_ScheduledSe~",
+                name: "FK_Schedulings_Sessions_ScheduledSe~",
                 table: "InterviewMatchingRequests",
                 column: "ScheduledSessionId",
                 principalTable: "PeerInterviewSessions",
@@ -68,7 +68,7 @@ namespace Vector.Api.Data.Migrations
                 onDelete: ReferentialAction.Restrict);
 
             migrationBuilder.AddForeignKey(
-                name: "FK_InterviewMatchingRequests_Users_MatchedUserId",
+                name: "FK_Schedulings_Users_MatchedUserId",
                 table: "InterviewMatchingRequests",
                 column: "MatchedUserId",
                 principalTable: "Users",
@@ -76,7 +76,7 @@ namespace Vector.Api.Data.Migrations
                 onDelete: ReferentialAction.Restrict);
 
             migrationBuilder.AddForeignKey(
-                name: "FK_InterviewMatchingRequests_Users_UserId",
+                name: "FK_Schedulings_Users_UserId",
                 table: "InterviewMatchingRequests",
                 column: "UserId",
                 principalTable: "Users",
@@ -88,23 +88,23 @@ namespace Vector.Api.Data.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropForeignKey(
-                name: "FK_InterviewMatchingRequests_InterviewMatchingRequests_Matched~",
+                name: "FK_Schedulings_Schedulings_Matched~",
                 table: "InterviewMatchingRequests");
 
             migrationBuilder.DropForeignKey(
-                name: "FK_InterviewMatchingRequests_PeerInterviewSessions_ScheduledSe~",
+                name: "FK_Schedulings_Sessions_ScheduledSe~",
                 table: "InterviewMatchingRequests");
 
             migrationBuilder.DropForeignKey(
-                name: "FK_InterviewMatchingRequests_Users_MatchedUserId",
+                name: "FK_Schedulings_Users_MatchedUserId",
                 table: "InterviewMatchingRequests");
 
             migrationBuilder.DropForeignKey(
-                name: "FK_InterviewMatchingRequests_Users_UserId",
+                name: "FK_Schedulings_Users_UserId",
                 table: "InterviewMatchingRequests");
 
             migrationBuilder.DropIndex(
-                name: "IX_InterviewMatchingRequests_Status",
+                name: "IX_Schedulings_Status",
                 table: "InterviewMatchingRequests");
 
             migrationBuilder.AlterColumn<Guid>(
@@ -129,14 +129,14 @@ namespace Vector.Api.Data.Migrations
                 oldDefaultValue: "Pending");
 
             migrationBuilder.AddForeignKey(
-                name: "FK_InterviewMatchingRequests_InterviewMatchingRequests_Matched~",
+                name: "FK_Schedulings_Schedulings_Matched~",
                 table: "InterviewMatchingRequests",
                 column: "MatchedRequestId",
                 principalTable: "InterviewMatchingRequests",
                 principalColumn: "Id");
 
             migrationBuilder.AddForeignKey(
-                name: "FK_InterviewMatchingRequests_PeerInterviewSessions_ScheduledSe~",
+                name: "FK_Schedulings_Sessions_ScheduledSe~",
                 table: "InterviewMatchingRequests",
                 column: "ScheduledSessionId",
                 principalTable: "PeerInterviewSessions",
@@ -144,14 +144,14 @@ namespace Vector.Api.Data.Migrations
                 onDelete: ReferentialAction.Cascade);
 
             migrationBuilder.AddForeignKey(
-                name: "FK_InterviewMatchingRequests_Users_MatchedUserId",
+                name: "FK_Schedulings_Users_MatchedUserId",
                 table: "InterviewMatchingRequests",
                 column: "MatchedUserId",
                 principalTable: "Users",
                 principalColumn: "Id");
 
             migrationBuilder.AddForeignKey(
-                name: "FK_InterviewMatchingRequests_Users_UserId",
+                name: "FK_Schedulings_Users_UserId",
                 table: "InterviewMatchingRequests",
                 column: "UserId",
                 principalTable: "Users",
@@ -160,3 +160,7 @@ namespace Vector.Api.Data.Migrations
         }
     }
 }
+
+
+
+

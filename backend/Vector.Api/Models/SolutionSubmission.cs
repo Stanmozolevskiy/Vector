@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Vector.Api.Models;
 
@@ -58,4 +58,8 @@ public class SolutionSubmission
     
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
+
+
+
+
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import subscriptionService from '../../services/subscription.service';
@@ -100,7 +100,7 @@ const SubscriptionPlansPage = () => {
     },
     {
       question: 'How do mock interviews work?',
-      answer: 'Mock interviews are 1-on-1 video sessions with experienced interviewers from top tech companies. You\'ll receive detailed feedback after each session to help you improve.'
+      answer: 'Mock interviews are 1-on-1 video sessions with experienced interviewers from top tech companies. You\'ll receive detailed feedback after each PeerInterviewSession to help you improve.'
     },
     {
       question: 'Is there a free trial?',
@@ -281,4 +281,6 @@ const SubscriptionPlansPage = () => {
 };
 
 export default SubscriptionPlansPage;
+
+
 

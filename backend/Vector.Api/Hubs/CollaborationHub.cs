@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
@@ -54,25 +54,25 @@ public class CollaborationHub : Hub
 
         if (!Guid.TryParse(sessionId, out var sessionGuid))
         {
-            await Clients.Caller.SendAsync("Error", "Invalid session ID");
+            await Clients.Caller.SendAsync("Error", "Invalid Session ID");
             return;
         }
 
-        // Verify user has access to this session
-        var session = await _peerInterviewService.GetSessionByIdAsync(sessionGuid);
-        if (session == null)
+        // Verify user has access to this Session
+        var Session = await _peerInterviewService.GetSessionByIdAsync(sessionGuid);
+        if (Session == null)
         {
             await Clients.Caller.SendAsync("Error", "Session not found");
             return;
         }
 
-        if (session.InterviewerId != userId && session.IntervieweeId != userId)
+        if (Session.InterviewerId != userId && Session.IntervieweeId != userId)
         {
             await Clients.Caller.SendAsync("Error", "Access denied");
             return;
         }
 
-        var groupName = $"session-{sessionGuid}";
+        var groupName = $"Session-{sessionGuid}";
         await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
 
         await Clients.Group(groupName).SendAsync("UserJoined", new
@@ -88,19 +88,19 @@ public class CollaborationHub : Hub
 
         if (!Guid.TryParse(sessionId, out var sessionGuid))
         {
-            await Clients.Caller.SendAsync("Error", "Invalid session ID");
+            await Clients.Caller.SendAsync("Error", "Invalid Session ID");
             return;
         }
 
-        // Verify user has access to this session
-        var session = await _peerInterviewService.GetSessionByIdAsync(sessionGuid);
-        if (session == null || (session.InterviewerId != userId && session.IntervieweeId != userId))
+        // Verify user has access to this Session
+        var Session = await _peerInterviewService.GetSessionByIdAsync(sessionGuid);
+        if (Session == null || (Session.InterviewerId != userId && Session.IntervieweeId != userId))
         {
             await Clients.Caller.SendAsync("Error", "Access denied");
             return;
         }
 
-        var groupName = $"session-{sessionGuid}";
+        var groupName = $"Session-{sessionGuid}";
         await Clients.GroupExcept(groupName, Context.ConnectionId).SendAsync("CodeChanged", new
         {
             userId = userId.ToString(),
@@ -118,14 +118,14 @@ public class CollaborationHub : Hub
             return;
         }
 
-        // Verify user has access to this session
-        var session = await _peerInterviewService.GetSessionByIdAsync(sessionGuid);
-        if (session == null || (session.InterviewerId != userId && session.IntervieweeId != userId))
+        // Verify user has access to this Session
+        var Session = await _peerInterviewService.GetSessionByIdAsync(sessionGuid);
+        if (Session == null || (Session.InterviewerId != userId && Session.IntervieweeId != userId))
         {
             return;
         }
 
-        var groupName = $"session-{sessionGuid}";
+        var groupName = $"Session-{sessionGuid}";
 
         await Clients.GroupExcept(groupName, Context.ConnectionId).SendAsync("CursorMoved", new
         {
@@ -145,24 +145,24 @@ public class CollaborationHub : Hub
             return;
         }
 
-        // Verify user has access to this session
-        var session = await _peerInterviewService.GetSessionByIdAsync(sessionGuid);
-        if (session == null || (session.InterviewerId != userId && session.IntervieweeId != userId))
+        // Verify user has access to this Session
+        var Session = await _peerInterviewService.GetSessionByIdAsync(sessionGuid);
+        if (Session == null || (Session.InterviewerId != userId && Session.IntervieweeId != userId))
         {
             return;
         }
 
-        var groupName = $"session-{sessionGuid}";
+        var groupName = $"Session-{sessionGuid}";
 
         if (selection != null)
         {
             // Determine color based on role (interviewer = purple, interviewee = green)
             string userColor;
-            if (session.InterviewerId == userId)
+            if (Session.InterviewerId == userId)
             {
                 userColor = "#7c3aed"; // Purple for interviewer
             }
-            else if (session.IntervieweeId == userId)
+            else if (Session.IntervieweeId == userId)
             {
                 userColor = "#10b981"; // Green for interviewee
             }
@@ -196,14 +196,14 @@ public class CollaborationHub : Hub
             return;
         }
 
-        // Verify user has access to this session
-        var session = await _peerInterviewService.GetSessionByIdAsync(sessionGuid);
-        if (session == null || (session.InterviewerId != userId && session.IntervieweeId != userId))
+        // Verify user has access to this Session
+        var Session = await _peerInterviewService.GetSessionByIdAsync(sessionGuid);
+        if (Session == null || (Session.InterviewerId != userId && Session.IntervieweeId != userId))
         {
             return;
         }
 
-        var groupName = $"session-{sessionGuid}";
+        var groupName = $"Session-{sessionGuid}";
         await Clients.GroupExcept(groupName, Context.ConnectionId).SendAsync("TestResultsUpdated", testResults);
     }
 
@@ -216,14 +216,14 @@ public class CollaborationHub : Hub
             return;
         }
 
-        // Verify user has access to this session
-        var session = await _peerInterviewService.GetSessionByIdAsync(sessionGuid);
-        if (session == null || (session.InterviewerId != userId && session.IntervieweeId != userId))
+        // Verify user has access to this Session
+        var Session = await _peerInterviewService.GetSessionByIdAsync(sessionGuid);
+        if (Session == null || (Session.InterviewerId != userId && Session.IntervieweeId != userId))
         {
             return;
         }
 
-        var groupName = $"session-{sessionGuid}";
+        var groupName = $"Session-{sessionGuid}";
         await Clients.GroupExcept(groupName, Context.ConnectionId).SendAsync("RoleSwitched", new { sessionId = sessionGuid.ToString() });
     }
 
@@ -236,14 +236,14 @@ public class CollaborationHub : Hub
             return;
         }
 
-        // Verify user has access to this session
-        var session = await _peerInterviewService.GetSessionByIdAsync(sessionGuid);
-        if (session == null || (session.InterviewerId != userId && session.IntervieweeId != userId))
+        // Verify user has access to this Session
+        var Session = await _peerInterviewService.GetSessionByIdAsync(sessionGuid);
+        if (Session == null || (Session.InterviewerId != userId && Session.IntervieweeId != userId))
         {
             return;
         }
 
-        var groupName = $"session-{sessionGuid}";
+        var groupName = $"Session-{sessionGuid}";
         await Clients.GroupExcept(groupName, Context.ConnectionId).SendAsync("QuestionChanged", new { sessionId = sessionGuid.ToString(), questionId });
     }
 
@@ -263,4 +263,8 @@ public class CollaborationHub : Hub
         return colors[Math.Abs(hash) % colors.Length];
     }
 }
+
+
+
+
 

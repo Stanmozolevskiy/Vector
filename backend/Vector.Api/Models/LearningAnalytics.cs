@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Vector.Api.Models;
 
@@ -73,4 +73,8 @@ public class LearningAnalytics
     
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
+
+
+
+
 

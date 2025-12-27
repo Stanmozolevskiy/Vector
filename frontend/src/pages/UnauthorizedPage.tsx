@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+﻿import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 const UnauthorizedPage = () => {
@@ -81,4 +81,6 @@ const UnauthorizedPage = () => {
 };
 
 export default UnauthorizedPage;
+
+
 

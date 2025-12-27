@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { Navbar } from '../../components/layout/Navbar';
@@ -19,17 +19,17 @@ interface ScheduleModalData {
 
 const INTERVIEW_TYPES = [
   { id: 'data-structures-algorithms', name: 'Data Structures & Algorithms', icon: '</>', description: 'Practice coding questions.' },
-  { id: 'system-design', name: 'System Design', icon: '⚙️', description: 'Practice designing technical architectures.' },
-  { id: 'behavioral', name: 'Behavioral', icon: '💬', description: 'Practice questions about your work experiences.' },
-  { id: 'product-management', name: 'Product Management', icon: '👥', description: 'Practice product sense, estimation, and more.' },
-  { id: 'sql', name: 'SQL (Beta)', icon: '🗄️', description: 'Practice writing and optimizing SQL queries.', beta: true },
-  { id: 'data-science-ml', name: 'Data Science & ML (Beta)', icon: '📊', description: 'Practice using data to answer questions and design systems.', beta: true },
+  { id: 'system-design', name: 'System Design', icon: 'âš™ï¸', description: 'Practice designing technical architectures.' },
+  { id: 'behavioral', name: 'Behavioral', icon: 'ðŸ’¬', description: 'Practice questions about your work experiences.' },
+  { id: 'product-management', name: 'Product Management', icon: 'ðŸ‘¥', description: 'Practice product sense, estimation, and more.' },
+  { id: 'sql', name: 'SQL (Beta)', icon: 'ðŸ—„ï¸', description: 'Practice writing and optimizing SQL queries.', beta: true },
+  { id: 'data-science-ml', name: 'Data Science & ML (Beta)', icon: 'ðŸ“Š', description: 'Practice using data to answer questions and design systems.', beta: true },
 ];
 
 const PRACTICE_TYPES = [
-  { id: 'peers', name: 'Practice with peers', icon: '👥', description: 'Free mock interviews with other users where you take turns asking questions.' },
-  { id: 'friend', name: 'Practice with a friend', icon: '👤', description: 'Invite a friend and practice on your own schedule at any time.' },
-  { id: 'expert', name: 'Expert mock interview', icon: '✓', description: 'Get interviewed 1-1 by an expert coach with FAANG+ experience.', external: true },
+  { id: 'peers', name: 'Practice with peers', icon: 'ðŸ‘¥', description: 'Free mock interviews with other users where you take turns asking questions.' },
+  { id: 'friend', name: 'Practice with a friend', icon: 'ðŸ‘¤', description: 'Invite a friend and practice on your own schedule at any time.' },
+  { id: 'expert', name: 'Expert mock interview', icon: 'âœ“', description: 'Get interviewed 1-1 by an expert coach with FAANG+ experience.', external: true },
 ];
 
 const INTERVIEW_LEVELS = [
@@ -52,8 +52,8 @@ const FindPeerPage: React.FC = () => {
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [selectedSessionForFeedback, setSelectedSessionForFeedback] = useState<PeerInterviewSession | null>(null);
   const [showMatchingModal, setShowMatchingModal] = useState(false);
-  const [matchingStatus, setMatchingStatus] = useState<any>(null);
-  const [matchingPollInterval, setMatchingPollInterval] = useState<ReturnType<typeof setInterval> | null>(null);
+  const [matchingStatus, setmatchingStatus] = useState<any>(null);
+  const [matchingPollInterval, setmatchingPollInterval] = useState<ReturnType<typeof setInterval> | null>(null);
   const [countdownInterval, setCountdownInterval] = useState<ReturnType<typeof setInterval> | null>(null);
   const [estimatedTimeRemaining, setEstimatedTimeRemaining] = useState<number>(600); // 10 minutes default
   const matchSoundPlayedRef = useRef<boolean>(false);
@@ -68,7 +68,7 @@ const FindPeerPage: React.FC = () => {
     generateTimeSlots();
     
     // Check if survey should be shown from URL parameter
-    const sessionIdFromUrl = searchParams.get('session');
+    const sessionIdFromUrl = searchParams.get('PeerInterviewSession');
     const showSurveyFromUrl = searchParams.get('showSurvey');
     if (sessionIdFromUrl && showSurveyFromUrl === 'true') {
       setSurveySessionId(sessionIdFromUrl);
@@ -85,7 +85,7 @@ const FindPeerPage: React.FC = () => {
       if (countdownInterval) {
         clearInterval(countdownInterval);
       }
-      setMatchingPollInterval(null);
+      setmatchingPollInterval(null);
       setCountdownInterval(null);
     };
   }, []);
@@ -166,13 +166,13 @@ const FindPeerPage: React.FC = () => {
     const now = new Date();
     const diff = date.getTime() - now.getTime();
     
-    if (diff <= 0) return '• Live now';
+    if (diff <= 0) return 'â€¢ Live now';
     
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((diff % (1000 * 60)) / 1000);
     
-    return `• Live in ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    return `â€¢ Live in ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
   const getMinutesUntil = (scheduledTime?: string): number => {
@@ -187,20 +187,20 @@ const FindPeerPage: React.FC = () => {
     return Math.floor(diff / (1000 * 60));
   };
 
-  const canStartInterview = (session: PeerInterviewSession): boolean => {
+  const canStartInterview = (PeerInterviewSession: PeerInterviewSession): boolean => {
     if (DEV_MODE) return true; // Always show in dev mode
-    const minutesUntil = getMinutesUntil(session.scheduledTime);
+    const minutesUntil = getMinutesUntil(PeerInterviewSession.scheduledTime);
     return minutesUntil <= 10 && minutesUntil >= 0;
   };
 
   const handleStartInterview = async (sessionId: string) => {
     try {
-      // Check if session has an interviewee
-      const session = await peerInterviewService.getSession(sessionId);
+      // Check if PeerInterviewSession has an interviewee
+      const PeerInterviewSession = await peerInterviewService.getSession(sessionId);
       
-      // Check if session was cancelled or reset - if so, allow re-matching
-      if (session.status === 'Cancelled' || (session.status === 'Scheduled' && !session.intervieweeId)) {
-        // Session was cancelled or reset, start matching process
+      // Check if PeerInterviewSession was cancelled or reset - if so, allow re-matching
+      if (PeerInterviewSession.status === 'Cancelled' || (PeerInterviewSession.status === 'Scheduled' && !PeerInterviewSession.intervieweeId)) {
+        // PeerInterviewSession was cancelled or reset, start matching process
         setShowMatchingModal(true);
         
         // Check if there's already a matching request
@@ -208,7 +208,7 @@ const FindPeerPage: React.FC = () => {
           const existingStatus = await peerInterviewService.getMatchingStatus(sessionId);
           if (existingStatus && existingStatus.status === 'Matched') {
             // Already matched, just need to confirm
-            setMatchingStatus(existingStatus);
+            setmatchingStatus(existingStatus);
             startMatchingPoll(sessionId);
             return;
           }
@@ -216,7 +216,7 @@ const FindPeerPage: React.FC = () => {
           // If error is 403 Forbid, it might mean the user is the matched user
           // Try to continue with starting matching - the backend will handle it
           if (error?.response?.status === 403) {
-            console.warn("GetMatchingStatus returned 403, continuing with start matching");
+            console.warn("getMatchingStatus returned 403, continuing with start matching");
           }
         }
         
@@ -224,31 +224,31 @@ const FindPeerPage: React.FC = () => {
         try {
           const result = await peerInterviewService.startMatching(sessionId);
           if (result.sessionComplete) {
-            // Session is already complete, navigate directly
-            // Get the session to find questionId
+            // PeerInterviewSession is already complete, navigate directly
+            // Get the PeerInterviewSession to find questionId
             try {
               const completedSession = await peerInterviewService.getSession(sessionId);
               if (completedSession.questionId) {
-                window.location.href = `${ROUTES.QUESTIONS}/${completedSession.questionId}?session=${sessionId}`;
+                window.location.href = `${ROUTES.QUESTIONS}/${completedSession.questionId}?PeerInterviewSession=${sessionId}`;
               } else {
-                window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
+                window.location.href = `${ROUTES.QUESTIONS}?PeerInterviewSession=${sessionId}`;
               }
             } catch {
-              window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
+              window.location.href = `${ROUTES.QUESTIONS}?PeerInterviewSession=${sessionId}`;
             }
             return;
           }
           
-          setMatchingStatus(result.matchingRequest);
+          setmatchingStatus(result.matchingRequest);
           startMatchingPoll(sessionId);
         } catch (error: any) {
           // Handle errors gracefully
           if (error?.response?.data?.message?.includes('already has an interviewee')) {
-            // Session already has interviewee, navigate directly
-            if (session.questionId) {
-              window.location.href = `${ROUTES.QUESTIONS}/${session.questionId}?session=${sessionId}`;
+            // PeerInterviewSession already has interviewee, navigate directly
+            if (PeerInterviewSession.questionId) {
+              window.location.href = `${ROUTES.QUESTIONS}/${PeerInterviewSession.questionId}?PeerInterviewSession=${sessionId}`;
             } else {
-              window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
+              window.location.href = `${ROUTES.QUESTIONS}?PeerInterviewSession=${sessionId}`;
             }
             return;
           }
@@ -257,22 +257,22 @@ const FindPeerPage: React.FC = () => {
         return;
       }
       
-      if (session.intervieweeId && session.status === 'InProgress') {
-        // Session already has an interviewee, navigate directly to question page
-        if (session.questionId) {
-          window.location.href = `${ROUTES.QUESTIONS}/${session.questionId}?session=${sessionId}`;
+      if (PeerInterviewSession.intervieweeId && PeerInterviewSession.status === 'InProgress') {
+        // PeerInterviewSession already has an interviewee, navigate directly to question page
+        if (PeerInterviewSession.questionId) {
+          window.location.href = `${ROUTES.QUESTIONS}/${PeerInterviewSession.questionId}?PeerInterviewSession=${sessionId}`;
         } else {
           // Wait for backend to assign question
           setTimeout(async () => {
             try {
               const updatedSession = await peerInterviewService.getSession(sessionId);
               if (updatedSession.questionId) {
-                window.location.href = `${ROUTES.QUESTIONS}/${updatedSession.questionId}?session=${sessionId}`;
+                window.location.href = `${ROUTES.QUESTIONS}/${updatedSession.questionId}?PeerInterviewSession=${sessionId}`;
               } else {
-                window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
+                window.location.href = `${ROUTES.QUESTIONS}?PeerInterviewSession=${sessionId}`;
               }
             } catch {
-              window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
+              window.location.href = `${ROUTES.QUESTIONS}?PeerInterviewSession=${sessionId}`;
             }
           }, 1000);
         }
@@ -287,7 +287,7 @@ const FindPeerPage: React.FC = () => {
         const existingStatus = await peerInterviewService.getMatchingStatus(sessionId);
         if (existingStatus && existingStatus.status === 'Matched') {
           // Already matched, just need to confirm
-          setMatchingStatus(existingStatus);
+          setmatchingStatus(existingStatus);
           startMatchingPoll(sessionId);
           return;
         }
@@ -295,7 +295,7 @@ const FindPeerPage: React.FC = () => {
         // If error is 403 Forbid, it might mean the user is the matched user
         // Try to continue with starting matching - the backend will handle it
         if (error?.response?.status === 403) {
-          console.warn("GetMatchingStatus returned 403, continuing with start matching");
+          console.warn("getMatchingStatus returned 403, continuing with start matching");
         }
         // No existing status, continue with starting matching
       }
@@ -304,60 +304,60 @@ const FindPeerPage: React.FC = () => {
       try {
         const result = await peerInterviewService.startMatching(sessionId);
         
-        // Check if session is already complete
+        // Check if PeerInterviewSession is already complete
         if (result.sessionComplete) {
           setShowMatchingModal(false);
-          // Navigate to question page with session parameter
+          // Navigate to question page with PeerInterviewSession parameter
           try {
             const updatedSession = await peerInterviewService.getSession(sessionId);
             if (updatedSession.questionId) {
-              window.location.href = `${ROUTES.QUESTIONS}/${updatedSession.questionId}?session=${sessionId}`;
+              window.location.href = `${ROUTES.QUESTIONS}/${updatedSession.questionId}?PeerInterviewSession=${sessionId}`;
             } else {
               // No question yet - wait for backend to assign
               setTimeout(async () => {
                 try {
                   const updatedSession = await peerInterviewService.getSession(sessionId);
                   if (updatedSession.questionId) {
-                    window.location.href = `${ROUTES.QUESTIONS}/${updatedSession.questionId}?session=${sessionId}`;
+                    window.location.href = `${ROUTES.QUESTIONS}/${updatedSession.questionId}?PeerInterviewSession=${sessionId}`;
                   } else {
-                    window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
+                    window.location.href = `${ROUTES.QUESTIONS}?PeerInterviewSession=${sessionId}`;
                   }
                 } catch {
-                  window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
+                  window.location.href = `${ROUTES.QUESTIONS}?PeerInterviewSession=${sessionId}`;
                 }
               }, 1000);
             }
           } catch {
-            window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
+            window.location.href = `${ROUTES.QUESTIONS}?PeerInterviewSession=${sessionId}`;
           }
           return;
         }
         
-        setMatchingStatus(result.matchingRequest);
+        setmatchingStatus(result.matchingRequest);
         
         // Start polling for confirmation
         startMatchingPoll(sessionId);
       } catch (error: any) {
-        // If error is "Session already has an interviewee", navigate directly
+        // If error is "PeerInterviewSession already has an interviewee", navigate directly
         if (error?.response?.data?.message?.includes('already has an interviewee')) {
           try {
             const updatedSession = await peerInterviewService.getSession(sessionId);
             if (updatedSession.intervieweeId) {
               setShowMatchingModal(false);
               if (updatedSession.questionId) {
-                window.location.href = `${ROUTES.QUESTIONS}/${updatedSession.questionId}?session=${sessionId}`;
+                window.location.href = `${ROUTES.QUESTIONS}/${updatedSession.questionId}?PeerInterviewSession=${sessionId}`;
               } else {
                 // No question yet - wait for backend to assign
                 setTimeout(async () => {
                   try {
                     const updatedSession = await peerInterviewService.getSession(sessionId);
                     if (updatedSession.questionId) {
-                      window.location.href = `${ROUTES.QUESTIONS}/${updatedSession.questionId}?session=${sessionId}`;
+                      window.location.href = `${ROUTES.QUESTIONS}/${updatedSession.questionId}?PeerInterviewSession=${sessionId}`;
                     } else {
-                      window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
+                      window.location.href = `${ROUTES.QUESTIONS}?PeerInterviewSession=${sessionId}`;
                     }
                   } catch {
-                    window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
+                    window.location.href = `${ROUTES.QUESTIONS}?PeerInterviewSession=${sessionId}`;
                   }
                 }, 1000);
               }
@@ -383,27 +383,27 @@ const FindPeerPage: React.FC = () => {
       
       // Don't show alert for network errors - they're often transient
       if (error?.code === 'ERR_NETWORK' || error?.message === 'Network Error') {
-        console.warn('Network error during interview start, but session may still work. Continuing...');
-        // Try to continue - maybe the session is already set up
+        console.warn('Network error during interview start, but PeerInterviewSession may still work. Continuing...');
+        // Try to continue - maybe the PeerInterviewSession is already set up
         try {
-          const session = await peerInterviewService.getSession(sessionId);
-          if (session.intervieweeId) {
-            // Session is ready, navigate directly to question page
+          const PeerInterviewSession = await peerInterviewService.getSession(sessionId);
+          if (PeerInterviewSession.intervieweeId) {
+            // PeerInterviewSession is ready, navigate directly to question page
             setShowMatchingModal(false);
-            if (session.questionId) {
-              window.location.href = `${ROUTES.QUESTIONS}/${session.questionId}?session=${sessionId}`;
+            if (PeerInterviewSession.questionId) {
+              window.location.href = `${ROUTES.QUESTIONS}/${PeerInterviewSession.questionId}?PeerInterviewSession=${sessionId}`;
             } else {
               // No question yet - wait for backend to assign
               setTimeout(async () => {
                 try {
                   const updatedSession = await peerInterviewService.getSession(sessionId);
                   if (updatedSession.questionId) {
-                    window.location.href = `${ROUTES.QUESTIONS}/${updatedSession.questionId}?session=${sessionId}`;
+                    window.location.href = `${ROUTES.QUESTIONS}/${updatedSession.questionId}?PeerInterviewSession=${sessionId}`;
                   } else {
-                    window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
+                    window.location.href = `${ROUTES.QUESTIONS}?PeerInterviewSession=${sessionId}`;
                   }
                 } catch {
-                  window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
+                  window.location.href = `${ROUTES.QUESTIONS}?PeerInterviewSession=${sessionId}`;
                 }
               }, 1000);
             }
@@ -414,7 +414,7 @@ const FindPeerPage: React.FC = () => {
           startMatchingPoll(sessionId);
           return;
         } catch {
-          // If we can't get session, just close modal and let user try again
+          // If we can't get PeerInterviewSession, just close modal and let user try again
           setShowMatchingModal(false);
           return;
         }
@@ -481,7 +481,7 @@ const FindPeerPage: React.FC = () => {
       try {
         const status = await peerInterviewService.getMatchingStatus(sessionId);
         const previousStatus = matchingStatus?.status;
-        setMatchingStatus(status);
+        setmatchingStatus(status);
 
         // Check if status changed from Pending/NoRequest to Matched
         // Only play sound once per match
@@ -500,52 +500,52 @@ const FindPeerPage: React.FC = () => {
         if (status.status === 'Matched' || status.status === 'Confirmed') {
           // Check if both confirmed
           if (status.userConfirmed && status.matchedUserConfirmed) {
-            // Match completed, navigate to session
+            // Match completed, navigate to PeerInterviewSession
             clearInterval(interval);
             if (countdownInterval) {
               clearInterval(countdownInterval);
             }
-            setMatchingPollInterval(null);
+            setmatchingPollInterval(null);
             setCountdownInterval(null);
             setShowMatchingModal(false);
             
-            // Try to get the session - it might be the current sessionId or the matched session
+            // Try to get the PeerInterviewSession - it might be the current sessionId or the matched PeerInterviewSession
             // After completion, session1 becomes primary and session2 is cancelled
-            // We need to find the active session (the one with status InProgress)
+            // We need to find the active PeerInterviewSession (the one with status InProgress)
             let activeSessionId = sessionId;
             
             try {
-              const session = await peerInterviewService.getSession(sessionId);
+              const PeerInterviewSession = await peerInterviewService.getSession(sessionId);
               
-              // Check if this session is active (has interviewee and is InProgress)
-              if (session.intervieweeId && session.status === 'InProgress') {
-                // This is the active session
-                activeSessionId = session.id;
-                if (session.questionId) {
-                  window.location.href = `${ROUTES.QUESTIONS}/${session.questionId}?session=${activeSessionId}`;
+              // Check if this PeerInterviewSession is active (has interviewee and is InProgress)
+              if (PeerInterviewSession.intervieweeId && PeerInterviewSession.status === 'InProgress') {
+                // This is the active PeerInterviewSession
+                activeSessionId = PeerInterviewSession.id;
+                if (PeerInterviewSession.questionId) {
+                  window.location.href = `${ROUTES.QUESTIONS}/${PeerInterviewSession.questionId}?PeerInterviewSession=${activeSessionId}`;
                 } else {
                   // No question yet - wait for backend to assign
                   setTimeout(async () => {
                     try {
                       const updatedSession = await peerInterviewService.getSession(activeSessionId);
                       if (updatedSession.questionId) {
-                        window.location.href = `${ROUTES.QUESTIONS}/${updatedSession.questionId}?session=${activeSessionId}`;
+                        window.location.href = `${ROUTES.QUESTIONS}/${updatedSession.questionId}?PeerInterviewSession=${activeSessionId}`;
                       } else {
-                        window.location.href = `${ROUTES.QUESTIONS}?session=${activeSessionId}`;
+                        window.location.href = `${ROUTES.QUESTIONS}?PeerInterviewSession=${activeSessionId}`;
                       }
                     } catch {
-                      window.location.href = `${ROUTES.QUESTIONS}?session=${activeSessionId}`;
+                      window.location.href = `${ROUTES.QUESTIONS}?PeerInterviewSession=${activeSessionId}`;
                     }
                   }, 1000);
                 }
                 return;
               }
               
-              // If current session is cancelled, we need to find the primary session
-              // The primary session is the one from the matched request
-              if (session.status === 'Cancelled' && status.matchedRequest) {
-                // Try to get the session from the matched request
-                // The matched request's session is the primary one
+              // If current PeerInterviewSession is cancelled, we need to find the primary PeerInterviewSession
+              // The primary PeerInterviewSession is the one from the matched request
+              if (PeerInterviewSession.status === 'Cancelled' && status.matchedRequest) {
+                // Try to get the PeerInterviewSession from the matched request
+                // The matched request's PeerInterviewSession is the primary one
                 try {
                   // Get sessions to find the active one
                   const allSessions = await peerInterviewService.getMySessions();
@@ -559,30 +559,30 @@ const FindPeerPage: React.FC = () => {
                     activeSessionId = activeSession.id;
                     if (activeSession.questionId) {
                       // Both users should go to the SAME question
-                      window.location.href = `${ROUTES.QUESTIONS}/${activeSession.questionId}?session=${activeSessionId}`;
+                      window.location.href = `${ROUTES.QUESTIONS}/${activeSession.questionId}?PeerInterviewSession=${activeSessionId}`;
                     } else {
                       // No question yet - wait for backend to assign
                       setTimeout(async () => {
                         try {
                           const updatedSession = await peerInterviewService.getSession(activeSessionId);
                           if (updatedSession.questionId) {
-                            window.location.href = `${ROUTES.QUESTIONS}/${updatedSession.questionId}?session=${activeSessionId}`;
+                            window.location.href = `${ROUTES.QUESTIONS}/${updatedSession.questionId}?PeerInterviewSession=${activeSessionId}`;
                           } else {
-                            window.location.href = `${ROUTES.QUESTIONS}?session=${activeSessionId}`;
+                            window.location.href = `${ROUTES.QUESTIONS}?PeerInterviewSession=${activeSessionId}`;
                           }
                         } catch {
-                          window.location.href = `${ROUTES.QUESTIONS}?session=${activeSessionId}`;
+                          window.location.href = `${ROUTES.QUESTIONS}?PeerInterviewSession=${activeSessionId}`;
                         }
                       }, 1000);
                     }
                     return;
                   }
                 } catch (error) {
-                  console.error('Error finding active session:', error);
+                  console.error('Error finding active PeerInterviewSession:', error);
                 }
               }
             } catch (error) {
-              console.warn('Could not get session by current sessionId:', error);
+              console.warn('Could not get PeerInterviewSession by current sessionId:', error);
             }
             
             // Last resort: try to get user's sessions and find the active one
@@ -597,19 +597,19 @@ const FindPeerPage: React.FC = () => {
               if (activeSession) {
                 if (activeSession.questionId) {
                   // Both users should go to the SAME question
-                  window.location.href = `${ROUTES.QUESTIONS}/${activeSession.questionId}?session=${activeSession.id}`;
+                  window.location.href = `${ROUTES.QUESTIONS}/${activeSession.questionId}?PeerInterviewSession=${activeSession.id}`;
                 } else {
                   // No question yet - wait for backend to assign
                   setTimeout(async () => {
                     try {
                       const updatedSession = await peerInterviewService.getSession(activeSession.id);
                       if (updatedSession.questionId) {
-                        window.location.href = `${ROUTES.QUESTIONS}/${updatedSession.questionId}?session=${activeSession.id}`;
+                        window.location.href = `${ROUTES.QUESTIONS}/${updatedSession.questionId}?PeerInterviewSession=${activeSession.id}`;
                       } else {
-                        window.location.href = `${ROUTES.QUESTIONS}?session=${activeSession.id}`;
+                        window.location.href = `${ROUTES.QUESTIONS}?PeerInterviewSession=${activeSession.id}`;
                       }
                     } catch {
-                      window.location.href = `${ROUTES.QUESTIONS}?session=${activeSession.id}`;
+                      window.location.href = `${ROUTES.QUESTIONS}?PeerInterviewSession=${activeSession.id}`;
                     }
                   }, 1000);
                 }
@@ -620,7 +620,7 @@ const FindPeerPage: React.FC = () => {
             }
             
             // Final fallback: try to navigate with current sessionId
-            window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
+            window.location.href = `${ROUTES.QUESTIONS}?PeerInterviewSession=${sessionId}`;
           }
         } else if (status.status === 'Pending' || !status.status || status.status === 'NoRequest') {
           // Still waiting, try to find a match (only if not already matched)
@@ -628,36 +628,36 @@ const FindPeerPage: React.FC = () => {
             try {
               const result = await peerInterviewService.startMatching(sessionId);
               if (result.matched) {
-                setMatchingStatus(result.matchingRequest);
+                setmatchingStatus(result.matchingRequest);
               }
             } catch (error: any) {
-              // If error is "Session already has an interviewee", check if we can navigate
+              // If error is "PeerInterviewSession already has an interviewee", check if we can navigate
               if (error?.response?.data?.message?.includes('already has an interviewee')) {
                 try {
-                  const session = await peerInterviewService.getSession(sessionId);
-                  if (session.intervieweeId && session.status === 'InProgress') {
+                  const PeerInterviewSession = await peerInterviewService.getSession(sessionId);
+                  if (PeerInterviewSession.intervieweeId && PeerInterviewSession.status === 'InProgress') {
                     clearInterval(interval);
                     if (countdownInterval) {
                       clearInterval(countdownInterval);
                     }
-                    setMatchingPollInterval(null);
+                    setmatchingPollInterval(null);
                     setCountdownInterval(null);
                     setShowMatchingModal(false);
                     // Navigate to question page - both users should go to SAME question
-                    if (session.questionId) {
-                      window.location.href = `${ROUTES.QUESTIONS}/${session.questionId}?session=${sessionId}`;
+                    if (PeerInterviewSession.questionId) {
+                      window.location.href = `${ROUTES.QUESTIONS}/${PeerInterviewSession.questionId}?PeerInterviewSession=${sessionId}`;
                     } else {
                       // Wait for backend to assign question
                       setTimeout(async () => {
                         try {
                           const updatedSession = await peerInterviewService.getSession(sessionId);
                           if (updatedSession.questionId) {
-                            window.location.href = `${ROUTES.QUESTIONS}/${updatedSession.questionId}?session=${sessionId}`;
+                            window.location.href = `${ROUTES.QUESTIONS}/${updatedSession.questionId}?PeerInterviewSession=${sessionId}`;
                           } else {
-                            window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
+                            window.location.href = `${ROUTES.QUESTIONS}?PeerInterviewSession=${sessionId}`;
                           }
                         } catch {
-                          window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
+                          window.location.href = `${ROUTES.QUESTIONS}?PeerInterviewSession=${sessionId}`;
                         }
                       }, 1000);
                     }
@@ -676,26 +676,26 @@ const FindPeerPage: React.FC = () => {
     }, 2000); // Poll every 2 seconds
 
     // Store both intervals so we can clear them later
-    setMatchingPollInterval(interval);
+    setmatchingPollInterval(interval);
     
     // Store countdown interval reference (we'll clear it when clearing matchingPollInterval)
     // Note: We clear countdownInterval when clearing the matching poll interval
   };
 
-  const handleConfirmMatch = async () => {
+  const handleconfirmMatch = async () => {
     if (!matchingStatus?.id) return;
 
     try {
       const result = await peerInterviewService.confirmMatch(matchingStatus.id);
-      setMatchingStatus(result.matchingRequest);
+      setmatchingStatus(result.matchingRequest);
 
       // NEW BEHAVIOR: Redirect immediately after confirming
-      // The backend returns session1 (the merged session) so both users join the same session
+      // The backend returns session1 (the merged PeerInterviewSession) so both users join the same PeerInterviewSession
       if (result.session) {
-        // Session is available, navigate immediately
+        // PeerInterviewSession is available, navigate immediately
         if (matchingPollInterval) {
           clearInterval(matchingPollInterval);
-          setMatchingPollInterval(null);
+          setmatchingPollInterval(null);
         }
         if (countdownInterval) {
           clearInterval(countdownInterval);
@@ -703,33 +703,33 @@ const FindPeerPage: React.FC = () => {
         }
         setShowMatchingModal(false);
         
-        // Use the session ID from the result (this is session1, the merged session)
-        // Both users will be redirected to the same session with the same question
+        // Use the PeerInterviewSession ID from the result (this is session1, the merged PeerInterviewSession)
+        // Both users will be redirected to the same PeerInterviewSession with the same question
         const sessionId = result.session.id;
         if (sessionId && result.session.questionId) {
-          // Session has question - redirect to question page
-          // Both users will go to the same question in the same session
-          window.location.href = `${ROUTES.QUESTIONS}/${result.session.questionId}?session=${sessionId}`;
+          // PeerInterviewSession has question - redirect to question page
+          // Both users will go to the same question in the same PeerInterviewSession
+          window.location.href = `${ROUTES.QUESTIONS}/${result.session.questionId}?PeerInterviewSession=${sessionId}`;
         } else if (sessionId) {
-          // Session exists but no question yet - wait for backend to assign
+          // PeerInterviewSession exists but no question yet - wait for backend to assign
           setTimeout(async () => {
             try {
-              const session = await peerInterviewService.getSession(sessionId);
-              if (session.questionId) {
+              const PeerInterviewSession = await peerInterviewService.getSession(sessionId);
+              if (PeerInterviewSession.questionId) {
                 // Both users will be redirected to the same question
-                window.location.href = `${ROUTES.QUESTIONS}/${session.questionId}?session=${sessionId}`;
+                window.location.href = `${ROUTES.QUESTIONS}/${PeerInterviewSession.questionId}?PeerInterviewSession=${sessionId}`;
               } else {
-                // Fallback: redirect to questions list with session
-                window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
+                // Fallback: redirect to questions list with PeerInterviewSession
+                window.location.href = `${ROUTES.QUESTIONS}?PeerInterviewSession=${sessionId}`;
               }
             } catch {
-              window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
+              window.location.href = `${ROUTES.QUESTIONS}?PeerInterviewSession=${sessionId}`;
             }
           }, 1000);
         }
       } else {
-        // No session yet - continue polling, it will redirect when session is ready
-        setMatchingStatus(result.matchingRequest);
+        // No PeerInterviewSession yet - continue polling, it will redirect when PeerInterviewSession is ready
+        setmatchingStatus(result.matchingRequest);
       }
     } catch (error: any) {
       // Don't show alert for network errors
@@ -746,9 +746,9 @@ const FindPeerPage: React.FC = () => {
     }
   };
 
-  const getPartnerLabel = (session: PeerInterviewSession): string => {
+  const getPartnerLabel = (PeerInterviewSession: PeerInterviewSession): string => {
     if (!user) return 'Partner';
-    return session.interviewerId === user.id ? 'Interviewee' : 'Interviewer';
+    return PeerInterviewSession.interviewerId === user.id ? 'Interviewee' : 'Interviewer';
   };
 
   const handleScheduleClick = () => {
@@ -779,8 +779,8 @@ const FindPeerPage: React.FC = () => {
     try {
       setLoading(true);
       
-      // Create a session without an interviewee - matching will happen when starting interview
-      const session = await peerInterviewService.createSession({
+      // Create a PeerInterviewSession without an interviewee - matching will happen when starting interview
+      const PeerInterviewSession = await peerInterviewService.createSession({
         interviewerId: user.id,
         // intervieweeId is undefined - will be matched when starting interview
         scheduledTime: scheduleData.selectedTime.toISOString(),
@@ -790,11 +790,11 @@ const FindPeerPage: React.FC = () => {
         interviewLevel: scheduleData.interviewLevel,
       });
 
-      // Load the full session details
-      const fullSession = await peerInterviewService.getSession(session.id);
+      // Load the full PeerInterviewSession details
+      const fullSession = await peerInterviewService.getSession(PeerInterviewSession.id);
       
-      // Set session and close schedule modal first
-      setScheduledSession(fullSession || session); // Fallback to created session if getSession fails
+      // Set PeerInterviewSession and close schedule modal first
+      setScheduledSession(fullSession || PeerInterviewSession); // Fallback to created PeerInterviewSession if getSession fails
       setShowScheduleModal(false);
       setScheduleData({ step: 1 });
       
@@ -805,7 +805,7 @@ const FindPeerPage: React.FC = () => {
       
       await loadSessions();
     } catch (error: any) {
-      console.error('Error creating session:', error);
+      console.error('Error creating PeerInterviewSession:', error);
       // Don't show alert for network errors
       if (error?.code !== 'ERR_NETWORK' && error?.message !== 'Network Error') {
         const errorMessage = error?.response?.data?.message || 'Failed to schedule interview';
@@ -818,7 +818,7 @@ const FindPeerPage: React.FC = () => {
   };
 
   const handleCancelSession = async (sessionId: string) => {
-    if (!confirm('Are you sure you want to cancel this session?')) return;
+    if (!confirm('Are you sure you want to cancel this PeerInterviewSession?')) return;
     
     try {
       await peerInterviewService.cancelSession(sessionId);
@@ -826,11 +826,11 @@ const FindPeerPage: React.FC = () => {
       
       // Reset matching state to allow re-matching
       setShowMatchingModal(false);
-      setMatchingStatus(null);
+      setmatchingStatus(null);
       matchSoundPlayedRef.current = false;
       if (matchingPollInterval) {
         clearInterval(matchingPollInterval);
-        setMatchingPollInterval(null);
+        setmatchingPollInterval(null);
       }
       if (countdownInterval) {
         clearInterval(countdownInterval);
@@ -839,8 +839,8 @@ const FindPeerPage: React.FC = () => {
     } catch (error: any) {
       // Don't show alert for network errors
       if (error?.code !== 'ERR_NETWORK' && error?.message !== 'Network Error') {
-        const errorMessage = error?.response?.data?.message || 'Failed to cancel session';
-        console.error('Cancel session error:', errorMessage);
+        const errorMessage = error?.response?.data?.message || 'Failed to cancel PeerInterviewSession';
+        console.error('Cancel PeerInterviewSession error:', errorMessage);
         // Could show a toast notification here instead of alert
       }
     }
@@ -1054,43 +1054,43 @@ const FindPeerPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {upcomingSessions.map(session => (
-                  <tr key={session.id}>
+                {upcomingSessions.map(PeerInterviewSession => (
+                  <tr key={PeerInterviewSession.id}>
                     <td>
                       <span className="date-with-icon">
                         <i className="fas fa-calendar"></i>
-                        {formatDate(session.scheduledTime)}
+                        {formatDate(PeerInterviewSession.scheduledTime)}
                       </span>
                     </td>
-                    <td>{session.interviewType || 'N/A'}</td>
+                    <td>{PeerInterviewSession.interviewType || 'N/A'}</td>
                     <td>
-                      {session.question ? (
-                        <Link to={`/questions/${session.questionId}`} className="question-link">
-                          {session.question.title}
+                      {PeerInterviewSession.question ? (
+                        <Link to={`/questions/${PeerInterviewSession.questionId}`} className="question-link">
+                          {PeerInterviewSession.question.title}
                         </Link>
                       ) : (
                         <span className="no-question">Not selected</span>
                       )}
                     </td>
                     <td>
-                      <div className="session-actions">
-                        {canStartInterview(session) ? (
+                      <div className="PeerInterviewSession-actions">
+                        {canStartInterview(PeerInterviewSession) ? (
                           <button
-                            onClick={() => handleStartInterview(session.id)}
+                            onClick={() => handleStartInterview(PeerInterviewSession.id)}
                             className="btn-start-interview"
                           >
                             Start interview
                           </button>
                         ) : (
-                          <span className="live-indicator">{getTimeUntil(session.scheduledTime)}</span>
+                          <span className="live-indicator">{getTimeUntil(PeerInterviewSession.scheduledTime)}</span>
                         )}
-                        {/* Only show cancel button if session doesn't have an interviewee (not matched yet) */}
-                        {!session.intervieweeId && (
+                        {/* Only show cancel button if PeerInterviewSession doesn't have an interviewee (not matched yet) */}
+                        {!PeerInterviewSession.intervieweeId && (
                           <button
-                            onClick={() => handleCancelSession(session.id)}
+                            onClick={() => handleCancelSession(PeerInterviewSession.id)}
                             className="btn-cancel-link"
                           >
-                            Cancel session
+                            Cancel PeerInterviewSession
                           </button>
                         )}
                       </div>
@@ -1121,14 +1121,14 @@ const FindPeerPage: React.FC = () => {
                   <td colSpan={5} className="no-sessions">No past interviews yet</td>
                 </tr>
               ) : (
-                pastSessions.map(session => (
-                  <tr key={session.id}>
-                    <td>{formatDate(session.scheduledTime)}</td>
-                    <td>{session.interviewType || 'N/A'}</td>
+                pastSessions.map(PeerInterviewSession => (
+                  <tr key={PeerInterviewSession.id}>
+                    <td>{formatDate(PeerInterviewSession.scheduledTime)}</td>
+                    <td>{PeerInterviewSession.interviewType || 'N/A'}</td>
                     <td>
-                      {session.question ? (
-                        <Link to={`/questions/${session.questionId}`} className="question-link">
-                          {session.question.title}
+                      {PeerInterviewSession.question ? (
+                        <Link to={`/questions/${PeerInterviewSession.questionId}`} className="question-link">
+                          {PeerInterviewSession.question.title}
                         </Link>
                       ) : (
                         <span className="no-question">n/a</span>
@@ -1136,8 +1136,8 @@ const FindPeerPage: React.FC = () => {
                     </td>
                     <td>
                       <div className="partner-info">
-                        <div className="partner-avatar">{getPartnerLabel(session).substring(0, 2).toUpperCase()}</div>
-                        <button className="btn-partner-name">{getPartnerLabel(session)}</button>
+                        <div className="partner-avatar">{getPartnerLabel(PeerInterviewSession).substring(0, 2).toUpperCase()}</div>
+                        <button className="btn-partner-name">{getPartnerLabel(PeerInterviewSession)}</button>
                       </div>
                     </td>
                     <td>
@@ -1145,19 +1145,19 @@ const FindPeerPage: React.FC = () => {
                         className="btn-view-feedback"
                         onClick={() => {
                           // Check if survey is completed
-                          const surveyCompleted = localStorage.getItem(`survey_completed_${session.id}`);
+                          const surveyCompleted = localStorage.getItem(`survey_completed_${PeerInterviewSession.id}`);
                           if (!surveyCompleted) {
                             // Show survey instead of feedback
-                            setSurveySessionId(session.id);
+                            setSurveySessionId(PeerInterviewSession.id);
                             setShowSurvey(true);
                           } else {
                             // Show feedback
-                            setSelectedSessionForFeedback(session);
+                            setSelectedSessionForFeedback(PeerInterviewSession);
                             setShowFeedbackModal(true);
                           }
                         }}
                       >
-                        {localStorage.getItem(`survey_completed_${session.id}`) ? 'View feedback' : 'Complete survey'}
+                        {localStorage.getItem(`survey_completed_${PeerInterviewSession.id}`) ? 'View feedback' : 'Complete survey'}
                       </button>
                     </td>
                   </tr>
@@ -1276,7 +1276,7 @@ const FindPeerPage: React.FC = () => {
                 }
                 className="btn-modal-next"
               >
-                {scheduleData.step === 4 ? (loading ? 'Scheduling...' : 'Schedule') : 'Next'}
+                {scheduleData.step === 4 ? (loading ? 'MatchingRequest...' : 'Schedule') : 'Next'}
               </button>
             </div>
           </div>
@@ -1321,7 +1321,7 @@ const FindPeerPage: React.FC = () => {
                   <div className="match-actions">
                     <button
                       className="btn-join-interview"
-                      onClick={handleConfirmMatch}
+                      onClick={handleconfirmMatch}
                     >
                       Join your interview
                     </button>
@@ -1369,10 +1369,10 @@ const FindPeerPage: React.FC = () => {
   );
 };
 
-// Generate feedback data from session (template for all interviews)
-const generateFeedbackData = (session: PeerInterviewSession): FeedbackData => {
-  const date = session.scheduledTime 
-    ? new Date(session.scheduledTime).toLocaleDateString('en-US', { 
+// Generate feedback data from PeerInterviewSession (template for all interviews)
+const generateFeedbackData = (PeerInterviewSession: PeerInterviewSession): FeedbackData => {
+  const date = PeerInterviewSession.scheduledTime 
+    ? new Date(PeerInterviewSession.scheduledTime).toLocaleDateString('en-US', { 
         month: 'long', 
         day: 'numeric', 
         year: 'numeric' 
@@ -1380,7 +1380,7 @@ const generateFeedbackData = (session: PeerInterviewSession): FeedbackData => {
     : 'Unknown date';
 
   return {
-    interviewType: session.interviewType || 'Data Structures & Algorithms',
+    interviewType: PeerInterviewSession.interviewType || 'Data Structures & Algorithms',
     date: date,
     problemSolving: {
       rating: 4,
@@ -1404,3 +1404,6 @@ const generateFeedbackData = (session: PeerInterviewSession): FeedbackData => {
 };
 
 export default FindPeerPage;
+
+
+

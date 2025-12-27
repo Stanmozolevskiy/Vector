@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using System.Text;
 using Vector.Api.Data;
@@ -19,14 +19,14 @@ public class VideoSessionService : IVideoSessionService
 
     public async Task<VideoSession> CreateVideoSessionAsync(Guid sessionId)
     {
-        // Check if session exists
+        // Check if Session exists
         var interviewSession = await _context.PeerInterviewSessions.FindAsync(sessionId);
         if (interviewSession == null)
         {
-            throw new KeyNotFoundException($"Interview session with ID {sessionId} not found");
+            throw new KeyNotFoundException($"Interview Session with ID {sessionId} not found");
         }
 
-        // Check if video session already exists
+        // Check if video Session already exists
         var existingVideoSession = await _context.VideoSessions
             .FirstOrDefaultAsync(v => v.SessionId == sessionId && v.Status == "Active");
 
@@ -72,7 +72,7 @@ public class VideoSessionService : IVideoSessionService
         var videoSession = await _context.VideoSessions.FindAsync(videoSessionId);
         if (videoSession == null)
         {
-            throw new KeyNotFoundException($"Video session with ID {videoSessionId} not found");
+            throw new KeyNotFoundException($"Video Session with ID {videoSessionId} not found");
         }
 
         videoSession.SignalingData = signalingData;
@@ -105,4 +105,8 @@ public class VideoSessionService : IVideoSessionService
         return Convert.ToBase64String(bytes).Replace("+", "-").Replace("/", "_").Replace("=", "");
     }
 }
+
+
+
+
 

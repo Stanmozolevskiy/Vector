@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Vector.Api.Models;
 
@@ -21,3 +21,7 @@ public class RefreshToken
     
     public DateTime? RevokedAt { get; set; }
 }
+
+
+
+

@@ -31,7 +31,7 @@ namespace Vector.Api.Data.Migrations
                 {
                     table.PrimaryKey("PK_UserSessionParticipants", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_UserSessionParticipants_PeerInterviewSessions_SessionId",
+                        name: "FK_UserSessionParticipants_Sessions_SessionId",
                         column: x => x.SessionId,
                         principalTable: "PeerInterviewSessions",
                         principalColumn: "Id",
@@ -69,3 +69,7 @@ namespace Vector.Api.Data.Migrations
         }
     }
 }
+
+
+
+

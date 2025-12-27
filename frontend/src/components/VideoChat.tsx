@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import './VideoChat.css';
 import { videoSessionService } from '../services/videoSession.service';
 
@@ -36,7 +36,7 @@ export const VideoChat: React.FC<VideoChatProps> = ({
 
   const initializeVideo = async () => {
     try {
-      // Create or get video session
+      // Create or get video PeerInterviewSession
       let videoSessionId: string;
       try {
         const tokenResponse = await videoSessionService.getVideoSessionToken(sessionId);
@@ -358,4 +358,6 @@ export const VideoChat: React.FC<VideoChatProps> = ({
     </div>
   );
 };
+
+
 

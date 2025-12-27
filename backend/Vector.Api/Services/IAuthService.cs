@@ -1,4 +1,4 @@
-using Vector.Api.DTOs.Auth;
+﻿using Vector.Api.DTOs.Auth;
 using Vector.Api.Models;
 
 namespace Vector.Api.Services;
@@ -15,4 +15,8 @@ public interface IAuthService
     Task<(string AccessToken, string RefreshToken)> RefreshTokenAsync(string refreshToken);
     Task<string> GetLatestRefreshTokenAsync(string oldRefreshToken);
 }
+
+
+
+
 

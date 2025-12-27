@@ -1,4 +1,4 @@
-using Vector.Api.Models;
+﻿using Vector.Api.Models;
 
 namespace Vector.Api.Services;
 

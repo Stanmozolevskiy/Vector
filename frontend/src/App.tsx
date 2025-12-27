@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+﻿import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './hooks/useAuth.tsx';
 import ProtectedRoute from './components/ProtectedRoute';
 import { IndexPage } from './pages/home/IndexPage';
@@ -21,15 +21,14 @@ import { EditQuestionPage } from './pages/questions/EditQuestionPage';
 import { SolutionHistoryPage } from './pages/solutions/SolutionHistoryPage';
 import { ProgressPage } from './pages/progress/ProgressPage';
 import FindPeerPage from './pages/peer-interviews/FindPeerPage';
+import PeerInterviewSessionPage from './pages/peer-interviews/PeerInterviewSessionPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
-import { SessionNotificationManager } from './components/SessionNotificationManager';
 import { ROUTES } from './utils/constants';
 
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <SessionNotificationManager />
         <Routes>
         {/* Public routes - no protection */}
         <Route path={ROUTES.HOME} element={<IndexPage />} />
@@ -81,6 +80,11 @@ function App() {
         <Route path={ROUTES.FIND_PEER} element={
           <ProtectedRoute requireAuth>
             <FindPeerPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/peer-interviews/sessions/:id" element={
+          <ProtectedRoute requireAuth>
+            <PeerInterviewSessionPage />
           </ProtectedRoute>
         } />
         <Route path={`${ROUTES.QUESTIONS}/:id`} element={

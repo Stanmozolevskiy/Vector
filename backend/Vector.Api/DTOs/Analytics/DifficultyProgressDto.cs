@@ -1,4 +1,4 @@
-namespace Vector.Api.DTOs.Analytics;
+﻿namespace Vector.Api.DTOs.Analytics;
 
 public class DifficultyProgressDto
 {
@@ -9,4 +9,8 @@ public class DifficultyProgressDto
     public decimal AverageExecutionTime { get; set; }
     public long AverageMemoryUsed { get; set; }
 }
+
+
+
+
 

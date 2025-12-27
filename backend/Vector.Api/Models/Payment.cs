@@ -1,4 +1,4 @@
-namespace Vector.Api.Models;
+﻿namespace Vector.Api.Models;
 
 public class Payment
 {
@@ -32,4 +32,8 @@ public class Payment
     
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
+
+
+
+
 

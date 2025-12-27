@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Vector.Api.DTOs.Auth;
 
@@ -18,4 +18,8 @@ public class RegisterDto
     [MaxLength(100)]
     public string? LastName { get; set; }
 }
+
+
+
+
 

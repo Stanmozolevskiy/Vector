@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Vector.Api.Data;
 using Vector.Api.Services;
@@ -134,4 +134,8 @@ public class HealthController : ControllerBase
         public string Message { get; set; } = string.Empty;
     }
 }
+
+
+
+
 

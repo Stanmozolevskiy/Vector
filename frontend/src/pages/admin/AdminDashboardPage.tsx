@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import api from '../../services/api';
@@ -362,9 +362,9 @@ const AdminDashboardPage = () => {
                       </td>
                       <td>
                         {u.emailVerified ? (
-                          <span className="verified-badge">✓ Verified</span>
+                          <span className="verified-badge">âœ“ Verified</span>
                         ) : (
-                          <span className="unverified-badge">✗ Not Verified</span>
+                          <span className="unverified-badge">âœ— Not Verified</span>
                         )}
                       </td>
                       <td>{new Date(u.createdAt).toLocaleDateString()}</td>
@@ -687,3 +687,5 @@ const AdminDashboardPage = () => {
 };
 
 export default AdminDashboardPage;
+
+

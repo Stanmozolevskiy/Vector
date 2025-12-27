@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Vector.Api.DTOs.User;
 
@@ -15,4 +15,8 @@ public class ChangePasswordDto
     [Compare("NewPassword", ErrorMessage = "Passwords do not match")]
     public string ConfirmPassword { get; set; } = string.Empty;
 }
+
+
+
+
 

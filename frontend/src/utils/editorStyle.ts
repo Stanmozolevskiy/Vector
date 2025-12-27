@@ -1,4 +1,4 @@
-/**
+﻿/**
  * LeetCode-style Monaco Editor configuration
  * Matches LeetCode's editor appearance and behavior
  */
@@ -171,4 +171,6 @@ export function normalizeIndentation(editor: any) {
     );
   }
 }
+
+
 

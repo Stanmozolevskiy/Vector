@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Vector.Api.DTOs.Question;
 
@@ -28,4 +28,8 @@ public class CreateSolutionDto
     public string? SpaceComplexity { get; set; }
     public bool IsOfficial { get; set; } = false;
 }
+
+
+
+
 

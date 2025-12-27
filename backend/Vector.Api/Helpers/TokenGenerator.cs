@@ -1,4 +1,4 @@
-namespace Vector.Api.Helpers;
+﻿namespace Vector.Api.Helpers;
 
 public static class TokenGenerator
 {
@@ -25,4 +25,8 @@ public static class TokenGenerator
         return GenerateRandomToken(32);
     }
 }
+
+
+
+
 

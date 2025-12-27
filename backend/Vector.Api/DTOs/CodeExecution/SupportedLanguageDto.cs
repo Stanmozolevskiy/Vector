@@ -1,4 +1,4 @@
-namespace Vector.Api.DTOs.CodeExecution;
+﻿namespace Vector.Api.DTOs.CodeExecution;
 
 public class SupportedLanguageDto
 {
@@ -7,4 +7,8 @@ public class SupportedLanguageDto
     public int Judge0LanguageId { get; set; }
     public string Version { get; set; } = string.Empty;
 }
+
+
+
+
 

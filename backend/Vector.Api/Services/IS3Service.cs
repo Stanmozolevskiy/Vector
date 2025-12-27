@@ -1,4 +1,4 @@
-namespace Vector.Api.Services;
+﻿namespace Vector.Api.Services;
 
 /// <summary>
 /// Service for handling S3 file operations
@@ -30,3 +30,7 @@ public interface IS3Service
     /// <returns>The presigned URL</returns>
     Task<string> GetPresignedUrlAsync(string fileKey, int expirationMinutes = 60);
 }
+
+
+
+

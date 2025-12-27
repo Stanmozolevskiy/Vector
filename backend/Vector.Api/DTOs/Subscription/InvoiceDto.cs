@@ -1,4 +1,4 @@
-namespace Vector.Api.DTOs.Subscription;
+﻿namespace Vector.Api.DTOs.Subscription;
 
 public class InvoiceDto
 {
@@ -10,4 +10,8 @@ public class InvoiceDto
     public string Status { get; set; } = string.Empty; // paid, pending, failed
     public string? InvoiceUrl { get; set; }
 }
+
+
+
+
 

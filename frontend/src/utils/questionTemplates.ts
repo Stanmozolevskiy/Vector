@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Question-specific code templates
  * Each question has its own function signature based on the problem
  */
@@ -119,4 +119,6 @@ export function getQuestionTemplate(questionTitle: string, language: string): st
 export function getAllTemplatesForQuestion(questionTitle: string): QuestionTemplate {
   return QUESTION_TEMPLATES[questionTitle] || DEFAULT_TEMPLATE;
 }
+
+
 

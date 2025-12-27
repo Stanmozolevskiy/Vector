@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SendGrid;
 using SendGrid.Helpers.Mail;
@@ -223,7 +223,7 @@ public class EmailService : IEmailService
             HtmlContent = $@"
                 <h1>Welcome to Vector, {name}!</h1>
                 <p>Thank you for joining our platform. We're excited to help you prepare for your technical interviews.</p>
-                <p>Get started by exploring our courses and scheduling your first mock interview.</p>
+                <p>Get started by exploring our courses and Scheduling your first mock interview.</p>
             "
         };
         msg.AddTo(new EmailAddress(email));
@@ -326,4 +326,8 @@ public class EmailService : IEmailService
         }
     }
 }
+
+
+
+
 

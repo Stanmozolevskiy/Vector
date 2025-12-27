@@ -1,4 +1,4 @@
-namespace Vector.Api.Models;
+﻿namespace Vector.Api.Models;
 
 public class EmailVerification
 {
@@ -16,4 +16,8 @@ public class EmailVerification
     
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
+
+
+
+
 

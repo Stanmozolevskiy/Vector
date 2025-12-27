@@ -1,7 +1,7 @@
-namespace Vector.Api.Services;
+﻿namespace Vector.Api.Services;
 
 /// <summary>
-/// Redis service for caching, session management, and rate limiting
+/// Redis service for caching, Session management, and rate limiting
 /// </summary>
 public interface IRedisService
 {
@@ -31,4 +31,8 @@ public interface IRedisService
     Task<bool> DeleteAsync(string key);
     Task<bool> ExistsAsync(string key);
 }
+
+
+
+
 

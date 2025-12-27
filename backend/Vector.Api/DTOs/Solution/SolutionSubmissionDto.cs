@@ -1,4 +1,4 @@
-namespace Vector.Api.DTOs.Solution;
+﻿namespace Vector.Api.DTOs.Solution;
 
 public class SolutionSubmissionDto
 {
@@ -12,4 +12,8 @@ public class SolutionSubmissionDto
     public decimal ExecutionTime { get; set; }
     public long MemoryUsed { get; set; }
 }
+
+
+
+
 

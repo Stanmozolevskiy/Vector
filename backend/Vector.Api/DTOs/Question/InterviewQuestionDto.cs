@@ -1,4 +1,4 @@
-namespace Vector.Api.DTOs.Question;
+﻿namespace Vector.Api.DTOs.Question;
 
 public class InterviewQuestionDto
 {
@@ -32,4 +32,8 @@ public class ExampleDto
     public string? Output { get; set; }
     public string? Explanation { get; set; }
 }
+
+
+
+
 

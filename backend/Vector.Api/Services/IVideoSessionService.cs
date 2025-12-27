@@ -1,4 +1,4 @@
-using Vector.Api.Models;
+﻿using Vector.Api.Models;
 
 namespace Vector.Api.Services;
 
@@ -10,4 +10,8 @@ public interface IVideoSessionService
     Task<VideoSession> UpdateSignalingDataAsync(Guid videoSessionId, string signalingData);
     Task<bool> EndVideoSessionAsync(Guid videoSessionId);
 }
+
+
+
+
 

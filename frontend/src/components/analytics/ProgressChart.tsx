@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+﻿import { useMemo } from 'react';
 
 interface ChartData {
   label: string;
@@ -156,4 +156,6 @@ export const ProgressChart = ({ data, type = 'bar', title, height = 200 }: Progr
     </div>
   );
 };
+
+
 

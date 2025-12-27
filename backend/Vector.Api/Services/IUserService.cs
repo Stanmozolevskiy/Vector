@@ -1,4 +1,4 @@
-using Vector.Api.DTOs.User;
+﻿using Vector.Api.DTOs.User;
 using Vector.Api.Models;
 
 namespace Vector.Api.Services;
@@ -13,4 +13,8 @@ public interface IUserService
     Task<bool> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword);
     Task<bool> DeleteUserAsync(Guid userId);
 }
+
+
+
+
 

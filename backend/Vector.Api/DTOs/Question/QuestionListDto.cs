@@ -1,4 +1,4 @@
-namespace Vector.Api.DTOs.Question;
+﻿namespace Vector.Api.DTOs.Question;
 
 public class QuestionListDto
 {
@@ -13,4 +13,8 @@ public class QuestionListDto
     public bool IsActive { get; set; }
     public string ApprovalStatus { get; set; } = "Pending";
 }
+
+
+
+
 

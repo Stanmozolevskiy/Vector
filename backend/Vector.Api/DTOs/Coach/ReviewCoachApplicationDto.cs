@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Vector.Api.DTOs.Coach;
 
@@ -14,4 +14,8 @@ public class ReviewCoachApplicationDto
     [MaxLength(500)]
     public string? AdminNotes { get; set; }
 }
+
+
+
+
 

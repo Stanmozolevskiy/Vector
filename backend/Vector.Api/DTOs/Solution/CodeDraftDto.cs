@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Vector.Api.DTOs.Solution;
 
@@ -23,4 +23,8 @@ public class SaveCodeDraftDto
     [Required]
     public string Code { get; set; } = string.Empty;
 }
+
+
+
+
 

@@ -1,4 +1,4 @@
-namespace Vector.Api.DTOs.Analytics;
+﻿namespace Vector.Api.DTOs.Analytics;
 
 public class LearningAnalyticsDto
 {
@@ -15,4 +15,8 @@ public class LearningAnalyticsDto
     public int TotalSubmissions { get; set; }
     public Dictionary<string, int> SolutionsByLanguage { get; set; } = new();
 }
+
+
+
+
 

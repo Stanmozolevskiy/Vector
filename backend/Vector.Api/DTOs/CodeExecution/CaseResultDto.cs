@@ -1,4 +1,4 @@
-namespace Vector.Api.DTOs.CodeExecution;
+﻿namespace Vector.Api.DTOs.CodeExecution;
 
 /// <summary>
 /// DTO for a single test case result
@@ -23,4 +23,8 @@ public class RuntimeErrorDto
     public string Message { get; set; } = string.Empty;
     public string? Stack { get; set; }
 }
+
+
+
+
 

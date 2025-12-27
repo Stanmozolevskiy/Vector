@@ -1,4 +1,4 @@
-namespace Vector.Api.DTOs.Subscription;
+﻿namespace Vector.Api.DTOs.Subscription;
 
 public class SubscriptionDto
 {
@@ -13,4 +13,8 @@ public class SubscriptionDto
     public DateTime? CancelledAt { get; set; }
     public SubscriptionPlanDto? Plan { get; set; }
 }
+
+
+
+
 

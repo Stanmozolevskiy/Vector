@@ -1,4 +1,4 @@
-namespace Vector.Api.Models;
+﻿namespace Vector.Api.Models;
 
 /// <summary>
 /// Tracks which questions a user has solved (optimized lookup table)
@@ -15,4 +15,8 @@ public class UserSolvedQuestion
     public User User { get; set; } = null!;
     public InterviewQuestion Question { get; set; } = null!;
 }
+
+
+
+
 

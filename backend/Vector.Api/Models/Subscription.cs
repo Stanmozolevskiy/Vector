@@ -1,4 +1,4 @@
-namespace Vector.Api.Models;
+﻿namespace Vector.Api.Models;
 
 public class Subscription
 {
@@ -30,4 +30,8 @@ public class Subscription
     
     public DateTime? CancelledAt { get; set; }
 }
+
+
+
+
 

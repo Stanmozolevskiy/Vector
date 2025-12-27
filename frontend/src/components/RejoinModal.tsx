@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import './RejoinModal.css';
 
 interface RejoinModalProps {
@@ -49,7 +49,7 @@ export const RejoinModal: React.FC<RejoinModalProps> = ({ onRejoin, onFeedback, 
         )}
 
         <div className="rejoin-feedback">
-          <p>Had issues with your session or already finished?</p>
+          <p>Had issues with your PeerInterviewSession or already finished?</p>
           <a href="#" onClick={(e) => { e.preventDefault(); onFeedback(); }}>
             Give us feedback to help us improve!
           </a>
@@ -58,4 +58,6 @@ export const RejoinModal: React.FC<RejoinModalProps> = ({ onRejoin, onFeedback, 
     </div>
   );
 };
+
+
 

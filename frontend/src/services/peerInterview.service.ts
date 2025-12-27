@@ -1,6 +1,6 @@
-import api from './api';
+﻿import api from './api';
 
-export interface PeerInterviewSession {
+export interface Session {
   id: string;
   interviewerId: string;
   intervieweeId: string;
@@ -86,27 +86,27 @@ export const peerInterviewService = {
   },
 
   // Create an interview session
-  async createSession(request: CreateSessionRequest): Promise<PeerInterviewSession> {
-    const response = await api.post<PeerInterviewSession>('/peer-interviews/sessions', request);
+  async createSession(request: CreateSessionRequest): Promise<Session> {
+    const response = await api.post<Session>('/peer-interviews/sessions', request);
     return response.data;
   },
 
   // Get user's sessions
-  async getMySessions(status?: string): Promise<PeerInterviewSession[]> {
+  async getMySessions(status?: string): Promise<Session[]> {
     const params = status ? { status } : {};
-    const response = await api.get<PeerInterviewSession[]>('/peer-interviews/sessions/me', { params });
+    const response = await api.get<Session[]>('/peer-interviews/sessions/me', { params });
     return response.data;
   },
 
   // Get session by ID
-  async getSession(sessionId: string): Promise<PeerInterviewSession> {
-    const response = await api.get<PeerInterviewSession>(`/peer-interviews/sessions/${sessionId}`);
+  async getSession(sessionId: string): Promise<Session> {
+    const response = await api.get<Session>(`/peer-interviews/sessions/${sessionId}`);
     return response.data;
   },
 
   // Update session status
-  async updateSessionStatus(sessionId: string, status: string): Promise<PeerInterviewSession> {
-    const response = await api.put<PeerInterviewSession>(`/peer-interviews/sessions/${sessionId}/status`, { status });
+  async updateSessionStatus(sessionId: string, status: string): Promise<Session> {
+    const response = await api.put<Session>(`/peer-interviews/sessions/${sessionId}/status`, { status });
     return response.data;
   },
 
@@ -135,33 +135,36 @@ export const peerInterviewService = {
   },
 
   // Change question for the session (interviewer only)
-  async changeQuestion(sessionId: string): Promise<PeerInterviewSession> {
-    const response = await api.post<PeerInterviewSession>(`/peer-interviews/sessions/${sessionId}/change-question`);
+  async changeQuestion(sessionId: string): Promise<Session> {
+    const response = await api.post<Session>(`/peer-interviews/sessions/${sessionId}/change-question`);
     return response.data;
   },
 
   // Switch roles between interviewer and interviewee
-  async switchRoles(sessionId: string): Promise<PeerInterviewSession> {
-    const response = await api.post<PeerInterviewSession>(`/peer-interviews/sessions/${sessionId}/switch-roles`);
+  async switchRoles(sessionId: string): Promise<Session> {
+    const response = await api.post<Session>(`/peer-interviews/sessions/${sessionId}/switch-roles`);
     return response.data;
   },
 
   // Start matching process
-  async startMatching(sessionId: string): Promise<{ matchingRequest: any; matched: boolean; sessionComplete?: boolean }> {
-    const response = await api.post<{ matchingRequest: any; matched: boolean; sessionComplete?: boolean }>(`/peer-interviews/sessions/${sessionId}/start-matching`);
+  async startScheduling(sessionId: string): Promise<{ scheduling: any; matched: boolean; sessionComplete?: boolean }> {
+    const response = await api.post<{ scheduling: any; matched: boolean; sessionComplete?: boolean }>(`/peer-interviews/sessions/${sessionId}/start-scheduling`);
     return response.data;
   },
 
   // Get matching status
-  async getMatchingStatus(sessionId: string): Promise<any> {
-    const response = await api.get(`/peer-interviews/sessions/${sessionId}/matching-status`);
+  async getSchedulingStatus(sessionId: string): Promise<any> {
+    const response = await api.get(`/peer-interviews/sessions/${sessionId}/scheduling-status`);
     return response.data;
   },
 
   // Confirm match
-  async confirmMatch(matchingRequestId: string): Promise<{ matchingRequest: any; session?: PeerInterviewSession; completed: boolean }> {
-    const response = await api.post<{ matchingRequest: any; session?: PeerInterviewSession; completed: boolean }>(`/peer-interviews/matching-requests/${matchingRequestId}/confirm`);
+  async confirmScheduling(schedulingId: string): Promise<{ scheduling: any; session?: Session; completed: boolean }> {
+    const response = await api.post<{ scheduling: any; session?: Session; completed: boolean }>(`/peer-interviews/schedulings/${schedulingId}/confirm`);
     return response.data;
   },
 };
+
+
+
 

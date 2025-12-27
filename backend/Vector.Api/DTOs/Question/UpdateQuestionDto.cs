@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Vector.Api.DTOs.Question;
 
@@ -28,4 +28,8 @@ public class UpdateQuestionDto
     public double? AcceptanceRate { get; set; }
     public bool? IsActive { get; set; }
 }
+
+
+
+
 

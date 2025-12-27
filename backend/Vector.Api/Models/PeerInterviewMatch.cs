@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Vector.Api.Models;
@@ -31,4 +31,8 @@ public class PeerInterviewMatch
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
+
+
+
+
 

@@ -1,4 +1,4 @@
-using StackExchange.Redis;
+﻿using StackExchange.Redis;
 using System.Text.Json;
 
 namespace Vector.Api.Services;
@@ -14,7 +14,7 @@ public class RedisService : IRedisService
     private readonly ILogger<RedisService> _logger;
     private const string REFRESH_TOKEN_PREFIX = "rt:";
     private const string BLACKLIST_PREFIX = "bl:";
-    private const string SESSION_PREFIX = "session:";
+    private const string SESSION_PREFIX = "Session:";
     private const string RATE_LIMIT_PREFIX = "rl:";
 
     public RedisService(IConnectionMultiplexer redis, ILogger<RedisService> logger)
@@ -110,7 +110,7 @@ public class RedisService : IRedisService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to cache user session for {UserId}", userId);
+            _logger.LogError(ex, "Failed to cache user Session for {UserId}", userId);
             return false;
         }
     }
@@ -129,7 +129,7 @@ public class RedisService : IRedisService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to get cached session for user {UserId}", userId);
+            _logger.LogError(ex, "Failed to get cached Session for user {UserId}", userId);
             return null;
         }
     }
@@ -143,7 +143,7 @@ public class RedisService : IRedisService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to invalidate session for user {UserId}", userId);
+            _logger.LogError(ex, "Failed to invalidate Session for user {UserId}", userId);
             return false;
         }
     }
@@ -309,4 +309,8 @@ public class RedisService : IRedisService
 
     #endregion
 }
+
+
+
+
 

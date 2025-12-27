@@ -53,21 +53,21 @@ namespace Vector.Api.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_PeerInterviewSessions", x => x.Id);
+                    table.PrimaryKey("PK_Sessions", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_PeerInterviewSessions_InterviewQuestions_QuestionId",
+                        name: "FK_Sessions_InterviewQuestions_QuestionId",
                         column: x => x.QuestionId,
                         principalTable: "InterviewQuestions",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
-                        name: "FK_PeerInterviewSessions_Users_IntervieweeId",
+                        name: "FK_Sessions_Users_IntervieweeId",
                         column: x => x.IntervieweeId,
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_PeerInterviewSessions_Users_InterviewerId",
+                        name: "FK_Sessions_Users_InterviewerId",
                         column: x => x.InterviewerId,
                         principalTable: "Users",
                         principalColumn: "Id",
@@ -86,27 +86,27 @@ namespace Vector.Api.Data.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_PeerInterviewSessions_IntervieweeId",
+                name: "IX_Sessions_IntervieweeId",
                 table: "PeerInterviewSessions",
                 column: "IntervieweeId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_PeerInterviewSessions_InterviewerId",
+                name: "IX_Sessions_InterviewerId",
                 table: "PeerInterviewSessions",
                 column: "InterviewerId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_PeerInterviewSessions_QuestionId",
+                name: "IX_Sessions_QuestionId",
                 table: "PeerInterviewSessions",
                 column: "QuestionId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_PeerInterviewSessions_ScheduledTime",
+                name: "IX_Sessions_ScheduledTime",
                 table: "PeerInterviewSessions",
                 column: "ScheduledTime");
 
             migrationBuilder.CreateIndex(
-                name: "IX_PeerInterviewSessions_Status",
+                name: "IX_Sessions_Status",
                 table: "PeerInterviewSessions",
                 column: "Status");
         }
@@ -122,3 +122,7 @@ namespace Vector.Api.Data.Migrations
         }
     }
 }
+
+
+
+

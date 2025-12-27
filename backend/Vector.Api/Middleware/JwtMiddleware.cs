@@ -1,4 +1,4 @@
-using Vector.Api.Services;
+﻿using Vector.Api.Services;
 
 namespace Vector.Api.Middleware;
 
@@ -28,4 +28,8 @@ public class JwtMiddleware
         await _next(context);
     }
 }
+
+
+
+
 

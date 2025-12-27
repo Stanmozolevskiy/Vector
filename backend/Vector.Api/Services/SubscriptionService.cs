@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Vector.Api.Data;
 using Vector.Api.DTOs.Subscription;
@@ -326,4 +326,8 @@ public class SubscriptionService : ISubscriptionService
         return await Task.FromResult(new List<InvoiceDto>());
     }
 }
+
+
+
+
 

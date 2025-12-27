@@ -1,4 +1,4 @@
-namespace Vector.Api.DTOs.Coach;
+﻿namespace Vector.Api.DTOs.Coach;
 
 /// <summary>
 /// DTO for coach application response
@@ -21,4 +21,8 @@ public class CoachApplicationResponseDto
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
+
+
+
+
 

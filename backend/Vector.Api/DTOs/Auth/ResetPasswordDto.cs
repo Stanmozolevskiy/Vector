@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Vector.Api.DTOs.Auth;
 
@@ -15,4 +15,8 @@ public class ResetPasswordDto
     [MinLength(8)]
     public string NewPassword { get; set; } = string.Empty;
 }
+
+
+
+
 

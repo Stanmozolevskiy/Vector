@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { ROUTES } from '../../utils/constants';
@@ -569,9 +569,9 @@ export const ProfilePage = () => {
                             color: coachApplication.status === 'approved' ? '#155724' : 
                                   coachApplication.status === 'rejected' ? '#721c24' : '#856404'
                           }}>
-                            {coachApplication.status === 'approved' ? '✓ Approved' : 
-                             coachApplication.status === 'rejected' ? '✗ Rejected' : 
-                             '⏳ Pending Review'}
+                            {coachApplication.status === 'approved' ? 'âœ“ Approved' : 
+                             coachApplication.status === 'rejected' ? 'âœ— Rejected' : 
+                             'â³ Pending Review'}
                           </span>
                         </div>
                         {coachApplication.adminNotes && (
@@ -1090,3 +1090,5 @@ export const ProfilePage = () => {
     </div>
   );
 };
+
+

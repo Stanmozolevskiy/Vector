@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vector.Api.Models;
 
 namespace Vector.Api.Data;
@@ -28,8 +28,6 @@ public class ApplicationDbContext : DbContext
     public DbSet<UserSolvedQuestion> UserSolvedQuestions { get; set; }
     public DbSet<PeerInterviewSession> PeerInterviewSessions { get; set; }
     public DbSet<PeerInterviewMatch> PeerInterviewMatches { get; set; }
-    public DbSet<InterviewMatchingRequest> InterviewMatchingRequests { get; set; }
-    public DbSet<UserSessionParticipant> UserSessionParticipants { get; set; }
     public DbSet<VideoSession> VideoSessions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -305,52 +303,6 @@ public class ApplicationDbContext : DbContext
             
             entity.HasIndex(e => e.UserId).IsUnique();
             entity.HasIndex(e => e.IsAvailable);
-        });
-
-        // Configure InterviewMatchingRequest entity
-        modelBuilder.Entity<InterviewMatchingRequest>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.HasOne(e => e.User)
-                .WithMany()
-                .HasForeignKey(e => e.UserId)
-                .OnDelete(DeleteBehavior.Restrict);
-            entity.HasOne(e => e.ScheduledSession)
-                .WithMany()
-                .HasForeignKey(e => e.ScheduledSessionId)
-                .OnDelete(DeleteBehavior.Restrict);
-            entity.HasOne(e => e.MatchedUser)
-                .WithMany()
-                .HasForeignKey(e => e.MatchedUserId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .IsRequired(false);
-            entity.HasOne(e => e.MatchedRequest)
-                .WithMany()
-                .HasForeignKey(e => e.MatchedRequestId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .IsRequired(false);
-            entity.Property(e => e.Status).IsRequired().HasMaxLength(50).HasDefaultValue("Pending");
-            entity.HasIndex(e => e.ScheduledSessionId);
-            entity.HasIndex(e => e.Status);
-        });
-
-        // Configure UserSessionParticipant entity
-        modelBuilder.Entity<UserSessionParticipant>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.HasOne(e => e.User)
-                .WithMany()
-                .HasForeignKey(e => e.UserId)
-                .OnDelete(DeleteBehavior.Restrict);
-            entity.HasOne(e => e.Session)
-                .WithMany()
-                .HasForeignKey(e => e.SessionId)
-                .OnDelete(DeleteBehavior.Restrict);
-            entity.Property(e => e.Role).IsRequired().HasMaxLength(50);
-            entity.Property(e => e.Status).IsRequired().HasMaxLength(50).HasDefaultValue("Active");
-            entity.HasIndex(e => e.UserId);
-            entity.HasIndex(e => e.SessionId);
-            entity.HasIndex(e => new { e.UserId, e.SessionId }).IsUnique();
         });
 
         // Configure VideoSession entity

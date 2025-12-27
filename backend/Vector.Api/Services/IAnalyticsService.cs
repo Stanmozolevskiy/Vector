@@ -1,4 +1,4 @@
-using Vector.Api.DTOs.Analytics;
+﻿using Vector.Api.DTOs.Analytics;
 
 namespace Vector.Api.Services;
 
@@ -29,4 +29,8 @@ public interface IAnalyticsService
     /// </summary>
     Task CalculateStreakAsync(Guid userId);
 }
+
+
+
+
 

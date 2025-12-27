@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Navbar } from '../../components/layout/Navbar';
 import { QuestionForm } from '../../components/questions/QuestionForm';
@@ -72,4 +72,6 @@ export const AddQuestionPage = () => {
     </div>
   );
 };
+
+
 

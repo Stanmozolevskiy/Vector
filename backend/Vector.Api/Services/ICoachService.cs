@@ -1,4 +1,4 @@
-using Vector.Api.DTOs.Coach;
+﻿using Vector.Api.DTOs.Coach;
 using Vector.Api.Models;
 
 namespace Vector.Api.Services;
@@ -38,4 +38,8 @@ public interface ICoachService
     /// </summary>
     Task<CoachApplication> ReviewApplicationAsync(Guid applicationId, Guid adminId, ReviewCoachApplicationDto dto);
 }
+
+
+
+
 

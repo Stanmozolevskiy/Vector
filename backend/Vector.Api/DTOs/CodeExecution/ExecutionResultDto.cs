@@ -1,4 +1,4 @@
-namespace Vector.Api.DTOs.CodeExecution;
+﻿namespace Vector.Api.DTOs.CodeExecution;
 
 public class ExecutionResultDto
 {
@@ -9,4 +9,8 @@ public class ExecutionResultDto
     public long Memory { get; set; } // in bytes
     public string? CompileOutput { get; set; }
 }
+
+
+
+
 

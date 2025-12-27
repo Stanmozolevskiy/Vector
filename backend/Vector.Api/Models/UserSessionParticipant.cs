@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Vector.Api.Models;
@@ -20,7 +20,7 @@ public class UserSessionParticipant
     [Required]
     [ForeignKey("Session")]
     public Guid SessionId { get; set; }
-    public PeerInterviewSession Session { get; set; } = null!;
+    public Session Session { get; set; } = null!;
 
     [Required]
     [MaxLength(50)]
@@ -53,6 +53,8 @@ public class UserSessionParticipant
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
+
+
 
 
 

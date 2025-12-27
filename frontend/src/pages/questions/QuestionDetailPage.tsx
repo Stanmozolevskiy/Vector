@@ -1,6 +1,5 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
-import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
-import * as signalR from '@microsoft/signalr';
+﻿import { useEffect, useState, useRef, useCallback } from 'react';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { questionService } from '../../services/question.service';
 import type { InterviewQuestion, QuestionTestCase, QuestionSolution } from '../../services/question.service';
 import { codeExecutionService, type RunResult } from '../../services/codeExecution.service';
@@ -15,15 +14,11 @@ import { ToastContainer } from '../../components/Toast';
 import { codeDraftService } from '../../services/codeDraft.service';
 import { peerInterviewService } from '../../services/peerInterview.service';
 import type { PeerInterviewSession } from '../../services/peerInterview.service';
-import api from '../../services/api';
-import { RejoinModal } from '../../components/RejoinModal';
-import { InterviewSurvey } from '../../components/InterviewSurvey';
 import '../../styles/question-detail.css';
 
 export const QuestionDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const { user } = useAuth();
   const [question, setQuestion] = useState<InterviewQuestion | null>(null);
   const [testCases, setTestCases] = useState<QuestionTestCase[]>([]);
@@ -77,12 +72,6 @@ export const QuestionDetailPage = () => {
   const [showPartnerVideo, setShowPartnerVideo] = useState(false);
   const [isChangingQuestion, setIsChangingQuestion] = useState(false);
   const [isSwitchingRole, setIsSwitchingRole] = useState(false);
-  const [showRejoinModal, setShowRejoinModal] = useState(false);
-  const [showSurvey, setShowSurvey] = useState(false);
-  const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
-  const [elapsedTime, setElapsedTime] = useState<number>(0);
-  const [isEndingSession, setIsEndingSession] = useState(false);
-  const connectionLostRef = useRef<boolean>(false);
 
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' | 'warning') => {
     const id = Date.now().toString();
@@ -97,133 +86,13 @@ export const QuestionDetailPage = () => {
   const codeAreaRef = useRef<HTMLDivElement>(null);
   const testcasePanelRef = useRef<HTMLDivElement>(null);
   const horizontalResizerRef = useRef<HTMLDivElement>(null);
-  const sessionHubConnectionRef = useRef<signalR.HubConnection | null>(null);
-
-  // Handle browser back button - redirect to find interview page if coming from session
-  useEffect(() => {
-    const handlePopState = () => {
-      const sessionId = searchParams.get('session');
-      if (sessionId && activeSession) {
-        // If user clicks back and we're in a session, redirect to find interview page
-        const timeoutId = setTimeout(() => {
-          navigate(ROUTES.FIND_PEER, { replace: true });
-        }, 100);
-        return () => clearTimeout(timeoutId);
-      }
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, [searchParams, activeSession, navigate]);
 
   useEffect(() => {
-    if (id && user?.id) {
+    if (id) {
       loadQuestion();
-      // Check session immediately and also after a short delay to ensure everything loads
-      checkActiveSession();
-      // Also check after a delay to catch any race conditions
-      const timeoutId = setTimeout(() => {
-        checkActiveSession();
-      }, 500);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [id, searchParams, user?.id]);
-
-  // Also check session when user becomes available
-  useEffect(() => {
-    if (user?.id && id) {
-      // Always check, even if activeSession exists, to ensure it's up to date
       checkActiveSession();
     }
-  }, [user?.id, id]);
-
-  // Initialize SignalR connection for session events (test results, role switching, question changes)
-  useEffect(() => {
-    if (!activeSession || !activeSession.intervieweeId || !user?.id) {
-      return;
-    }
-
-    const initializeSessionHub = async () => {
-      try {
-        const accessToken = localStorage.getItem('accessToken');
-        if (!accessToken) return;
-
-        const baseUrl = api.defaults.baseURL?.replace('/api', '') || 'http://localhost:5000';
-        const connection = new signalR.HubConnectionBuilder()
-          .withUrl(`${baseUrl}/api/collaboration/${activeSession.id}?access_token=${accessToken}`, {
-            transport: signalR.HttpTransportType.WebSockets,
-          })
-          .withAutomaticReconnect({
-            nextRetryDelayInMilliseconds: (retryContext) => {
-              // Show rejoin modal if connection fails
-              if (retryContext.previousRetryCount > 3 && !connectionLostRef.current) {
-                connectionLostRef.current = true;
-                setShowRejoinModal(true);
-              }
-              return Math.min(1000 * Math.pow(2, retryContext.previousRetryCount), 30000);
-            }
-          })
-          .build();
-
-        // Handle connection close (network error or kicked out)
-        connection.onclose((error) => {
-          if (error && !connectionLostRef.current) {
-            connectionLostRef.current = true;
-            setShowRejoinModal(true);
-          }
-        });
-
-        // Listen for test results
-        connection.on('TestResultsUpdated', (testResults: any) => {
-          setRunResult(testResults.runResult || null);
-          setTestResults(testResults.testResults || []);
-          setExecutionResult(testResults.executionResult || null);
-          setActiveTestTab('result');
-        });
-
-        // Listen for role switching
-        connection.on('RoleSwitched', async (data: { sessionId: string }) => {
-          try {
-            const updatedSession = await peerInterviewService.getSession(data.sessionId);
-            setActiveSession(updatedSession);
-            if (updatedSession.questionId && updatedSession.questionId !== id) {
-              navigate(`${ROUTES.QUESTIONS}/${updatedSession.questionId}?session=${updatedSession.id}`, { replace: false });
-            } else {
-              window.location.reload();
-            }
-          } catch (error) {
-            console.error('Error reloading session after role switch:', error);
-          }
-        });
-
-        // Listen for question changes
-        connection.on('QuestionChanged', async (data: { sessionId: string; questionId: string }) => {
-          try {
-            const updatedSession = await peerInterviewService.getSession(data.sessionId);
-            setActiveSession(updatedSession);
-            navigate(`${ROUTES.QUESTIONS}/${data.questionId}?session=${data.sessionId}`, { replace: false });
-          } catch (error) {
-            console.error('Error navigating to new question:', error);
-          }
-        });
-
-        await connection.start();
-        await connection.invoke('JoinSession', activeSession.id);
-        sessionHubConnectionRef.current = connection;
-      } catch (error) {
-        console.error('Failed to initialize session hub:', error);
-      }
-    };
-
-    initializeSessionHub();
-
-    return () => {
-      if (sessionHubConnectionRef.current) {
-        sessionHubConnectionRef.current.stop().catch(() => {});
-        sessionHubConnectionRef.current = null;
-      }
-    };
-  }, [activeSession?.id, activeSession?.intervieweeId, user?.id, id, navigate]);
+  }, [id, searchParams]);
 
   // Check for active peer interview session for this question
   const checkActiveSession = async () => {
@@ -233,95 +102,20 @@ export const QuestionDetailPage = () => {
       // First check if sessionId is in URL query params
       const sessionIdFromUrl = searchParams.get('session');
       if (sessionIdFromUrl) {
-        try {
-          const session = await peerInterviewService.getSession(sessionIdFromUrl);
-          if (session) {
-            // Check if user is part of this session
-            const isUserInSession = session.interviewerId === user.id || 
-                                   (session.intervieweeId && session.intervieweeId === user.id);
-            
-            if (isUserInSession) {
-              // User is in session - set it as active regardless of questionId match
-              // This allows session features even if question was changed
-              setActiveSession(session);
-              setShowPartnerVideo(true);
-              
-              // Start timer ONLY if both users have joined (status is InProgress AND intervieweeId is set)
-              if (session.status === 'InProgress' && session.intervieweeId) {
-                // Get session start time from localStorage or use current time
-                const storedStartTime = localStorage.getItem(`session_start_${sessionIdFromUrl}`);
-                if (storedStartTime) {
-                  setSessionStartTime(new Date(storedStartTime));
-                } else {
-                  // Timer starts when both users join - set start time now
-                  const startTime = new Date();
-                  setSessionStartTime(startTime);
-                  localStorage.setItem(`session_start_${sessionIdFromUrl}`, startTime.toISOString());
-                }
-              }
-              
-              // If questionId doesn't match, redirect to correct question
-              if (session.questionId && session.questionId !== id) {
-                navigate(`${ROUTES.QUESTIONS}/${session.questionId}?session=${sessionIdFromUrl}`, { replace: true });
-                return;
-              }
-              
-              // Update session status to InProgress if it's Scheduled AND both users have joined
-              if (session.status === 'Scheduled' && session.intervieweeId) {
-                try {
-                  await peerInterviewService.updateSessionStatus(sessionIdFromUrl, 'InProgress');
-                  setActiveSession({ ...session, status: 'InProgress' });
-                  // Start timer only when both users have joined
-                  const startTime = new Date();
-                  setSessionStartTime(startTime);
-                  localStorage.setItem(`session_start_${sessionIdFromUrl}`, startTime.toISOString());
-                } catch (error) {
-                  // Silently fail - status update is optional
-                }
-              }
-              return;
+        const session = await peerInterviewService.getSession(sessionIdFromUrl);
+        if (session && session.questionId === id) {
+          setActiveSession(session);
+          setShowPartnerVideo(true);
+          // Update session status to InProgress if it's Scheduled
+          if (session.status === 'Scheduled') {
+            try {
+              await peerInterviewService.updateSessionStatus(sessionIdFromUrl, 'InProgress');
+              setActiveSession({ ...session, status: 'InProgress' });
+            } catch (error) {
+              // Silently fail - status update is optional
             }
           }
-        } catch (error) {
-          console.error('Error loading session from URL:', error);
-          // Don't show rejoin modal immediately - try to reload session after a delay
-          // This handles cases where session is still being created
-          setTimeout(async () => {
-            try {
-              const retrySession = await peerInterviewService.getSession(sessionIdFromUrl);
-              if (retrySession) {
-                const isUserInSession = retrySession.interviewerId === user.id || 
-                                       (retrySession.intervieweeId && retrySession.intervieweeId === user.id);
-                if (isUserInSession) {
-                  setActiveSession(retrySession);
-                  setShowPartnerVideo(true);
-                  // Start timer if both users joined
-                  if (retrySession.status === 'InProgress' && retrySession.intervieweeId) {
-                    const storedStartTime = localStorage.getItem(`session_start_${sessionIdFromUrl}`);
-                    if (storedStartTime) {
-                      setSessionStartTime(new Date(storedStartTime));
-                    } else {
-                      const startTime = new Date();
-                      setSessionStartTime(startTime);
-                      localStorage.setItem(`session_start_${sessionIdFromUrl}`, startTime.toISOString());
-                    }
-                  }
-                  // Redirect if questionId doesn't match
-                  if (retrySession.questionId && retrySession.questionId !== id) {
-                    navigate(`${ROUTES.QUESTIONS}/${retrySession.questionId}?session=${sessionIdFromUrl}`, { replace: true });
-                  }
-                  return;
-                }
-              }
-            } catch (retryError) {
-              // Only show rejoin modal if retry also fails
-              if (sessionIdFromUrl && !connectionLostRef.current) {
-                connectionLostRef.current = true;
-                setShowRejoinModal(true);
-              }
-            }
-          }, 1000);
-          // Continue to check for other sessions
+          return;
         }
       }
       
@@ -331,34 +125,12 @@ export const QuestionDetailPage = () => {
         (session) =>
           session.questionId === id &&
           (session.status === 'InProgress' || session.status === 'Scheduled') &&
-          (session.interviewerId === user.id || (session.intervieweeId && session.intervieweeId === user.id))
+          (session.interviewerId === user.id || session.intervieweeId === user.id)
       );
       
       if (activeSession) {
         setActiveSession(activeSession);
         setShowPartnerVideo(true);
-        // Clear any rejoin modal since we found an active session
-        setShowRejoinModal(false);
-        connectionLostRef.current = false;
-        
-        // Force hide rejoin modal immediately
-        setTimeout(() => {
-          setShowRejoinModal(false);
-          connectionLostRef.current = false;
-        }, 0);
-        
-        // Start timer ONLY if both users have joined (status is InProgress AND intervieweeId is set)
-        if (activeSession.status === 'InProgress' && activeSession.intervieweeId) {
-          const storedStartTime = localStorage.getItem(`session_start_${activeSession.id}`);
-          if (storedStartTime) {
-            setSessionStartTime(new Date(storedStartTime));
-          } else {
-            // Timer starts when both users join - set start time now
-            const startTime = new Date();
-            setSessionStartTime(startTime);
-            localStorage.setItem(`session_start_${activeSession.id}`, startTime.toISOString());
-          }
-        }
       }
     } catch (error) {
       // Silently fail - session check is optional
@@ -846,18 +618,9 @@ export const QuestionDetailPage = () => {
       const updatedSession = await peerInterviewService.changeQuestion(activeSession.id);
       setActiveSession(updatedSession);
       
-      // Notify partner via SignalR
-      if (sessionHubConnectionRef.current && updatedSession.questionId) {
-        try {
-          await sessionHubConnectionRef.current.invoke('SendQuestionChanged', activeSession.id, updatedSession.questionId);
-        } catch (error) {
-          console.error('Failed to notify partner of question change:', error);
-        }
-      }
-      
-      // Navigate to the new question using replace to allow browser back button
+      // Navigate to the new question
       if (updatedSession.questionId) {
-        navigate(`${ROUTES.QUESTIONS}/${updatedSession.questionId}?session=${updatedSession.id}`, { replace: false });
+        window.location.href = `${ROUTES.QUESTIONS}/${updatedSession.questionId}?session=${updatedSession.id}`;
       } else {
         showToast('Question changed, but no new question was assigned', 'warning');
       }
@@ -870,123 +633,26 @@ export const QuestionDetailPage = () => {
   };
 
   const handleSwitchRole = async () => {
-    if (!activeSession || !user?.id || isSwitchingRole) return;
+    if (!activeSession || !user?.id) return;
 
     try {
       setIsSwitchingRole(true);
       const updatedSession = await peerInterviewService.switchRoles(activeSession.id);
+      setActiveSession(updatedSession);
       
-      // Reload the session to get fresh data
-      const freshSession = await peerInterviewService.getSession(updatedSession.id);
-      setActiveSession(freshSession);
-      
-      // Notify partner via SignalR
-      if (sessionHubConnectionRef.current) {
-        try {
-          await sessionHubConnectionRef.current.invoke('SendRoleSwitched', activeSession.id);
-        } catch (error) {
-          console.error('Failed to notify partner of role switch:', error);
-        }
-      }
-      
-      // Clear loading state before navigation to prevent spinner from staying
-      setIsSwitchingRole(false);
-      
-      // Navigate to the new question (if assigned) using replace to allow browser back button
-      if (freshSession.questionId && freshSession.questionId !== id) {
-        navigate(`${ROUTES.QUESTIONS}/${freshSession.questionId}?session=${freshSession.id}`, { replace: false });
+      // Navigate to the new question (if assigned)
+      if (updatedSession.questionId) {
+        window.location.href = `${ROUTES.QUESTIONS}/${updatedSession.questionId}?session=${updatedSession.id}`;
       } else {
-        // If same question, just reload the page to update role indicator
-        window.location.reload();
+        showToast('Roles switched successfully', 'success');
       }
     } catch (error: any) {
       const errorMessage = error?.response?.data?.message || 'Failed to switch roles';
       showToast(errorMessage, 'error');
-      setIsSwitchingRole(false); // Always clear loading state on error
-    }
-  };
-
-  const handleEndSession = async () => {
-    if (!activeSession || !user?.id || isEndingSession) return;
-    
-    if (!confirm('Are you sure you want to end this interview session?')) {
-      return;
-    }
-
-    try {
-      setIsEndingSession(true);
-      
-      // Update session status to Completed
-      await peerInterviewService.updateSessionStatus(activeSession.id, 'Completed');
-      
-      // Clear timer
-      if (activeSession.id) {
-        localStorage.removeItem(`session_start_${activeSession.id}`);
-      }
-      setSessionStartTime(null);
-      setElapsedTime(0);
-      
-      // Show survey
-      setShowSurvey(true);
-      setActiveSession(null);
-      setShowPartnerVideo(false);
-    } catch (error: any) {
-      console.error('Error ending session:', error);
-      showToast('Failed to end session', 'error');
     } finally {
-      setIsEndingSession(false);
+      setIsSwitchingRole(false);
     }
   };
-
-  const handleRejoin = () => {
-    setShowRejoinModal(false);
-    connectionLostRef.current = false;
-    if (activeSession) {
-      // Reload the page to reconnect
-      window.location.reload();
-    } else {
-      // Try to get session from URL
-      const sessionId = searchParams.get('session');
-      if (sessionId) {
-        window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
-      }
-    }
-  };
-
-  const handleSurveyComplete = () => {
-    setShowSurvey(false);
-    // Navigate to find peer page
-    navigate(ROUTES.FIND_PEER);
-  };
-
-  const formatTime = (seconds: number): string => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-  };
-
-  // Timer effect - update elapsedTime every second
-  useEffect(() => {
-    if (!sessionStartTime || !activeSession?.intervieweeId) {
-      setElapsedTime(0);
-      return;
-    }
-
-    const updateTimer = () => {
-      const now = new Date();
-      const elapsed = Math.floor((now.getTime() - sessionStartTime.getTime()) / 1000);
-      setElapsedTime(elapsed);
-    };
-
-    // Update immediately
-    updateTimer();
-
-    // Update every second
-    const intervalId = setInterval(updateTimer, 1000);
-
-    return () => clearInterval(intervalId);
-  }, [sessionStartTime, activeSession?.intervieweeId]);
 
   const loadQuestion = async () => {
     if (!id) return;
@@ -1063,19 +729,6 @@ export const QuestionDetailPage = () => {
       
       
       setRunResult(result);
-      
-      // Share test results with partner via SignalR
-      if (activeSession && activeSession.intervieweeId && sessionHubConnectionRef.current) {
-        try {
-          await sessionHubConnectionRef.current.invoke('SendTestResults', activeSession.id, {
-            runResult: result,
-            testResults: result.cases || [],
-            executionResult: null,
-          });
-        } catch (error) {
-          console.error('Failed to share test results:', error);
-        }
-      }
       
       // Auto-select first failing case, or Case 1 if all pass
       if (result.cases && result.cases.length > 0) {
@@ -1178,19 +831,6 @@ export const QuestionDetailPage = () => {
       const overallStatus = allPassed ? 'Accepted' : 'Wrong Answer';
       const passedCount = mappedResults.filter(r => r.passed).length;
       const totalCount = mappedResults.length;
-      
-      // Share test results with partner via SignalR
-      if (activeSession && activeSession.intervieweeId && sessionHubConnectionRef.current) {
-        try {
-          await sessionHubConnectionRef.current.invoke('SendTestResults', activeSession.id, {
-            runResult: null,
-            testResults: mappedResults,
-            executionResult: { status: overallStatus, passedCount, totalCount },
-          });
-        } catch (error) {
-          console.error('Failed to share test results:', error);
-        }
-      }
       
       // For submit: Show different results based on success/failure
       if (allPassed) {
@@ -1443,7 +1083,6 @@ export const QuestionDetailPage = () => {
           {activeSession && activeSession.status === 'InProgress' && (
             <>
               {/* Show current role */}
-              {activeSession.intervieweeId && (
               <div className="role-indicator" style={{ 
                 display: 'flex', 
                 alignItems: 'center', 
@@ -1458,9 +1097,8 @@ export const QuestionDetailPage = () => {
                 <i className={`fas ${activeSession.interviewerId === user?.id ? 'fa-user-tie' : 'fa-user'}`}></i>
                 {activeSession.interviewerId === user?.id ? 'Interviewer' : 'Interviewee'}
               </div>
-              )}
               {/* Change Question button - only for interviewer */}
-              {activeSession.interviewerId === user?.id && activeSession.intervieweeId && (
+              {activeSession.interviewerId === user?.id && (
                 <button
                   className="nav-icon-btn"
                   title="Change Question"
@@ -1480,7 +1118,6 @@ export const QuestionDetailPage = () => {
                 </button>
               )}
               {/* Switch Role button - for both */}
-              {activeSession.intervieweeId && (
               <button
                 className="nav-icon-btn"
                 title="Switch Role"
@@ -1498,46 +1135,6 @@ export const QuestionDetailPage = () => {
                   <i className="fas fa-exchange-alt"></i>
                 )}
               </button>
-              )}
-              {/* End Session button - for both */}
-              {activeSession.intervieweeId && (
-              <button
-                className="nav-icon-btn"
-                title="End Session"
-                onClick={handleEndSession}
-                disabled={isEndingSession}
-                style={{ 
-                  background: isEndingSession ? '#9ca3af' : '#ef4444',
-                  color: 'white',
-                  border: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.5rem 1rem'
-                }}
-              >
-                {isEndingSession ? (
-                  <i className="fas fa-spinner fa-spin"></i>
-                ) : (
-                  <i className="fas fa-stop"></i>
-                )}
-                <span>End Session</span>
-              </button>
-              )}
-              {/* Timer display */}
-              {activeSession.intervieweeId && sessionStartTime && (
-                <div className="nav-timer" style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '0.5rem',
-                  color: '#6b7280',
-                  fontSize: '0.875rem',
-                  fontWeight: '500'
-                }}>
-                  <i className="fas fa-clock"></i>
-                  <span>{formatTime(elapsedTime)}</span>
-                </div>
-              )}
             </>
           )}
           <button className="nav-icon-btn" title="Settings">
@@ -1546,29 +1143,7 @@ export const QuestionDetailPage = () => {
         </div>
       </nav>
 
-      {/* Rejoin Modal - Only show if connection lost, not for periodic notifications */}
-      {/* Periodic notifications are handled by SessionNotificationManager in App.tsx */}
-      {showRejoinModal && (
-        <RejoinModal
-          onRejoin={handleRejoin}
-          onFeedback={() => {
-            setShowRejoinModal(false);
-            if (activeSession) {
-              setShowSurvey(true);
-            }
-          }}
-        />
-      )}
-
-      {/* Survey Modal */}
-      {showSurvey && (activeSession || searchParams.get('session')) && (
-        <InterviewSurvey
-          sessionId={activeSession?.id || searchParams.get('session') || ''}
-          onComplete={handleSurveyComplete}
-        />
-      )}
-
-      {showPartnerVideo && activeSession && activeSession.intervieweeId && (
+      {showPartnerVideo && activeSession && (
         <DraggableVideo
           sessionId={activeSession.id}
           userId={user?.id || ''}
@@ -1593,23 +1168,18 @@ export const QuestionDetailPage = () => {
             >
               Description
             </button>
-            {/* Only show Hints and Solution tabs for interviewer or when not in an active session */}
-            {(!activeSession || activeSession.interviewerId === user?.id) && (
-              <>
-                <button
-                  className={`panel-tab ${activeTab === 'hints' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('hints')}
-                >
-                  Hints
-                </button>
-                <button
-                  className={`panel-tab ${activeTab === 'solution' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('solution')}
-                >
-                  Solution
-                </button>
-              </>
-            )}
+            <button
+              className={`panel-tab ${activeTab === 'hints' ? 'active' : ''}`}
+              onClick={() => setActiveTab('hints')}
+            >
+              Hints
+            </button>
+            <button
+              className={`panel-tab ${activeTab === 'solution' ? 'active' : ''}`}
+              onClick={() => setActiveTab('solution')}
+            >
+              Solution
+            </button>
           </div>
 
           {activeTab === 'description' && (
@@ -1765,8 +1335,7 @@ export const QuestionDetailPage = () => {
             </div>
           )}
 
-          {/* Only show hints content for interviewer or when not in an active session */}
-          {activeTab === 'hints' && (!activeSession || activeSession.interviewerId === user?.id) && (
+          {activeTab === 'hints' && (
             <div className="panel-content">
               <h2>Hints</h2>
               {question.hints && question.hints.length > 0 ? (
@@ -1808,8 +1377,7 @@ export const QuestionDetailPage = () => {
             </div>
           )}
 
-          {/* Only show solution content for interviewer or when not in an active session */}
-          {activeTab === 'solution' && (!activeSession || activeSession.interviewerId === user?.id) && (
+          {activeTab === 'solution' && (
             <div className="panel-content">
               <h2>Solution</h2>
               {solutions.length > 0 ? (
@@ -1974,7 +1542,7 @@ export const QuestionDetailPage = () => {
             </div>
 
             <div className="code-area" ref={codeAreaRef} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-              {activeSession && activeSession.status === 'InProgress' && activeSession.intervieweeId ? (
+              {activeSession && activeSession.status === 'InProgress' ? (
                 <CollaborativeCodeEditor
                   value={code}
                   language={selectedLanguage}
@@ -1984,12 +1552,6 @@ export const QuestionDetailPage = () => {
                   }}
                   sessionId={activeSession.id}
                   userId={user?.id || ''}
-                  peerUserId={
-                    activeSession.interviewerId === user?.id
-                      ? activeSession.intervieweeId
-                      : activeSession.interviewerId
-                  }
-                  isInterviewer={activeSession.interviewerId === user?.id}
                   onError={(error) => {
                     showToast(error, 'error');
                   }}

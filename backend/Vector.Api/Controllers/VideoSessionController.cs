@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using Vector.Api.Models;
@@ -7,7 +7,7 @@ using Vector.Api.Services;
 namespace Vector.Api.Controllers;
 
 [ApiController]
-[Route("api/video-sessions")]
+[Route("api/video-PeerInterviewSessions")]
 [Authorize]
 public class VideoSessionController : ControllerBase
 {
@@ -46,8 +46,8 @@ public class VideoSessionController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating video session");
-            return StatusCode(500, new { message = "An error occurred while creating the video session" });
+            _logger.LogError(ex, "Error creating video Session");
+            return StatusCode(500, new { message = "An error occurred while creating the video Session" });
         }
     }
 
@@ -59,15 +59,15 @@ public class VideoSessionController : ControllerBase
             var videoSession = await _videoSessionService.GetVideoSessionBySessionIdAsync(id);
             if (videoSession == null)
             {
-                return NotFound(new { message = "Video session not found" });
+                return NotFound(new { message = "Video Session not found" });
             }
 
             return Ok(new { token = videoSession.Token, videoSessionId = videoSession.Id });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting video session token");
-            return StatusCode(500, new { message = "An error occurred while getting the video session token" });
+            _logger.LogError(ex, "Error getting video Session token");
+            return StatusCode(500, new { message = "An error occurred while getting the video Session token" });
         }
     }
 
@@ -79,15 +79,15 @@ public class VideoSessionController : ControllerBase
             var videoSession = await _videoSessionService.GetVideoSessionByTokenAsync(token);
             if (videoSession == null)
             {
-                return NotFound(new { message = "Video session not found" });
+                return NotFound(new { message = "Video Session not found" });
             }
 
             return Ok(videoSession);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting video session by token");
-            return StatusCode(500, new { message = "An error occurred while getting the video session" });
+            _logger.LogError(ex, "Error getting video Session by token");
+            return StatusCode(500, new { message = "An error occurred while getting the video Session" });
         }
     }
 
@@ -118,15 +118,15 @@ public class VideoSessionController : ControllerBase
             var success = await _videoSessionService.EndVideoSessionAsync(id);
             if (!success)
             {
-                return NotFound(new { message = "Video session not found" });
+                return NotFound(new { message = "Video Session not found" });
             }
 
-            return Ok(new { message = "Video session ended" });
+            return Ok(new { message = "Video Session ended" });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error ending video session");
-            return StatusCode(500, new { message = "An error occurred while ending the video session" });
+            _logger.LogError(ex, "Error ending video Session");
+            return StatusCode(500, new { message = "An error occurred while ending the video Session" });
         }
     }
 
@@ -140,14 +140,14 @@ public class VideoSessionController : ControllerBase
             
             if (videoSession == null)
             {
-                return NotFound(new { message = "Video session not found" });
+                return NotFound(new { message = "Video Session not found" });
             }
 
-            // Verify user has access to this session
-            var session = videoSession.Session;
-            if (session.InterviewerId != userId && session.IntervieweeId != userId)
+            // Verify user has access to this Session
+            var Session = videoSession.Session;
+            if (Session.InterviewerId != userId && Session.IntervieweeId != userId)
             {
-                return Forbid("You do not have access to this session");
+                return Forbid("You do not have access to this Session");
             }
 
             // Store the offer in signaling data
@@ -179,14 +179,14 @@ public class VideoSessionController : ControllerBase
             
             if (videoSession == null)
             {
-                return NotFound(new { message = "Video session not found" });
+                return NotFound(new { message = "Video Session not found" });
             }
 
-            // Verify user has access to this session
-            var session = videoSession.Session;
-            if (session.InterviewerId != userId && session.IntervieweeId != userId)
+            // Verify user has access to this Session
+            var Session = videoSession.Session;
+            if (Session.InterviewerId != userId && Session.IntervieweeId != userId)
             {
-                return Forbid("You do not have access to this session");
+                return Forbid("You do not have access to this Session");
             }
 
             // Store the answer in signaling data
@@ -218,14 +218,14 @@ public class VideoSessionController : ControllerBase
             
             if (videoSession == null)
             {
-                return NotFound(new { message = "Video session not found" });
+                return NotFound(new { message = "Video Session not found" });
             }
 
-            // Verify user has access to this session
-            var session = videoSession.Session;
-            if (session.InterviewerId != userId && session.IntervieweeId != userId)
+            // Verify user has access to this Session
+            var Session = videoSession.Session;
+            if (Session.InterviewerId != userId && Session.IntervieweeId != userId)
             {
-                return Forbid("You do not have access to this session");
+                return Forbid("You do not have access to this Session");
             }
 
             // Store ICE candidate in signaling data
@@ -269,14 +269,14 @@ public class VideoSessionController : ControllerBase
             
             if (videoSession == null)
             {
-                return NotFound(new { message = "Video session not found" });
+                return NotFound(new { message = "Video Session not found" });
             }
 
-            // Verify user has access to this session
-            var session = videoSession.Session;
-            if (session.InterviewerId != userId && session.IntervieweeId != userId)
+            // Verify user has access to this Session
+            var Session = videoSession.Session;
+            if (Session.InterviewerId != userId && Session.IntervieweeId != userId)
             {
-                return Forbid("You do not have access to this session");
+                return Forbid("You do not have access to this Session");
             }
 
             return Ok(new { signalingData = videoSession.SignalingData });
@@ -315,4 +315,8 @@ public class UpdateSignalingDataRequest
 {
     public string SignalingData { get; set; } = string.Empty;
 }
+
+
+
+
 

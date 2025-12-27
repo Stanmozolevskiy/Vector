@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Logging;
 using System.Security.Claims;
@@ -74,4 +74,8 @@ public class AuthorizeRoleAttribute : Attribute, IAuthorizationFilter
             userRole, string.Join(", ", _roles), context.HttpContext.Request.Path);
     }
 }
+
+
+
+
 

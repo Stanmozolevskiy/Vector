@@ -1,4 +1,4 @@
-namespace Vector.Api.DTOs.Solution;
+﻿namespace Vector.Api.DTOs.Solution;
 
 public class UserSolutionDto
 {
@@ -16,4 +16,8 @@ public class UserSolutionDto
     public DateTime SubmittedAt { get; set; }
     public List<SolutionSubmissionDto> TestCaseResults { get; set; } = new();
 }
+
+
+
+
 

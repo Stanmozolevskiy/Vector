@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Stripe;
 
 namespace Vector.Api.Services;
@@ -76,4 +76,8 @@ public class StripeService : IStripeService
         return Task.CompletedTask;
     }
 }
+
+
+
+
 

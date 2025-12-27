@@ -1,4 +1,4 @@
-namespace Vector.Api.DTOs.Common;
+﻿namespace Vector.Api.DTOs.Common;
 
 /// <summary>
 /// Standard API error response format
@@ -29,4 +29,8 @@ public class ApiErrorResponse
         };
     }
 }
+
+
+
+
 

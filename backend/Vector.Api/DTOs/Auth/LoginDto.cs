@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Vector.Api.DTOs.Auth;
 
@@ -11,4 +11,8 @@ public class LoginDto
     [Required]
     public string Password { get; set; } = string.Empty;
 }
+
+
+
+
 

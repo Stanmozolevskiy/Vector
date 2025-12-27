@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Vector.Api.DTOs.Common;
 using Vector.Api.DTOs.User;
@@ -68,7 +68,7 @@ public class UserController : ControllerBase
                 return NotFound(new ApiErrorResponse("User not found", "USER_NOT_FOUND"));
             }
 
-            // Cache user session in Redis for 5 minutes
+            // Cache user Session in Redis for 5 minutes
             await _redisService.CacheUserSessionAsync(userId, user, TimeSpan.FromMinutes(5));
             _logger.LogInformation("User {UserId} fetched from database and cached in Redis", userId);
         }
@@ -332,4 +332,8 @@ public class UserController : ControllerBase
     // TODO: Implement remaining endpoints
     // - GET /api/users/:id (public profile view)
 }
+
+
+
+
 

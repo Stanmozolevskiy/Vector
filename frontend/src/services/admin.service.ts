@@ -1,4 +1,4 @@
-import api from './api';
+﻿import api from './api';
 
 export interface User {
   id: string;
@@ -22,4 +22,6 @@ export const adminService = {
     await api.delete(`/admin/users/${userId}`);
   },
 };
+
+
 

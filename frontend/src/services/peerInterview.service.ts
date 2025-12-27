@@ -5,6 +5,7 @@ export interface PeerInterviewSession {
   interviewerId: string;
   intervieweeId: string;
   questionId?: string;
+  secondQuestionId?: string;
   status: 'Scheduled' | 'InProgress' | 'Completed' | 'Cancelled';
   scheduledTime?: string;
   duration: number;
@@ -27,6 +28,11 @@ export interface PeerInterviewSession {
     email: string;
   };
   question?: {
+    id: string;
+    title: string;
+    difficulty: string;
+  };
+  secondQuestion?: {
     id: string;
     title: string;
     difficulty: string;

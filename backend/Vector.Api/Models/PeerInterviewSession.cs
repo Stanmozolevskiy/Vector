@@ -21,6 +21,14 @@ public class PeerInterviewSession
     public Guid? QuestionId { get; set; }
     public InterviewQuestion? Question { get; set; }
 
+    /// <summary>
+    /// Second question for the session (for the interviewee to answer when roles switch)
+    /// This is the question from session2 (the matched user's original session)
+    /// </summary>
+    [ForeignKey("SecondQuestion")]
+    public Guid? SecondQuestionId { get; set; }
+    public InterviewQuestion? SecondQuestion { get; set; }
+
     [Required]
     [MaxLength(50)]
     public string Status { get; set; } = "Scheduled"; // Scheduled, InProgress, Completed, Cancelled

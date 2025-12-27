@@ -656,6 +656,7 @@ Have more questions? Take a quick visit to our FAQ page. If you scheduled by mis
                         session = new {
                             id = finalSession.Id.ToString(),
                             questionId = finalSession.QuestionId?.ToString(),
+                            secondQuestionId = finalSession.SecondQuestionId?.ToString(),
                             interviewerId = finalSession.InterviewerId.ToString(),
                             intervieweeId = finalSession.IntervieweeId?.ToString(),
                             status = finalSession.Status
@@ -698,6 +699,7 @@ Have more questions? Take a quick visit to our FAQ page. If you scheduled by mis
                     session = new {
                         id = sessionToReturn.Id.ToString(),
                         questionId = sessionToReturn.QuestionId?.ToString(),
+                        secondQuestionId = sessionToReturn.SecondQuestionId?.ToString(),
                         interviewerId = sessionToReturn.InterviewerId.ToString(),
                         intervieweeId = sessionToReturn.IntervieweeId?.ToString(),
                         status = sessionToReturn.Status

@@ -183,6 +183,7 @@ public class PeerInterviewService : IPeerInterviewService
             .Include(s => s.Interviewer)
             .Include(s => s.Interviewee)
             .Include(s => s.Question)
+            .Include(s => s.SecondQuestion)
             .FirstOrDefaultAsync(s => s.Id == sessionId);
     }
 
@@ -780,27 +781,40 @@ public class PeerInterviewService : IPeerInterviewService
             .Include(r => r.ScheduledSession)
             .Include(r => r.MatchedRequest)
             .ThenInclude(r => r.ScheduledSession)
-            .FirstOrDefaultAsync(r => r.Id == matchingRequestId);
+            .FirstOrDefaultAsync(r => r.Id == matchingRequestId || r.MatchedRequestId == matchingRequestId);
 
-        if (request == null)
+        if (request == null || request.Status != "Matched")
         {
-            // Try finding by MatchedRequestId (in case we're looking for the other side of the match)
-            request = await _context.InterviewMatchingRequests
+            return null;
+        }
+
+        // CRITICAL FIX: Always find the primary request (the one created first)
+        // This ensures session1 is always the same regardless of which request ID is passed
+        InterviewMatchingRequest primaryRequest = request;
+        
+        if (request.MatchedRequest != null)
+        {
+            // Get both requests to compare CreatedAt
+            var request1 = await _context.InterviewMatchingRequests
                 .Include(r => r.ScheduledSession)
-                .Include(r => r.MatchedRequest)
-                .ThenInclude(r => r.ScheduledSession)
-                .FirstOrDefaultAsync(r => r.MatchedRequestId == matchingRequestId);
+                .FirstOrDefaultAsync(r => r.Id == request.Id);
+            var request2 = await _context.InterviewMatchingRequests
+                .Include(r => r.ScheduledSession)
+                .FirstOrDefaultAsync(r => r.Id == request.MatchedRequest.Id);
             
-            if (request != null && request.MatchedRequest != null)
+            if (request1 != null && request2 != null)
             {
-                // Get the actual matched request
-                request = await _context.InterviewMatchingRequests
-                    .Include(r => r.ScheduledSession)
-                    .Include(r => r.MatchedRequest)
-                    .ThenInclude(r => r.ScheduledSession)
-                    .FirstOrDefaultAsync(r => r.Id == request.MatchedRequest.Id);
+                // Primary request is the one created first (oldest)
+                primaryRequest = request1.CreatedAt <= request2.CreatedAt ? request1 : request2;
             }
         }
+
+        // Reload primary request with all includes
+        request = await _context.InterviewMatchingRequests
+            .Include(r => r.ScheduledSession)
+            .Include(r => r.MatchedRequest)
+            .ThenInclude(r => r.ScheduledSession)
+            .FirstOrDefaultAsync(r => r.Id == primaryRequest.Id);
 
         if (request == null || request.Status != "Matched")
         {
@@ -813,7 +827,7 @@ public class PeerInterviewService : IPeerInterviewService
             return null; // Not ready yet
         }
 
-        // Get both sessions
+        // Get both sessions - session1 is from the primary request
         var session1 = request.ScheduledSession;
         var session2 = request.MatchedRequest?.ScheduledSession;
 
@@ -829,45 +843,51 @@ public class PeerInterviewService : IPeerInterviewService
         session1.Status = "InProgress";
         session1.UpdatedAt = DateTime.UtcNow;
 
-        // Ensure session1 has a question - assign one based on interview level
-        // If both sessions have the same question, assign a different random question
-        Guid? finalQuestionId = null;
+        // CRITICAL FIX: Assign BOTH questions to the merged session
+        // QuestionId = question for interviewer (User 1's question from session1)
+        // SecondQuestionId = question for interviewee (User 2's question from session2)
+        // Both users will redirect to the FIRST question (QuestionId)
         
-        if (session1.QuestionId.HasValue && session2.QuestionId.HasValue)
+        // Ensure session1 has a question for the interviewer (first question)
+        if (!session1.QuestionId.HasValue)
         {
-            // Both have questions - check if they're the same
-            if (session1.QuestionId.Value == session2.QuestionId.Value)
+            // If session1 doesn't have a question, assign one based on interview level
+            if (!string.IsNullOrEmpty(session1.InterviewLevel))
             {
-                // Same question - assign a different random question
-                finalQuestionId = await AssignQuestionByLevelAsync(session1.InterviewLevel, session1.QuestionId.Value);
-            }
-            else
-            {
-                // Different questions - use session1's question (or randomly pick one)
-                finalQuestionId = session1.QuestionId.Value;
+                session1.QuestionId = await AssignQuestionByLevelAsync(session1.InterviewLevel);
             }
         }
-        else if (session1.QuestionId.HasValue)
+        
+        // Assign second question for the interviewee (from session2)
+        if (session2.QuestionId.HasValue)
         {
-            // Only session1 has a question
-            finalQuestionId = session1.QuestionId.Value;
+            // Use session2's question as the second question
+            session1.SecondQuestionId = session2.QuestionId.Value;
         }
-        else if (session2.QuestionId.HasValue)
+        else
         {
-            // Only session2 has a question
-            finalQuestionId = session2.QuestionId.Value;
+            // If session2 doesn't have a question, assign one based on interview level
+            // Make sure it's different from the first question
+            if (!string.IsNullOrEmpty(session1.InterviewLevel))
+            {
+                var secondQuestionId = await AssignQuestionByLevelAsync(session1.InterviewLevel, session1.QuestionId);
+                if (secondQuestionId.HasValue)
+                {
+                    session1.SecondQuestionId = secondQuestionId.Value;
+                }
+            }
         }
         
-        // If still no question, assign a random one based on interview level
-        if (!finalQuestionId.HasValue && !string.IsNullOrEmpty(session1.InterviewLevel))
+        // If both sessions had the same question, ensure second question is different
+        if (session1.QuestionId.HasValue && session1.SecondQuestionId.HasValue && 
+            session1.QuestionId.Value == session1.SecondQuestionId.Value)
         {
-            finalQuestionId = await AssignQuestionByLevelAsync(session1.InterviewLevel);
-        }
-        
-        // Set the final question for session1 (the merged session)
-        if (finalQuestionId.HasValue)
-        {
-            session1.QuestionId = finalQuestionId;
+            // Same question - assign a different random question for the second one
+            var differentQuestionId = await AssignQuestionByLevelAsync(session1.InterviewLevel, session1.QuestionId.Value);
+            if (differentQuestionId.HasValue)
+            {
+                session1.SecondQuestionId = differentQuestionId.Value;
+            }
         }
 
         // Mark session2 as merged/cancelled
@@ -907,10 +927,55 @@ public class PeerInterviewService : IPeerInterviewService
             return null;
         }
 
-        // If both confirmed, complete the match and return the merged session
-        if (request.UserConfirmed && request.MatchedUserConfirmed)
+        // CRITICAL FIX: Always find and return the primary session (session1)
+        // The primary session is the one from the request that was created FIRST (oldest)
+        // This ensures both users always get the same session regardless of which request ID is passed
+        InterviewMatchingRequest primaryRequest = request;
+        
+        // If this request has a matched request, compare CreatedAt to find the primary one
+        if (request.MatchedRequest != null)
         {
-            var completedSession = await CompleteMatchAsync(matchingRequestId);
+            // Get both requests with CreatedAt to compare
+            var request1 = await _context.InterviewMatchingRequests
+                .Include(r => r.ScheduledSession)
+                .FirstOrDefaultAsync(r => r.Id == request.Id);
+            var request2 = await _context.InterviewMatchingRequests
+                .Include(r => r.ScheduledSession)
+                .FirstOrDefaultAsync(r => r.Id == request.MatchedRequest.Id);
+            
+            if (request1 != null && request2 != null)
+            {
+                // Primary request is the one created first (oldest)
+                primaryRequest = request1.CreatedAt <= request2.CreatedAt ? request1 : request2;
+            }
+        }
+
+        // Reload primary request with all includes
+        var finalPrimaryRequest = await _context.InterviewMatchingRequests
+            .Include(r => r.ScheduledSession)
+                .ThenInclude(s => s.Question)
+            .Include(r => r.ScheduledSession)
+                .ThenInclude(s => s.SecondQuestion)
+            .FirstOrDefaultAsync(r => r.Id == primaryRequest.Id);
+
+        if (finalPrimaryRequest == null || finalPrimaryRequest.ScheduledSession == null)
+        {
+            return null;
+        }
+
+        var primarySession = finalPrimaryRequest.ScheduledSession;
+
+        // Get the matched request to check both confirmations
+        var matchedRequest = finalPrimaryRequest.MatchedRequestId.HasValue
+            ? await _context.InterviewMatchingRequests
+                .FirstOrDefaultAsync(r => r.Id == finalPrimaryRequest.MatchedRequestId)
+            : null;
+
+        // If both confirmed, complete the match and return the merged session
+        // Both users are confirmed when: primaryRequest.UserConfirmed && primaryRequest.MatchedUserConfirmed
+        if (finalPrimaryRequest.UserConfirmed && finalPrimaryRequest.MatchedUserConfirmed)
+        {
+            var completedSession = await CompleteMatchAsync(finalPrimaryRequest.Id);
             if (completedSession != null)
             {
                 return completedSession;
@@ -920,29 +985,20 @@ public class PeerInterviewService : IPeerInterviewService
         // NEW BEHAVIOR: Return the primary session (session1) immediately
         // This allows both users to be redirected to the same session right away
         // The session will be "completed" when both confirm, but users can start before that
-        // Use session1 as the primary session (the one from the original request)
-        var primarySession = request.ScheduledSession;
-        
-        if (primarySession != null)
+        // Ensure session has a question assigned so both users get the same question
+        if (!primarySession.QuestionId.HasValue && !string.IsNullOrEmpty(primarySession.InterviewLevel))
         {
-            // Ensure session has a question assigned so both users get the same question
-            if (!primarySession.QuestionId.HasValue && !string.IsNullOrEmpty(primarySession.InterviewLevel))
+            var questionId = await AssignQuestionByLevelAsync(primarySession.InterviewLevel);
+            if (questionId.HasValue)
             {
-                var questionId = await AssignQuestionByLevelAsync(primarySession.InterviewLevel);
-                if (questionId.HasValue)
-                {
-                    primarySession.QuestionId = questionId;
-                    primarySession.UpdatedAt = DateTime.UtcNow;
-                    await _context.SaveChangesAsync();
-                }
+                primarySession.QuestionId = questionId;
+                primarySession.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
             }
-            
-            // If match isn't completed yet, we can still return session1
-            // When both confirm, CompleteMatchAsync will merge and update it
-            return primarySession;
         }
-
-        return null;
+        
+        // Return the primary session - both users will always get the same session
+        return primarySession;
     }
 }
 

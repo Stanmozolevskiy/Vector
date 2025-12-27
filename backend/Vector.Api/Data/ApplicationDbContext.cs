@@ -287,6 +287,10 @@ public class ApplicationDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(e => e.QuestionId)
                 .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(e => e.SecondQuestion)
+                .WithMany()
+                .HasForeignKey(e => e.SecondQuestionId)
+                .OnDelete(DeleteBehavior.SetNull);
             
             entity.HasIndex(e => e.InterviewerId);
             entity.HasIndex(e => e.IntervieweeId);

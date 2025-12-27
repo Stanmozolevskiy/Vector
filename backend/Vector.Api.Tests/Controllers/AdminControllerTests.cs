@@ -262,5 +262,96 @@ public class AdminControllerTests : IDisposable
         // Assert
         Assert.IsType<NotFoundObjectResult>(result);
     }
+
+    [Fact]
+    public async Task DeleteUser_WithRelatedData_CleansUpAndDeletesUser()
+    {
+        // Arrange
+        await SeedTestUsers();
+        var user = await _context.Users.FirstAsync(u => u.Role == "student");
+        var otherUser = await _context.Users.FirstAsync(u => u.Id != user.Id);
+        var adminId = Guid.NewGuid();
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = CreateClaimsPrincipal(adminId) }
+        };
+
+        // Create a question for the session
+        var question = new InterviewQuestion
+        {
+            Id = Guid.NewGuid(),
+            Title = "Test Question",
+            Difficulty = "Easy",
+            IsActive = true,
+            ApprovalStatus = "Approved",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        _context.InterviewQuestions.Add(question);
+        await _context.SaveChangesAsync();
+
+        // Create a session where user is interviewer
+        var session = new PeerInterviewSession
+        {
+            Id = Guid.NewGuid(),
+            InterviewerId = user.Id,
+            IntervieweeId = otherUser.Id,
+            QuestionId = question.Id,
+            Status = "Scheduled",
+            ScheduledTime = DateTime.UtcNow.AddHours(1),
+            Duration = 45,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        _context.PeerInterviewSessions.Add(session);
+        await _context.SaveChangesAsync();
+
+        // Create participant record
+        var participant = new UserSessionParticipant
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            SessionId = session.Id,
+            Role = "Interviewer",
+            Status = "Active",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        _context.UserSessionParticipants.Add(participant);
+
+        // Create matching request
+        var matchingRequest = new InterviewMatchingRequest
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            ScheduledSessionId = session.Id,
+            Status = "Pending",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        _context.InterviewMatchingRequests.Add(matchingRequest);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _controller.DeleteUser(user.Id);
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        
+        // Verify user was deleted
+        var deletedUser = await _context.Users.FindAsync(user.Id);
+        Assert.Null(deletedUser);
+
+        // Verify related data was cleaned up
+        var deletedParticipant = await _context.UserSessionParticipants.FindAsync(participant.Id);
+        Assert.Null(deletedParticipant);
+
+        var deletedMatchingRequest = await _context.InterviewMatchingRequests.FindAsync(matchingRequest.Id);
+        Assert.Null(deletedMatchingRequest);
+
+        // Verify session was deleted (sessions are deleted when user is deleted)
+        var deletedSession = await _context.PeerInterviewSessions.FindAsync(session.Id);
+        Assert.Null(deletedSession);
+    }
 }
 

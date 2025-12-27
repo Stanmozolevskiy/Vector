@@ -177,12 +177,101 @@ public class AdminController : ControllerBase
                 }
             }
 
+            // Handle foreign key constraints by cleaning up related data
+            // Delete PeerInterviewSessions where user is involved (has Restrict constraint)
+            // We need to delete sessions entirely since we can't set foreign keys to null with Restrict
+            var sessionsAsInterviewer = await _context.PeerInterviewSessions
+                .Where(s => s.InterviewerId == userId)
+                .ToListAsync();
+            
+            var sessionsAsInterviewee = await _context.PeerInterviewSessions
+                .Where(s => s.IntervieweeId == userId)
+                .ToListAsync();
+            
+            // Get all unique sessions (user might be both interviewer and interviewee in different sessions)
+            var allSessions = sessionsAsInterviewer
+                .Concat(sessionsAsInterviewee)
+                .GroupBy(s => s.Id)
+                .Select(g => g.First())
+                .ToList();
+            
+            // Delete all related data for these sessions first
+            if (allSessions.Any())
+            {
+                var sessionIds = allSessions.Select(s => s.Id).ToList();
+                
+                // Delete VideoSessions for these sessions (has Cascade on SessionId, but explicit deletion is safer)
+                try
+                {
+                    var videoSessions = await _context.VideoSessions
+                        .Where(v => sessionIds.Contains(v.SessionId))
+                        .ToListAsync();
+                    if (videoSessions.Any())
+                    {
+                        _context.VideoSessions.RemoveRange(videoSessions);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error deleting VideoSessions for user {UserId}, continuing with deletion", userId);
+                }
+                
+                // Delete all participants for these sessions
+                var participantsToDelete = await _context.UserSessionParticipants
+                    .Where(p => sessionIds.Contains(p.SessionId))
+                    .ToListAsync();
+                if (participantsToDelete.Any())
+                {
+                    _context.UserSessionParticipants.RemoveRange(participantsToDelete);
+                }
+                
+                // Delete all matching requests for these sessions
+                var matchingRequestsForSessions = await _context.InterviewMatchingRequests
+                    .Where(r => sessionIds.Contains(r.ScheduledSessionId))
+                    .ToListAsync();
+                if (matchingRequestsForSessions.Any())
+                {
+                    _context.InterviewMatchingRequests.RemoveRange(matchingRequestsForSessions);
+                }
+                
+                // Now delete the sessions
+                _context.PeerInterviewSessions.RemoveRange(allSessions);
+            }
+
+            // Delete UserSessionParticipants where user is participant (has Restrict constraint)
+            // Do this after deleting sessions to avoid conflicts
+            var userParticipants = await _context.UserSessionParticipants
+                .Where(p => p.UserId == userId)
+                .ToListAsync();
+            if (userParticipants.Any())
+            {
+                _context.UserSessionParticipants.RemoveRange(userParticipants);
+            }
+
+            // Delete InterviewMatchingRequests where user is involved (has Restrict constraint)
+            var matchingRequests = await _context.InterviewMatchingRequests
+                .Where(r => r.UserId == userId || r.MatchedUserId == userId)
+                .ToListAsync();
+            if (matchingRequests.Any())
+            {
+                _context.InterviewMatchingRequests.RemoveRange(matchingRequests);
+            }
+
+            // Save changes before deleting user
+            await _context.SaveChangesAsync();
+
+            // Now delete the user
             _context.Users.Remove(user);
             await _context.SaveChangesAsync();
 
             _logger.LogInformation("User {UserId} deleted by admin", userId);
 
             return Ok(new { message = "User deleted successfully" });
+        }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogError(ex, "Database error while deleting user {UserId}", userId);
+            return StatusCode(500, new { message = "Failed to delete user due to database constraints. Please ensure all related data is cleaned up." });
         }
         catch (Exception ex)
         {

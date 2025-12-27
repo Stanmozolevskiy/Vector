@@ -13,7 +13,17 @@ public interface ICodeExecutionService
     Task<ExecutionResultDto> ExecuteCodeAsync(ExecutionRequestDto request);
 
     /// <summary>
-    /// Validate code against all test cases for a question
+    /// Run code against visible (non-hidden) test cases for a question (for "Run" button)
+    /// </summary>
+    Task<TestResultDto[]> RunCodeAsync(Guid questionId, ExecutionRequestDto request);
+
+    /// <summary>
+    /// Run code with line-based testcase input (new UI format)
+    /// </summary>
+    Task<RunResultDto> RunCodeWithTestCasesAsync(Guid questionId, RunCodeWithTestCasesDto request);
+
+    /// <summary>
+    /// Validate code against all test cases for a question, including hidden ones (for "Submit" button)
     /// </summary>
     Task<TestResultDto[]> ValidateSolutionAsync(Guid questionId, ExecutionRequestDto request);
 

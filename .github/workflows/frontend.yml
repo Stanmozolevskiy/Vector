@@ -167,7 +167,7 @@ jobs:
     name: Deploy to Staging
     runs-on: ubuntu-latest
     needs: [build-and-test, build-docker-image]
-    if: github.ref == 'refs/heads/staging' && github.event_name == 'push'
+    if: false  # DISABLED: Staging environment is disabled
     environment:
       name: staging
       url: https://staging.vector.com  # Update with actual staging URL

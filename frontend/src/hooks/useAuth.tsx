@@ -68,6 +68,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('accessToken', response.accessToken);
     if (response.refreshToken) {
       localStorage.setItem('refreshToken', response.refreshToken);
+      // Trigger storage event to start proactive token refresh
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: 'refreshToken',
+          newValue: response.refreshToken,
+          storageArea: localStorage
+        }));
+      }
     }
     localStorage.setItem('tokenType', response.tokenType);
     await fetchUser();

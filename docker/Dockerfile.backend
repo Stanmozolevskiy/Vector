@@ -17,5 +17,6 @@ RUN dotnet publish "Vector.Api.csproj" -c Release -o /app/publish
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+# XML documentation file is included in publish output if it exists
 ENTRYPOINT ["dotnet", "Vector.Api.dll"]
 

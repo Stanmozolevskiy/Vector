@@ -3,8 +3,10 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
+using System.Security.Claims;
 using System.Text;
 using Vector.Api.Data;
+using Vector.Api.Hubs;
 using Vector.Api.Middleware;
 using Vector.Api.Services;
 
@@ -20,8 +22,16 @@ builder.Services.AddSwaggerGen(c =>
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
     if (File.Exists(xmlPath))
     {
-        c.IncludeXmlComments(xmlPath);
+        c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
     }
+    
+    // Ensure all controllers are discovered
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.OpenApiInfo
+    {
+        Title = "Vector API",
+        Version = "v1",
+        Description = "Vector Interview Preparation Platform API"
+    });
     
     // JWT Bearer authentication for Swagger UI
     // Note: Swagger JWT auth can be added later if needed
@@ -82,7 +92,27 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidAudience = builder.Configuration["Jwt:Audience"],
         ValidateLifetime = true,
-        ClockSkew = TimeSpan.Zero
+        ClockSkew = TimeSpan.Zero,
+        // Map JWT claim names to ASP.NET Core claim types
+        NameClaimType = ClaimTypes.NameIdentifier,
+        RoleClaimType = ClaimTypes.Role
+    };
+    
+    // Configure JWT for SignalR
+    options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            
+            // If the request is for the SignalR hub, get the token from query string
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/api/collaboration"))
+            {
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        }
     };
 });
 
@@ -99,8 +129,38 @@ builder.Services.AddScoped<IS3Service, S3Service>();
 builder.Services.AddScoped<ICoachService, CoachService>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<IQuestionService, QuestionService>();
-// CodeExecutionService will be implemented in Week 2, Day 7-8
-// builder.Services.AddScoped<ICodeExecutionService, CodeExecutionService>();
+builder.Services.AddScoped<ISolutionService, SolutionService>();
+builder.Services.AddScoped<ICodeDraftService, CodeDraftService>();
+builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
+builder.Services.AddScoped<IPeerInterviewService, PeerInterviewService>();
+builder.Services.AddScoped<IVideoSessionService, VideoSessionService>();
+
+// SignalR for real-time collaboration
+builder.Services.AddSignalR();
+
+// Code Execution Service (Judge0 Official API)
+builder.Services.AddHttpClient(nameof(CodeExecutionService), (serviceProvider, client) =>
+{
+    var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+    var judge0Url = configuration["Judge0:BaseUrl"] ?? "https://ce.judge0.com";
+    var judge0ApiKey = configuration["Judge0:ApiKey"];
+    
+    client.BaseAddress = new Uri(judge0Url);
+    client.Timeout = TimeSpan.FromSeconds(60); // Increased timeout for API calls
+    
+    // Clear default headers
+    client.DefaultRequestHeaders.Clear();
+    client.DefaultRequestHeaders.Accept.Clear();
+    client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+    
+    // Add API key header if provided (for paid tier)
+    if (!string.IsNullOrEmpty(judge0ApiKey))
+    {
+        client.DefaultRequestHeaders.Add("X-RapidAPI-Key", judge0ApiKey);
+        client.DefaultRequestHeaders.Add("X-RapidAPI-Host", "judge0-ce.p.rapidapi.com");
+    }
+});
+builder.Services.AddScoped<ICodeExecutionService, CodeExecutionService>();
 // builder.Services.AddScoped<IStripeService, StripeService>();
 
 // CORS
@@ -111,7 +171,9 @@ builder.Services.AddCors(options =>
         policy.WithOrigins(
                 builder.Configuration["Frontend:Url"] ?? "http://localhost:3000",
                 "http://localhost:3000",
-                "http://127.0.0.1:3000"
+                "http://localhost:5173",
+                "http://127.0.0.1:3000",
+                "http://127.0.0.1:5173"
               )
               .AllowAnyHeader()
               .AllowAnyMethod()
@@ -157,6 +219,9 @@ app.UseAuthorization();
 // app.UseMiddleware<ErrorHandlingMiddleware>(); // Will be created later
 
 app.MapControllers();
+
+// Map SignalR hub
+app.MapHub<CollaborationHub>("/api/collaboration/{sessionId}");
 
 // Health check endpoints are handled by HealthController
 // Removed duplicate MapGet endpoints to avoid conflicts

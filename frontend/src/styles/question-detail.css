@@ -6,9 +6,9 @@
 
 /* Top Navigation */
 .question-navbar {
-    height: 50px;
-    background: white;
-    border-bottom: 1px solid #e5e7eb;
+    height: 45px; /* 10% smaller (was 50px) */
+    background: #f0f0f0; /* Match page background */
+    border-bottom: none; /* Remove border to blend with background */
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -113,33 +113,41 @@
 .question-detail-page {
     height: 100vh;
     overflow: hidden;
+    background: #f0f0f0; /* Page background color */
 }
 
 .question-container {
     display: flex;
-    height: calc(100vh - 50px);
-    margin-top: 50px;
-    background: #f9fafb;
+    height: calc(100vh - 45px); /* Updated to match navbar height */
+    margin-top: 45px; /* Updated to match navbar height */
+    background: transparent; /* Transparent so page background shows through */
+    padding: 0; /* External gap around all sections */
 }
 
 /* Description Panel */
 .description-panel {
-    width: 50%;
+    width: 30%;
     min-width: 300px;
-    max-width: calc(100% - 300px);
+    max-width: calc(100% - 500px);
     background: white;
     display: flex;
     flex-direction: column;
-    border-right: 1px solid #e5e7eb;
     flex-shrink: 0;
     position: relative;
+    margin-right: 5px; /* Gap between description and editor (matches editor-testcase gap) */
+    border-radius: 8px; /* Small border radius */
+    overflow: hidden; /* Ensure border radius is visible */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
 }
 
 .panel-tabs {
     display: flex;
     border-bottom: 1px solid #e5e7eb;
-    background: #f9fafb;
+    background: #fafafa; /* Header background color */
     padding: 0 1rem;
+    height: 44px; /* Standardized header height */
+    align-items: center;
+    flex-shrink: 0;
 }
 
 .panel-tab {
@@ -154,7 +162,8 @@
     transition: all 0.2s;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0;
+    position: relative;
 }
 
 .panel-tab:hover {
@@ -163,41 +172,80 @@
 
 .panel-tab.active {
     color: #111827;
-    border-bottom-color: #6366f1;
-    background: white;
+    border-bottom-color: #2563eb; /* Blue underline like LeetCode */
+    background: transparent; /* No background change */
 }
 
 .panel-content {
     flex: 1;
     overflow-y: auto;
     padding: 1.5rem;
+    background: white; /* Ensure content area has white background */
 }
 
 /* Question Header */
 .question-header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
     margin-bottom: 1.5rem;
+}
+
+.question-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 0.5rem;
 }
 
 .question-title {
     font-size: 1.5rem;
     font-weight: 600;
     color: #111827;
-    margin: 0 0 1rem 0;
+    margin: 0;
+}
+
+.question-solved-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #24292e;
+    font-size: 0.875rem;
+    font-weight: 400;
+    margin-left: 0.75rem;
+}
+
+.question-solved-status i {
+    font-size: 1rem;
+    color: #10b981;
+    width: 1rem;
+    height: 1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.question-solved-status span {
+    color: #24292e;
+    font-weight: 400;
 }
 
 .question-meta {
     display: flex;
-    align-items: center;
-    gap: 0.75rem;
+    gap: 0.25rem;
     flex-wrap: wrap;
+    margin-top: 0;
+    margin-bottom: 0;
 }
 
 .difficulty-badge {
-    padding: 0.25rem 0.625rem;
-    border-radius: 6px;
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
     font-size: 0.75rem;
     font-weight: 600;
     text-transform: capitalize;
+    line-height: 1;
 }
 
 .difficulty-badge.easy {
@@ -216,47 +264,66 @@
 }
 
 .meta-btn {
-    padding: 0.375rem 0.75rem;
-    border-radius: 6px;
-    border: 1px solid #e5e7eb;
-    background: white;
-    font-size: 0.8125rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+    border: none;
+    background: #f3f4f6;
+    font-size: 0.75rem;
     color: #6b7280;
     cursor: pointer;
     transition: all 0.2s;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 0.375rem;
+    gap: 0.25rem;
+    line-height: 1;
 }
 
 .meta-btn:hover {
-    background: #f3f4f6;
-    color: #374151;
+    background: #e5e7eb;
+    color: #111827;
+    opacity: 0.8;
 }
 
-/* Problem Content */
+/* Problem Content - LeetCode Style */
 .problem-content {
-    line-height: 1.7;
-    color: #374151;
+    line-height: 1.6;
+    color: #1a1a1a;
+    font-size: 0.9375rem;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
 }
 
 .problem-content p {
     margin: 0 0 1rem 0;
     font-size: 0.9375rem;
+    line-height: 1.6;
 }
 
 .problem-content code {
-    background: #f3f4f6;
+    background: #f7f7f7;
     padding: 0.125rem 0.375rem;
-    border-radius: 4px;
+    border-radius: 3px;
     font-size: 0.875rem;
-    font-family: 'Courier New', monospace;
-    color: #111827;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    color: #d73a49;
+    border: 1px solid #e1e4e8;
 }
 
 .problem-content strong {
     font-weight: 600;
-    color: #111827;
+    color: #24292e;
+}
+
+.problem-content em {
+    font-style: italic;
+    color: #24292e;
+}
+
+/* Highlight inline code variables */
+.problem-content code[data-highlight] {
+    background: #fff5b1;
+    color: #24292e;
+    border: none;
+    padding: 0.125rem 0.25rem;
 }
 
 .example-section {
@@ -264,27 +331,50 @@
 }
 
 .example-section h3 {
-    font-size: 1rem;
+    font-size: 0.9375rem;
     font-weight: 600;
-    color: #111827;
+    color: #24292e;
     margin: 0 0 0.75rem 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
 }
 
 .example-box {
-    background: #f9fafb;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 1rem;
+    background: transparent;
+    border-left: 3px solid #e5e7eb;
+    padding-left: 1rem;
+    margin-left: 0.5rem;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: #24292e;
 }
 
 .example-line {
     margin-bottom: 0.5rem;
-    font-size: 0.9375rem;
-    font-family: 'Courier New', monospace;
+    font-size: 0.875rem;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    line-height: 1.6;
+    color: #24292e;
 }
 
 .example-line:last-child {
     margin-bottom: 0;
+}
+
+.example-line strong {
+    font-weight: 600;
+    color: #24292e;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.875rem;
+}
+
+.example-line code {
+    background: transparent;
+    padding: 0;
+    border: none;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.875rem;
+    color: #24292e;
 }
 
 .constraints-section {
@@ -292,10 +382,11 @@
 }
 
 .constraints-section h3 {
-    font-size: 1rem;
+    font-size: 0.9375rem;
     font-weight: 600;
-    color: #111827;
+    color: #24292e;
     margin: 0 0 0.75rem 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
 }
 
 .constraints-list {
@@ -304,16 +395,32 @@
     margin: 0;
 }
 
-.constraints-list li {
-    padding: 0.375rem 0;
-    font-size: 0.9375rem;
-    color: #374151;
+.constraint-item {
+    padding: 0.5rem 0;
+    font-size: 0.875rem;
+    color: #24292e;
+    line-height: 1.6;
+    display: flex;
+    align-items: center;
 }
 
 .constraints-list li::before {
     content: "•";
     margin-right: 0.75rem;
-    color: #9ca3af;
+    color: #24292e;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.constraint-code-box {
+    display: inline-block;
+    background: #f3f4f6;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.875rem;
+    color: #24292e;
+    line-height: 1.5;
 }
 
 .follow-up-section {
@@ -340,28 +447,77 @@
 .stats-section {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    padding: 1rem 0;
-    margin: 1.5rem 0;
+    gap: 0.7rem; /* Reduced by 30% (1rem * 0.7 = 0.7rem) */
+    padding: 0; /* Removed padding */
+    margin: 0; /* Remove margin */
     border-top: 1px solid #e5e7eb;
     border-bottom: 1px solid #e5e7eb;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+}
+
+.stats-section.collapsible-stats-section {
+    cursor: pointer;
+    justify-content: space-between;
+    padding: 0.5rem 0;
 }
 
 .stat-item {
     display: flex;
+    align-items: baseline;
+    gap: 0.35rem; /* Reduced by 30% (0.5rem * 0.7 = 0.35rem) */
+    flex: 1;
+}
+
+.stat-item-collapsible {
     flex-direction: column;
-    gap: 0.25rem;
+    align-items: flex-start;
+    gap: 0.5rem;
+    flex: 1;
+    padding: 2px;
 }
 
 .stat-label {
-    font-size: 0.8125rem;
+    font-size: 0.9375rem; /* Same as description */
+    color: #24292e;
+    font-weight: 400;
+}
+
+.collapsible-stats-section .collapse-icon {
+    font-size: 0.75rem;
     color: #6b7280;
+    transition: transform 0.2s;
+    flex-shrink: 0;
+    margin-left: 1rem;
 }
 
 .stat-value {
-    font-size: 0.9375rem;
+    font-size: 0.75rem; /* Slightly reduced for height, but still readable */
     font-weight: 600;
-    color: #111827;
+    color: #24292e;
+}
+
+.stat-separator {
+    color: #d1d5db;
+    margin: 0 0.5rem;
+}
+
+.accepted-stats {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+    font-size: 0.875rem;
+    color: #24292e;
+}
+
+.accepted-number {
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.accepted-total {
+    font-weight: 400;
+    color: #6b7280;
+    font-size: 0.875rem;
 }
 
 .stat-separator {
@@ -374,17 +530,28 @@
 }
 
 .sidebar-section {
-    margin-bottom: 1.5rem;
+    margin-bottom: 0;
+    border: none;
+}
+
+.sidebar-section.collapsible-section {
+    margin-bottom: 0;
+    padding: 0;
+    border-top: 1px solid #e5e7eb;
+    border-bottom: 1px solid #e5e7eb;
 }
 
 .sidebar-section h4 {
     font-size: 0.875rem;
     font-weight: 600;
     color: #111827;
-    margin: 0 0 0.75rem 0;
+    margin: 0;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 0.5rem;
+    padding: 0;
+    text-align: left;
 }
 
 .sidebar-section h4 i {
@@ -392,16 +559,39 @@
     font-size: 0.8125rem;
 }
 
+.collapsible-header {
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.2s;
+    justify-content: space-between;
+    text-align: left;
+    width: 100%;
+}
+
+.collapsible-header:hover {
+    color: #2563eb;
+}
+
+.collapsible-header .collapse-icon {
+    font-size: 0.75rem;
+    color: #6b7280;
+    transition: transform 0.2s;
+    margin-left: auto;
+}
+
 .topic-tags,
 .company-list {
     display: flex;
     gap: 0.5rem;
     flex-wrap: wrap;
+    margin-top: 0.5rem;
+    padding: 0;
+    text-align: left;
 }
 
 .topic-tag,
 .company-badge {
-    padding: 0.375rem 0.75rem;
+    padding: 0.25rem 0.625rem;
     background: #f3f4f6;
     border-radius: 6px;
     font-size: 0.8125rem;
@@ -410,12 +600,40 @@
     border: none;
     cursor: pointer;
     transition: all 0.2s;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
 }
 
 .topic-tag:hover,
 .company-badge:hover {
     background: #e5e7eb;
     color: #111827;
+}
+
+.stat-tags {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.stat-tag {
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+    border: none;
+    background: #f3f4f6;
+    font-size: 0.75rem;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+}
+
+.stat-tag:hover {
+    background: #e5e7eb;
+    color: #111827;
+    opacity: 0.8;
 }
 
 .similar-questions {
@@ -444,10 +662,10 @@
     font-weight: 500;
 }
 
-/* Panel Resizer */
+/* Panel Resizer - Gap between description and editor */
 .panel-resizer {
-    width: 4px;
-    background: #e5e7eb;
+    width: 8px;
+    background: transparent;
     cursor: col-resize;
     transition: background 0.2s;
     flex-shrink: 0;
@@ -455,52 +673,151 @@
     z-index: 10;
     user-select: none;
     -webkit-user-select: none;
+    margin: 0; /* No margin */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Horizontal line indicator in vertical resizer */
+.panel-resizer::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) rotate(90deg);
+    width: 24px; /* 40% shorter (was 40px) */
+    height: 2px;
+    background: rgba(156, 163, 175, 0.8); /* 20% transparent (was #9ca3af) */
+    border-radius: 1px;
+    transition: background-color 0.2s;
 }
 
 .panel-resizer:hover {
-    background: #6366f1;
+    background: rgba(99, 102, 241, 0.1);
+}
+
+.panel-resizer:hover::before {
+    background: rgba(99, 102, 241, 0.8); /* 20% transparent */
+    width: 36px; /* 40% shorter (was 60px) */
 }
 
 .panel-resizer:active {
-    background: #6366f1;
+    background: rgba(99, 102, 241, 0.2);
+}
+
+.panel-resizer:active::before {
+    background: rgba(99, 102, 241, 0.8); /* 20% transparent */
 }
 
 .panel-resizer.horizontal-resizer {
     width: 100%;
-    height: 4px;
+    height: 8px; /* Increased from 5px to 8px */
     cursor: row-resize;
-    background: #e5e7eb;
+    background: transparent;
     flex-shrink: 0;
     position: relative;
     z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s, border-color 0.2s;
+    margin: 0; /* No extra margin - gap is handled by panel margins */
+}
+
+/* Draggable indicator - horizontal line in the middle */
+.panel-resizer.horizontal-resizer::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 24px; /* 40% shorter (was 40px) */
+    height: 2px;
+    background: rgba(156, 163, 175, 0.8); /* 20% transparent (was #9ca3af) */
+    border-radius: 1px;
+    transition: background-color 0.2s;
 }
 
 .panel-resizer.horizontal-resizer:hover {
-    background: #6366f1;
+    background: #e5e7eb;
+    border-top-color: #6366f1;
+    border-bottom-color: #6366f1;
+}
+
+.panel-resizer.horizontal-resizer:hover::before {
+    background: rgba(99, 102, 241, 0.8); /* 20% transparent */
+    width: 36px; /* 40% shorter (was 60px) */
 }
 
 .panel-resizer.horizontal-resizer:active {
-    background: #6366f1;
+    background: #d1d5db;
+    border-top-color: #6366f1;
+    border-bottom-color: #6366f1;
+}
+
+.panel-resizer.horizontal-resizer:active::before {
+    background: rgba(99, 102, 241, 0.8); /* 20% transparent */
 }
 
 /* Editor Panel */
 .editor-panel {
-    flex: 1;
+    flex: 0 0 auto; /* Don't grow, use content size - testcase will fill remaining space */
     display: flex;
     flex-direction: column;
     background: white;
     min-width: 0;
+    padding: 0 !important;
     overflow: hidden;
+    margin-bottom: 5px; /* Gap between editor and test results - shows background */
+    border-radius: 8px; /* Small border radius */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+    min-height: 300px; /* Minimum height for editor */
 }
 
 .editor-header {
-    height: 50px;
+    height: 44px; /* Standardized header height */
     border-bottom: 1px solid #e5e7eb;
     display: flex;
     align-items: center;
     justify-content: flex-start;
     padding: 0 1rem;
-    background: #f9fafb;
+    background: #fafafa; /* Header background color */
+    flex-shrink: 0;
+}
+
+/* Status bar at bottom of code editor */
+.editor-status-bar {
+    height: 24px;
+    /* Removed background and border-top */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    font-size: 0.75rem;
+    color: #6b7280;
+    flex-shrink: 0;
+}
+
+.status-bar-left {
+    display: flex;
+    align-items: center;
+}
+
+.status-saved {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #059669;
+}
+
+.status-bar-right {
+    display: flex;
+    align-items: center;
+}
+
+.status-cursor {
+    color: #6b7280;
 }
 
 .editor-controls {
@@ -541,14 +858,183 @@
 .code-area {
     flex: 1;
     overflow: hidden;
-    background: #1e1e1e;
+    background: #ffffff;
     min-height: 200px;
-    max-height: calc(100% - 200px);
     position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }
 
 .code-area .monaco-editor {
     height: 100% !important;
+}
+
+/* LeetCode-style Monaco Editor CSS fixes */
+.monaco-editor,
+.monaco-editor .overflow-guard,
+.monaco-editor .margin,
+.monaco-editor-background,
+.monaco-editor .inputarea {
+    font-family: Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+    background: #ffffff !important;
+}
+
+/* Force light theme - prevent black flash */
+.monaco-editor .monaco-editor-background {
+    background-color: #ffffff !important;
+}
+
+/* DO NOT set background on .view-line - it overrides selection highlight */
+/* .monaco-editor .view-lines .view-line {
+    background-color: #ffffff !important;
+} */
+
+/* Selection background - ensure it's visible */
+/* Remote cursor and selection styles */
+.monaco-editor .remote-cursor-decoration {
+  position: relative;
+}
+
+.monaco-editor .remote-cursor-after {
+  border-left: 2px solid;
+  margin-left: -1px;
+  pointer-events: none;
+  position: relative;
+  height: 1.2em;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* Cursor colors by class */
+.monaco-editor .cursor-color-7c3aed {
+  border-left-color: #7c3aed !important; /* Purple for interviewer */
+}
+
+.monaco-editor .cursor-color-10b981 {
+  border-left-color: #10b981 !important; /* Green for interviewee */
+}
+
+.monaco-editor .remote-selection-decoration {
+  /* Default purple (interviewer) */
+  background-color: rgba(124, 58, 237, 0.15) !important;
+  border: 1px solid rgba(124, 58, 237, 0.4) !important;
+}
+
+/* Selection colors by class - support all possible colors from backend */
+.monaco-editor .selection-color-7c3aed {
+  background-color: rgba(124, 58, 237, 0.15) !important; /* Purple for interviewer */
+  border: 1px solid rgba(124, 58, 237, 0.4) !important;
+}
+
+.monaco-editor .selection-color-10b981 {
+  background-color: rgba(16, 185, 129, 0.15) !important; /* Green for interviewee */
+  border: 1px solid rgba(16, 185, 129, 0.4) !important;
+}
+
+.monaco-editor .selection-color-f59e0b {
+  background-color: rgba(245, 158, 11, 0.15) !important; /* Amber */
+  border: 1px solid rgba(245, 158, 11, 0.4) !important;
+}
+
+.monaco-editor .selection-color-ef4444 {
+  background-color: rgba(239, 68, 68, 0.15) !important; /* Red */
+  border: 1px solid rgba(239, 68, 68, 0.4) !important;
+}
+
+.monaco-editor .selection-color-3b82f6 {
+  background-color: rgba(59, 130, 246, 0.15) !important; /* Blue */
+  border: 1px solid rgba(59, 130, 246, 0.4) !important;
+}
+
+.monaco-editor .selection-color-ec4899 {
+  background-color: rgba(236, 72, 153, 0.15) !important; /* Pink */
+  border: 1px solid rgba(236, 72, 153, 0.4) !important;
+}
+
+.monaco-editor .selections-layer .selection {
+    background-color: #add6ff !important;
+    opacity: 1 !important;
+}
+
+/* Fix common spacing/gap issues */
+.monaco-editor .view-lines {
+    line-height: 21px !important;  /* must match editor.updateOptions lineHeight */
+    font-size: 14px !important;
+}
+
+/* Prevent huge vertical padding / strange blank space */
+.monaco-editor .margin-view-overlays,
+.monaco-editor .lines-content {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+/* ============================================
+   SCOPED SELECTION FOR CODE EDITOR
+   LeetCode-style selection highlight
+   ============================================ */
+.code-area ::selection,
+.code-area ::-moz-selection {
+    background-color: rgba(173, 214, 255, 0.5) !important; /* #add6ff with opacity */
+    color: #000000 !important;
+}
+
+/* ============================================
+   SCOPED SELECTION FOR TESTCASE AREA
+   Match editor selection styling
+   ============================================ */
+.testcase-content ::selection,
+.testcase-content ::-moz-selection,
+.testcase-editor-container ::selection,
+.testcase-editor-container ::-moz-selection {
+    background-color: rgba(173, 214, 255, 0.5) !important; /* Match editor selection */
+    color: #000000 !important;
+}
+
+/* Keep editor height stable */
+.monaco-editor .overflow-guard {
+    border-radius: 6px;
+}
+
+/* Hide line highlight (horizontal line on current line) */
+.monaco-editor .current-line {
+    border: none !important;
+    background: transparent !important;
+}
+
+.monaco-editor .current-line-both {
+    border: none !important;
+    background: transparent !important;
+}
+
+/* Hide horizontal lines in bracket pair guides */
+.monaco-editor .bracket-pair-guide-horizontal {
+    display: none !important;
+}
+
+.monaco-editor .bracket-pair-guide-horizontal-active {
+    display: none !important;
+}
+
+/* Hide unnecessary indent guides - only show for actual scopes */
+.monaco-editor .current-line-indent-guide {
+    opacity: 0.3;
+}
+
+/* Hide indent guides that don't correspond to actual scopes */
+.monaco-editor .indent-guide {
+    opacity: 0;
+}
+
+/* Show indent guides only for active indentation (scopes with {}) */
+.monaco-editor .active-indent-guide {
+    opacity: 0.4;
+    background-color: rgba(255, 255, 0, 0.2);
 }
 
 .code-editor {
@@ -579,17 +1065,26 @@
 
 /* Testcase Panel */
 .testcase-panel {
-    border-top: 1px solid #e5e7eb;
-    background: white;
+    background: #ffffff !important;
+    display: flex;
+    flex-direction: column;
+    flex: 1; /* Grow to fill remaining space to match description panel height */
+    min-height: 200px; /* Minimum height */
+    overflow: hidden;
+    margin-top: 5px; /* Gap between editor and test results - shows background */
+    margin-bottom: 0; /* No bottom margin to align with description panel */
+    border-radius: 8px; /* Small border radius */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
 }
 
 .testcase-header {
-    height: 44px;
+    height: 44px; /* Standardized header height */
     border-bottom: 1px solid #e5e7eb;
-    background: #f9fafb;
+    background: #fafafa; /* Header background color */
     display: flex;
     align-items: center;
     padding: 0 1rem;
+    flex-shrink: 0;
 }
 
 .testcase-tabs {
@@ -619,7 +1114,51 @@
 }
 
 .testcase-content {
-    padding: 1rem;
+    padding: 0;
+    overflow: hidden;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    background: #ffffff !important;
+    flex-direction: column;
+    position: relative;
+}
+
+/* Ensure testcase editor container doesn't take all space - leaves room for status bar */
+.testcase-editor-container {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Status bar at bottom of testcase panel - identical to editor-status-bar */
+.testcase-status-bar {
+    height: 24px;
+    /* No background color or border - matches .editor-status-bar */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    font-size: 0.75rem;
+    color: #6b7280;
+    flex-shrink: 0;
+}
+
+/* Line highlighting in test case editor */
+.testcase-editor-container .monaco-editor .view-line {
+    transition: background-color 0.15s;
+}
+
+.testcase-editor-container .monaco-editor .current-line {
+    background-color: rgba(59, 130, 246, 0.1) !important;
+    border-left: 2px solid #3b82f6;
+    padding-left: 2px;
+}
+
+/* Remove line/border on the fifth line of test cases */
+.testcase-editor-container .monaco-editor .view-line:nth-child(5) {
+    border-bottom: none !important;
 }
 
 .testcase-input {
@@ -651,6 +1190,20 @@
     background: white;
 }
 
+.testcase-json-display {
+    padding: 0.75rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 0.8125rem;
+    font-family: 'Courier New', monospace;
+    background: #f9fafb;
+    color: #374151;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 0;
+    overflow-x: auto;
+}
+
 .testcase-actions {
     margin-top: 1rem;
 }
@@ -676,6 +1229,11 @@
 /* Test Result Content */
 .test-result-content {
     padding: 1rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex: 1;
+    min-height: 0;
+    background: #ffffff !important;
 }
 
 .result-status {
@@ -797,6 +1355,45 @@
     margin-top: 0.5rem;
 }
 
+.test-result-section {
+    margin-top: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.test-result-section strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.8125rem;
+    color: #374151;
+    font-weight: 600;
+}
+
+.test-result-pre {
+    margin: 0;
+    padding: 0.75rem;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    font-size: 0.8125rem;
+    font-family: 'Courier New', monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 200px;
+    overflow-y: auto;
+    color: #111827;
+}
+
+.test-result-pre.expected-output {
+    background: #fef3c7;
+    border-color: #fbbf24;
+}
+
+.test-result-item.first-failure {
+    border-color: #f87171;
+    border-width: 2px;
+    background: #fef2f2;
+}
+
 .test-result-output,
 .test-result-error {
     margin-top: 0.5rem;
@@ -810,6 +1407,14 @@
 .test-result-error {
     background: #fee2e2;
     color: #991b1b;
+}
+
+.test-result-error strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.8125rem;
+    color: #991b1b;
+    font-weight: 600;
 }
 
 .no-results {
@@ -895,6 +1500,7 @@
 /* Responsive */
 @media (max-width: 968px) {
     .question-container {
+    padding: 8px; /* External gap around all sections */ /* External gap around all sections */
         flex-direction: column;
     }
 
@@ -936,4 +1542,220 @@
 .code-area::-webkit-scrollbar-thumb:hover,
 .console-content::-webkit-scrollbar-thumb:hover {
     background: #9ca3af;
+}
+
+/* Hints Section */
+.hints-container {
+    margin: 1.5rem 0;
+}
+
+.hint-item {
+    margin-bottom: 0.5rem;
+    border: none;
+    background: transparent;
+}
+
+.hint-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.2s;
+    background: transparent;
+    border: none;
+}
+
+.hint-header:hover {
+    color: #2563eb;
+}
+
+.hint-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+    color: #24292e;
+    font-size: 0.875rem;
+}
+
+.hint-header i.fa-lightbulb {
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+.hint-header span {
+    font-weight: 500;
+    color: inherit;
+    font-size: 0.875rem;
+}
+
+.hint-header .collapse-icon {
+    font-size: 0.75rem;
+    color: #6b7280;
+    transition: transform 0.2s;
+}
+
+.hint-content {
+    padding: 0.5rem 0 0 1.5rem;
+    background: transparent;
+}
+
+.hint-content p {
+    margin: 0;
+    color: #24292e;
+    line-height: 1.6;
+    font-size: 0.875rem;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+}
+
+.complexity-info {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: #f9fafb;
+    border-radius: 6px;
+}
+
+.complexity-info p {
+    margin: 0;
+    font-size: 0.9375rem;
+    color: #24292e;
+}
+
+.complexity-info strong {
+    color: #111827;
+}
+
+/* Solutions Section */
+.solutions-container {
+    margin: 1.5rem 0;
+}
+
+.solution-item {
+    margin-bottom: 1.5rem;
+    border: none;
+    background: transparent;
+}
+
+.solution-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.2s;
+    background: transparent;
+    border: none;
+}
+
+.solution-header:hover {
+    color: #2563eb;
+}
+
+.solution-approach {
+    font-weight: 600;
+    color: #24292e;
+    font-size: 0.875rem;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+}
+
+.solution-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.complexity-badge {
+    padding: 0.25rem 0.5rem;
+    background: #f3f4f6;
+    border-radius: 4px;
+    font-size: 0.8125rem;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.solution-header .collapse-icon {
+    font-size: 0.75rem;
+    color: #6b7280;
+    transition: transform 0.2s;
+}
+
+.solution-content {
+    padding: 1rem 0 0 0;
+    background: transparent;
+}
+
+.solution-explanation {
+    margin-bottom: 1.5rem;
+}
+
+.solution-explanation p {
+    margin: 0 0 1rem 0;
+    color: #24292e;
+    line-height: 1.6;
+    font-size: 0.875rem;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+}
+
+.solution-code {
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.solution-code-header {
+    padding: 0.5rem 1rem;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 0.8125rem;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.solution-code pre {
+    margin: 0;
+    padding: 1rem;
+    background: #f9fafb;
+    overflow-x: auto;
+}
+
+.solution-code code {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: #24292e;
+    background: transparent;
+    padding: 0;
+    border: none;
+}
+
+.solution-complexity {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.complexity-item {
+    margin-bottom: 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: #24292e;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+}
+
+.complexity-item strong {
+    font-weight: 600;
+    color: #111827;
+}
+
+.complexity-item:last-child {
+    margin-bottom: 0;
+}
+
+/* Monaco Editor Error Highlighting - Red underline only */
+.monaco-editor .monaco-error-underline-inline {
+    border-bottom: 2px solid #ef4444 !important;
+    text-decoration: none !important;
 }

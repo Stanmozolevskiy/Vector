@@ -16,6 +16,11 @@ export interface InterviewQuestion {
   spaceComplexityHint?: string;
   acceptanceRate?: number;
   isActive: boolean;
+  approvalStatus?: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  rejectionReason?: string;
+  createdBy?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -36,13 +41,16 @@ export interface QuestionList {
   companyTags?: string[];
   acceptanceRate?: number;
   isActive: boolean;
+  approvalStatus?: string;
 }
 
 export interface QuestionFilter {
   search?: string;
   questionType?: string;
   category?: string;
+  categories?: string[];
   difficulty?: string;
+  difficulties?: string[];
   companies?: string[];
   tags?: string[];
   isActive?: boolean;
@@ -132,6 +140,21 @@ export const questionService = {
 
   async addSolution(questionId: string, solution: Omit<QuestionSolution, 'id' | 'createdAt'>): Promise<QuestionSolution> {
     const response = await api.post<QuestionSolution>(`/question/${questionId}/solutions`, solution);
+    return response.data;
+  },
+
+  async getPendingQuestions(): Promise<QuestionList[]> {
+    const response = await api.get<QuestionList[]>('/question/pending');
+    return response.data;
+  },
+
+  async approveQuestion(questionId: string): Promise<InterviewQuestion> {
+    const response = await api.post<InterviewQuestion>(`/question/${questionId}/approve`);
+    return response.data;
+  },
+
+  async rejectQuestion(questionId: string, rejectionReason?: string): Promise<InterviewQuestion> {
+    const response = await api.post<InterviewQuestion>(`/question/${questionId}/reject`, { rejectionReason });
     return response.data;
   },
 };

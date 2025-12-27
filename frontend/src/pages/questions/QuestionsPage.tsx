@@ -3,22 +3,28 @@ import { Link } from 'react-router-dom';
 import { Navbar } from '../../components/layout/Navbar';
 import { questionService } from '../../services/question.service';
 import type { QuestionList, QuestionFilter } from '../../services/question.service';
+import { solutionService } from '../../services/solution.service';
+import { useAuth } from '../../hooks/useAuth';
 import { ROUTES } from '../../utils/constants';
 import '../../styles/questions.css';
 
 const ROLES = ['Software Engineer', 'Product Manager', 'Data Engineer', 'Data Scientist', 'Technical Program Manager'];
 const COMPANIES = ['Google', 'Meta', 'Amazon', 'Microsoft', 'Apple', 'Netflix'];
-const CATEGORIES = ['Coding', 'System Design', 'Behavioral'];
+const CATEGORIES = ['Arrays', 'Strings', 'Trees', 'Graphs', 'Dynamic Programming', 'Backtracking', 'Greedy', 'Math', 'Bit Manipulation', 'Sorting', 'Searching', 'Hash Tables', 'Linked Lists', 'Stacks', 'Queues', 'Heaps'];
+const DIFFICULTIES = ['Easy', 'Medium', 'Hard'];
 const FILTER_OPTIONS = ['Expert Answers', 'Videos', 'Code Editor', 'Saved'];
 const HOT_OPTIONS = ['Hot', 'Top', 'New'];
 
 export const QuestionsPage = () => {
+  const { user } = useAuth();
   const [questions, setQuestions] = useState<QuestionList[]>([]);
+  const [solvedQuestionIds, setSolvedQuestionIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedDifficulties, setSelectedDifficulties] = useState<string[]>([]);
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [hotFilter, setHotFilter] = useState<string>('Hot');
   const [currentPage, setCurrentPage] = useState(1);
@@ -26,22 +32,40 @@ export const QuestionsPage = () => {
 
   useEffect(() => {
     loadQuestions();
-  }, [searchTerm, selectedRoles, selectedCompanies, selectedCategories, selectedFilters, hotFilter, currentPage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, selectedCategories, selectedDifficulties, selectedCompanies, currentPage]);
 
   const loadQuestions = async () => {
     try {
       setLoading(true);
       const filter: QuestionFilter = {
         search: searchTerm || undefined,
-        questionType: selectedCategories.length > 0 && selectedCategories.length < CATEGORIES.length 
-          ? selectedCategories[0] 
-          : undefined,
+        categories: selectedCategories.length > 0 ? selectedCategories : undefined,
+        difficulties: selectedDifficulties.length > 0 ? selectedDifficulties : undefined,
         companies: selectedCompanies.length > 0 ? selectedCompanies : undefined,
         page: currentPage,
         pageSize: 20,
       };
       const data = await questionService.getQuestions(filter);
       setQuestions(data);
+      
+      // Load solved status for all questions
+      if (user?.id) {
+        const solvedIds = new Set<string>();
+        await Promise.all(
+          data.map(async (question) => {
+            try {
+              const isSolved = await solutionService.hasSolvedQuestion(question.id);
+              if (isSolved) {
+                solvedIds.add(question.id);
+              }
+            } catch (error) {
+              // Silently fail - don't block page load
+            }
+          })
+        );
+        setSolvedQuestionIds(solvedIds);
+      }
     } catch (error) {
       console.error('Failed to load questions:', error);
     } finally {
@@ -69,10 +93,12 @@ export const QuestionsPage = () => {
     if (company === 'all') {
       setSelectedCompanies([]);
     } else {
+      // Normalize company name for comparison (use original case from COMPANIES array)
+      const normalizedCompany = COMPANIES.find(c => c.toLowerCase() === company.toLowerCase()) || company;
       setSelectedCompanies(prev =>
-        prev.includes(company)
-          ? prev.filter(c => c !== company)
-          : [...prev, company]
+        prev.includes(normalizedCompany)
+          ? prev.filter(c => c !== normalizedCompany)
+          : [...prev, normalizedCompany]
       );
     }
   };
@@ -85,6 +111,18 @@ export const QuestionsPage = () => {
         prev.includes(category)
           ? prev.filter(c => c !== category)
           : [...prev, category]
+      );
+    }
+  };
+
+  const handleDifficultyToggle = (difficulty: string) => {
+    if (difficulty === 'all') {
+      setSelectedDifficulties([]);
+    } else {
+      setSelectedDifficulties(prev =>
+        prev.includes(difficulty)
+          ? prev.filter(d => d !== difficulty)
+          : [...prev, difficulty]
       );
     }
   };
@@ -198,7 +236,7 @@ export const QuestionsPage = () => {
                         <input
                           type="checkbox"
                           name="company"
-                          value={company.toLowerCase()}
+                          value={company}
                           checked={selectedCompanies.includes(company)}
                           onChange={() => handleCompanyToggle(company)}
                         />
@@ -235,11 +273,48 @@ export const QuestionsPage = () => {
                         <input
                           type="checkbox"
                           name="category"
-                          value={category.toLowerCase()}
+                          value={category}
                           checked={selectedCategories.includes(category)}
                           onChange={() => handleCategoryToggle(category)}
                         />
                         <span>{category}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="dropdown-filter">
+                  <button 
+                    className={`filter-btn ${openDropdown === 'difficulty' ? 'active' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleDropdown('difficulty');
+                    }}
+                  >
+                    <span>Difficulty</span>
+                    <i className="fas fa-chevron-down"></i>
+                  </button>
+                  <div className={`filter-dropdown scrollable ${openDropdown === 'difficulty' ? 'show' : ''}`}>
+                    <label className="filter-option">
+                      <input
+                        type="checkbox"
+                        name="difficulty"
+                        value="all"
+                        checked={selectedDifficulties.length === 0}
+                        onChange={() => handleDifficultyToggle('all')}
+                      />
+                      <span>All Difficulties</span>
+                    </label>
+                    {DIFFICULTIES.map(difficulty => (
+                      <label key={difficulty} className="filter-option">
+                        <input
+                          type="checkbox"
+                          name="difficulty"
+                          value={difficulty}
+                          checked={selectedDifficulties.includes(difficulty)}
+                          onChange={() => handleDifficultyToggle(difficulty)}
+                        />
+                        <span>{difficulty}</span>
                       </label>
                     ))}
                   </div>
@@ -314,16 +389,11 @@ export const QuestionsPage = () => {
                       <div key={question.id} className="question-card">
                         <div className="question-header">
                           <div className="question-source">
-                            {question.companyTags && question.companyTags.length > 0 && (
-                              <img 
-                                src={`https://logo.clearbit.com/${question.companyTags[0].toLowerCase()}.com`} 
-                                alt={question.companyTags[0]} 
-                                className="company-logo"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).style.display = 'none';
-                                }}
-                              />
-                            )}
+                          {question.companyTags && question.companyTags.length > 0 && (
+                            <div className="company-logo-placeholder">
+                              <span className="company-initial">{question.companyTags[0].charAt(0).toUpperCase()}</span>
+                            </div>
+                          )}
                             <span>
                               {question.companyTags && question.companyTags.length > 0
                                 ? `Asked at ${question.companyTags.join(', ')}`
@@ -335,6 +405,12 @@ export const QuestionsPage = () => {
                           <Link to={`${ROUTES.QUESTIONS}/${question.id}`}>
                             {question.title}
                           </Link>
+                          {solvedQuestionIds.has(question.id) && (
+                            <span className="question-solved-badge">
+                              <i className="fas fa-check-circle"></i>
+                              <span>Solved</span>
+                            </span>
+                          )}
                         </h3>
                         <div className="question-meta">
                           {question.difficulty && (
@@ -420,13 +496,9 @@ export const QuestionsPage = () => {
                 <div className="company-list">
                   {COMPANIES.slice(0, 4).map(company => (
                     <a key={company} href="#" className="company-item">
-                      <img 
-                        src={`https://logo.clearbit.com/${company.toLowerCase()}.com`} 
-                        alt={company}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
+                      <div className="company-logo-placeholder">
+                        <span className="company-initial">{company.charAt(0).toUpperCase()}</span>
+                      </div>
                       <span>{company}</span>
                     </a>
                   ))}

@@ -14,6 +14,41 @@ When a CI/CD build fails, the `.github/workflows/auto-fix-issues.yml` workflow w
 
 ## React Best Practices
 
+### Async/Await Rules - Non-Blocking Calls
+- **DO NOT** use `await` for non-critical API calls that could block page rendering
+- **DO** use `.then()/.catch()` for background operations that don't need to block the UI
+- **DO** use `await` only for critical data that the page cannot render without
+- **DO** make solved status checks, analytics, and similar non-critical calls non-blocking
+
+### Example - Correct Pattern:
+```typescript
+// ✅ Good: Non-blocking background check
+if (user?.id) {
+  solutionService.getSolutionsForQuestion(id)
+    .then((solutions) => {
+      setIsSolved(solutions.some(sol => sol.status === 'Accepted'));
+    })
+    .catch((error) => {
+      // Silently fail - don't block page
+      setIsSolved(false);
+    });
+}
+
+// ✅ Good: Critical data that must load before rendering
+const [questionData, testCasesData] = await Promise.all([
+  questionService.getQuestionById(id),
+  questionService.getTestCases(id, false),
+]);
+```
+
+### Example - Incorrect Pattern:
+```typescript
+// ❌ Bad: Blocking page load for non-critical data
+const userSolutions = await solutionService.getSolutionsForQuestion(id);
+setIsSolved(userSolutions.some(sol => sol.status === 'Accepted'));
+// Page hangs until this completes!
+```
+
 ### useEffect Rules
 - **DO NOT** call setState synchronously in useEffect body
 - **DO** use useState initializer function for initial state based on props/params

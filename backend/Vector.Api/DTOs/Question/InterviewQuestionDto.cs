@@ -17,6 +17,11 @@ public class InterviewQuestionDto
     public string? SpaceComplexityHint { get; set; }
     public double? AcceptanceRate { get; set; }
     public bool IsActive { get; set; }
+    public string ApprovalStatus { get; set; } = "Pending";
+    public Guid? ApprovedBy { get; set; }
+    public DateTime? ApprovedAt { get; set; }
+    public string? RejectionReason { get; set; }
+    public Guid? CreatedBy { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

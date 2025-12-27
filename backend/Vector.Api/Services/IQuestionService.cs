@@ -14,5 +14,8 @@ public interface IQuestionService
     Task<QuestionTestCase> AddTestCaseAsync(Guid questionId, CreateTestCaseDto dto);
     Task<IEnumerable<QuestionSolution>> GetSolutionsAsync(Guid questionId, string? language = null);
     Task<QuestionSolution> AddSolutionAsync(Guid questionId, CreateSolutionDto dto, Guid createdBy);
+    Task<InterviewQuestion> ApproveQuestionAsync(Guid questionId, Guid approvedBy);
+    Task<InterviewQuestion> RejectQuestionAsync(Guid questionId, Guid rejectedBy, string? rejectionReason = null);
+    Task<IEnumerable<InterviewQuestion>> GetPendingQuestionsAsync();
 }
 

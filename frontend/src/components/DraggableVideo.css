@@ -1,0 +1,137 @@
+.draggable-video-container {
+  position: fixed;
+  width: 300px;
+  background: #1a1a1a;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  cursor: move;
+  user-select: none;
+  overflow: hidden;
+  transition: transform 0.2s;
+}
+
+.draggable-video-container.minimized {
+  height: 40px;
+}
+
+.draggable-video-container:active {
+  cursor: grabbing;
+}
+
+.video-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: #2a2a2a;
+  border-bottom: 1px solid #3a3a3a;
+  cursor: move;
+}
+
+.video-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: white;
+}
+
+.video-header-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.header-btn {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  transition: color 0.2s;
+  line-height: 1;
+}
+
+.header-btn:hover {
+  color: white;
+}
+
+.close-btn:hover {
+  color: #ef4444;
+}
+
+.video-content {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  overflow: hidden;
+}
+
+.video-element {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.video-placeholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  background: #000;
+}
+
+.video-placeholder i {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+  color: #4b5563;
+}
+
+.video-placeholder p {
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.video-controls {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: #2a2a2a;
+  border-top: 1px solid #3a3a3a;
+}
+
+.control-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: #3a3a3a;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.control-btn:hover {
+  background: #4a4a4a;
+  transform: scale(1.05);
+}
+
+.control-btn.active {
+  background: #7c3aed;
+}
+
+.control-btn.active:hover {
+  background: #6d28d9;
+}
+

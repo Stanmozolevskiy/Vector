@@ -16,4 +16,10 @@ export const ROUTES = {
   QUESTIONS: '/questions',
   ADD_QUESTION: '/questions/add',
   EDIT_QUESTION: '/questions/edit',
+  PENDING_QUESTIONS: '/admin/pending-questions',
+  SOLUTION_HISTORY: '/solutions',
+  PROGRESS: '/progress',
+  FIND_PEER: '/peer-interviews/find',
+  PEER_INTERVIEWS: '/peer-interviews',
+  PEER_INTERVIEW_SESSION: '/peer-interviews/sessions/:id',
 };

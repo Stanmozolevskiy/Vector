@@ -85,6 +85,32 @@ public class InterviewQuestion
     public bool IsActive { get; set; } = true;
     
     /// <summary>
+    /// Approval status: Pending, Approved, Rejected
+    /// Admin-created questions are automatically Approved
+    /// Coach-created questions start as Pending
+    /// </summary>
+    [Required]
+    [MaxLength(20)]
+    public string ApprovalStatus { get; set; } = "Pending";
+    
+    /// <summary>
+    /// User who approved/rejected the question (admin only)
+    /// </summary>
+    public Guid? ApprovedBy { get; set; }
+    
+    public User? Approver { get; set; }
+    
+    /// <summary>
+    /// Date when the question was approved/rejected
+    /// </summary>
+    public DateTime? ApprovedAt { get; set; }
+    
+    /// <summary>
+    /// Rejection reason (if status is Rejected)
+    /// </summary>
+    public string? RejectionReason { get; set; }
+    
+    /// <summary>
     /// User who created the question (admin or coach)
     /// </summary>
     public Guid? CreatedBy { get; set; }

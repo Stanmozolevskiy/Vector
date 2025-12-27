@@ -113,6 +113,61 @@ namespace Vector.Api.Data.Migrations
                     b.ToTable("EmailVerifications");
                 });
 
+            modelBuilder.Entity("Vector.Api.Models.InterviewMatchingRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("MatchedRequestId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("MatchedUserConfirmed")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("MatchedUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ScheduledSessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("Pending");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("UserConfirmed")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MatchedRequestId");
+
+                    b.HasIndex("MatchedUserId");
+
+                    b.HasIndex("ScheduledSessionId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("InterviewMatchingRequests");
+                });
+
             modelBuilder.Entity("Vector.Api.Models.InterviewQuestion", b =>
                 {
                     b.Property<Guid>("Id")
@@ -121,6 +176,19 @@ namespace Vector.Api.Data.Migrations
 
                     b.Property<double?>("AcceptanceRate")
                         .HasColumnType("double precision");
+
+                    b.Property<string>("ApprovalStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("Pending");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ApprovedBy")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Category")
                         .IsRequired()
@@ -164,6 +232,9 @@ namespace Vector.Api.Data.Migrations
                         .HasColumnType("character varying(50)")
                         .HasDefaultValue("Coding");
 
+                    b.Property<string>("RejectionReason")
+                        .HasColumnType("text");
+
                     b.Property<string>("SpaceComplexityHint")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
@@ -185,6 +256,10 @@ namespace Vector.Api.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ApprovalStatus");
+
+                    b.HasIndex("ApprovedBy");
+
                     b.HasIndex("Category");
 
                     b.HasIndex("CreatedBy");
@@ -196,6 +271,64 @@ namespace Vector.Api.Data.Migrations
                     b.HasIndex("QuestionType");
 
                     b.ToTable("InterviewQuestions");
+                });
+
+            modelBuilder.Entity("Vector.Api.Models.LearningAnalytics", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("AverageExecutionTime")
+                        .HasColumnType("numeric");
+
+                    b.Property<long>("AverageMemoryUsed")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CurrentStreak")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("LastActivityDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("LongestStreak")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("QuestionsByCategory")
+                        .HasColumnType("text");
+
+                    b.Property<string>("QuestionsByDifficulty")
+                        .HasColumnType("text");
+
+                    b.Property<int>("QuestionsSolved")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SolutionsByLanguage")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("SuccessRate")
+                        .HasColumnType("numeric");
+
+                    b.Property<int>("TotalSubmissions")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LastActivityDate");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("LearningAnalytics");
                 });
 
             modelBuilder.Entity("Vector.Api.Models.MockInterview", b =>
@@ -339,6 +472,110 @@ namespace Vector.Api.Data.Migrations
                     b.ToTable("Payments");
                 });
 
+            modelBuilder.Entity("Vector.Api.Models.PeerInterviewMatch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Availability")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsAvailable")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastMatchDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PreferredCategories")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PreferredDifficulty")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsAvailable");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("PeerInterviewMatches");
+                });
+
+            modelBuilder.Entity("Vector.Api.Models.PeerInterviewSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Duration")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("InterviewLevel")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("InterviewType")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid?>("IntervieweeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("InterviewerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PracticeType")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid?>("QuestionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ScheduledTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SessionRecordingUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IntervieweeId");
+
+                    b.HasIndex("InterviewerId");
+
+                    b.HasIndex("QuestionId");
+
+                    b.HasIndex("ScheduledTime");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("PeerInterviewSessions");
+                });
+
             modelBuilder.Entity("Vector.Api.Models.QuestionSolution", b =>
                 {
                     b.Property<Guid>("Id")
@@ -462,6 +699,53 @@ namespace Vector.Api.Data.Migrations
                     b.ToTable("RefreshTokens");
                 });
 
+            modelBuilder.Entity("Vector.Api.Models.SolutionSubmission", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("ExecutionTime")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("ExpectedOutput")
+                        .HasColumnType("text");
+
+                    b.Property<long>("MemoryUsed")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Output")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("TestCaseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("TestCaseNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UserSolutionId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TestCaseId");
+
+                    b.HasIndex("UserSolutionId");
+
+                    b.ToTable("SolutionSubmissions");
+                });
+
             modelBuilder.Entity("Vector.Api.Models.Subscription", b =>
                 {
                     b.Property<Guid>("Id")
@@ -578,6 +862,229 @@ namespace Vector.Api.Data.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("Vector.Api.Models.UserCodeDraft", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("QuestionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuestionId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserCodeDrafts");
+                });
+
+            modelBuilder.Entity("Vector.Api.Models.UserSessionParticipant", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsConnected")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("JoinedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LeftAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("Active");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SessionId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "SessionId")
+                        .IsUnique();
+
+                    b.ToTable("UserSessionParticipants");
+                });
+
+            modelBuilder.Entity("Vector.Api.Models.UserSolution", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("ExecutionTime")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<long>("MemoryUsed")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("QuestionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("TestCasesPassed")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TotalTestCases")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuestionId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("SubmittedAt");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "QuestionId");
+
+                    b.ToTable("UserSolutions");
+                });
+
+            modelBuilder.Entity("Vector.Api.Models.UserSolvedQuestion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Language")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("QuestionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("SolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuestionId");
+
+                    b.HasIndex("SolvedAt");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "QuestionId")
+                        .IsUnique();
+
+                    b.ToTable("UserSolvedQuestions");
+                });
+
+            modelBuilder.Entity("Vector.Api.Models.VideoSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("EndedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SignalingData")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("Active");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SessionId");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.ToTable("VideoSessions");
+                });
+
             modelBuilder.Entity("Vector.Api.Models.CoachApplication", b =>
                 {
                     b.HasOne("Vector.Api.Models.User", "Reviewer")
@@ -607,14 +1114,65 @@ namespace Vector.Api.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Vector.Api.Models.InterviewMatchingRequest", b =>
+                {
+                    b.HasOne("Vector.Api.Models.InterviewMatchingRequest", "MatchedRequest")
+                        .WithMany()
+                        .HasForeignKey("MatchedRequestId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Vector.Api.Models.User", "MatchedUser")
+                        .WithMany()
+                        .HasForeignKey("MatchedUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Vector.Api.Models.PeerInterviewSession", "ScheduledSession")
+                        .WithMany()
+                        .HasForeignKey("ScheduledSessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Vector.Api.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("MatchedRequest");
+
+                    b.Navigation("MatchedUser");
+
+                    b.Navigation("ScheduledSession");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Vector.Api.Models.InterviewQuestion", b =>
                 {
+                    b.HasOne("Vector.Api.Models.User", "Approver")
+                        .WithMany()
+                        .HasForeignKey("ApprovedBy")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Vector.Api.Models.User", "Creator")
                         .WithMany()
                         .HasForeignKey("CreatedBy")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.Navigation("Approver");
+
                     b.Navigation("Creator");
+                });
+
+            modelBuilder.Entity("Vector.Api.Models.LearningAnalytics", b =>
+                {
+                    b.HasOne("Vector.Api.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Vector.Api.Models.PasswordReset", b =>
@@ -644,6 +1202,42 @@ namespace Vector.Api.Data.Migrations
                     b.Navigation("Subscription");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Vector.Api.Models.PeerInterviewMatch", b =>
+                {
+                    b.HasOne("Vector.Api.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Vector.Api.Models.PeerInterviewSession", b =>
+                {
+                    b.HasOne("Vector.Api.Models.User", "Interviewee")
+                        .WithMany()
+                        .HasForeignKey("IntervieweeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Vector.Api.Models.User", "Interviewer")
+                        .WithMany()
+                        .HasForeignKey("InterviewerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Vector.Api.Models.InterviewQuestion", "Question")
+                        .WithMany()
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Interviewee");
+
+                    b.Navigation("Interviewer");
+
+                    b.Navigation("Question");
                 });
 
             modelBuilder.Entity("Vector.Api.Models.QuestionSolution", b =>
@@ -686,6 +1280,25 @@ namespace Vector.Api.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Vector.Api.Models.SolutionSubmission", b =>
+                {
+                    b.HasOne("Vector.Api.Models.QuestionTestCase", "TestCase")
+                        .WithMany()
+                        .HasForeignKey("TestCaseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Vector.Api.Models.UserSolution", "UserSolution")
+                        .WithMany("TestCaseResults")
+                        .HasForeignKey("UserSolutionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("TestCase");
+
+                    b.Navigation("UserSolution");
+                });
+
             modelBuilder.Entity("Vector.Api.Models.Subscription", b =>
                 {
                     b.HasOne("Vector.Api.Models.User", "User")
@@ -697,11 +1310,103 @@ namespace Vector.Api.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Vector.Api.Models.UserCodeDraft", b =>
+                {
+                    b.HasOne("Vector.Api.Models.InterviewQuestion", "Question")
+                        .WithMany()
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Vector.Api.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Question");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Vector.Api.Models.UserSessionParticipant", b =>
+                {
+                    b.HasOne("Vector.Api.Models.PeerInterviewSession", "Session")
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Vector.Api.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Session");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Vector.Api.Models.UserSolution", b =>
+                {
+                    b.HasOne("Vector.Api.Models.InterviewQuestion", "Question")
+                        .WithMany()
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Vector.Api.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Question");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Vector.Api.Models.UserSolvedQuestion", b =>
+                {
+                    b.HasOne("Vector.Api.Models.InterviewQuestion", "Question")
+                        .WithMany()
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Vector.Api.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Question");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Vector.Api.Models.VideoSession", b =>
+                {
+                    b.HasOne("Vector.Api.Models.PeerInterviewSession", "Session")
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Session");
+                });
+
             modelBuilder.Entity("Vector.Api.Models.InterviewQuestion", b =>
                 {
                     b.Navigation("Solutions");
 
                     b.Navigation("TestCases");
+                });
+
+            modelBuilder.Entity("Vector.Api.Models.UserSolution", b =>
+                {
+                    b.Navigation("TestCaseResults");
                 });
 #pragma warning restore 612, 618
         }

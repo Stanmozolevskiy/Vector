@@ -57,6 +57,8 @@ services:
       - AWS__S3__BucketName=${AWS_S3_BUCKET_NAME:-dev-vector-user-uploads}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - Judge0__BaseUrl=${JUDGE0_BASE_URL:-https://ce.judge0.com}
+      - Judge0__ApiKey=${JUDGE0_API_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy

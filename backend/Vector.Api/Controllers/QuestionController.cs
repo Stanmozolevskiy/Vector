@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using System.Text.Json;
 using Vector.Api.Attributes;
 using Vector.Api.DTOs.Question;
@@ -30,6 +31,81 @@ public class QuestionController : ControllerBase
     {
         try
         {
+            // Manually parse array parameters from query string if not bound correctly
+            // ASP.NET Core doesn't bind difficulties[] automatically, so we need to parse it manually
+            if (filter == null)
+            {
+                filter = new QuestionFilterDto();
+            }
+
+            // Handle difficulties[] parameter (URL encoded as difficulties%5B%5D)
+            // Check all possible query key formats
+            var difficultyKeys = Request.Query.Keys.Where(k => 
+                k.Equals("difficulties[]", StringComparison.OrdinalIgnoreCase) ||
+                k.Equals("difficulties", StringComparison.OrdinalIgnoreCase) ||
+                k.StartsWith("difficulties[", StringComparison.OrdinalIgnoreCase));
+            
+            if (difficultyKeys.Any())
+            {
+                var difficultyValues = new List<string>();
+                foreach (var key in difficultyKeys)
+                {
+                    difficultyValues.AddRange(Request.Query[key]);
+                }
+                if (difficultyValues.Any())
+                {
+                    filter.Difficulties = difficultyValues.Distinct().ToList();
+                }
+            }
+            // If Difficulties is still null/empty but we have difficulty filter, initialize it
+            if ((filter.Difficulties == null || !filter.Difficulties.Any()) && !string.IsNullOrEmpty(filter.Difficulty))
+            {
+                filter.Difficulties = new List<string> { filter.Difficulty };
+            }
+
+            // Handle categories[] parameter
+            var categoryKeys = Request.Query.Keys.Where(k => 
+                k.Equals("categories[]", StringComparison.OrdinalIgnoreCase) ||
+                k.Equals("categories", StringComparison.OrdinalIgnoreCase) ||
+                k.StartsWith("categories[", StringComparison.OrdinalIgnoreCase));
+            
+            if (categoryKeys.Any())
+            {
+                var categoryValues = new List<string>();
+                foreach (var key in categoryKeys)
+                {
+                    categoryValues.AddRange(Request.Query[key]);
+                }
+                if (categoryValues.Any())
+                {
+                    filter.Categories = categoryValues.Distinct().ToList();
+                }
+            }
+            // If Categories is still null/empty but we have category filter, initialize it
+            if ((filter.Categories == null || !filter.Categories.Any()) && !string.IsNullOrEmpty(filter.Category))
+            {
+                filter.Categories = new List<string> { filter.Category };
+            }
+
+            // Handle companies[] parameter
+            var companyKeys = Request.Query.Keys.Where(k => 
+                k.Equals("companies[]", StringComparison.OrdinalIgnoreCase) ||
+                k.Equals("companies", StringComparison.OrdinalIgnoreCase) ||
+                k.StartsWith("companies[", StringComparison.OrdinalIgnoreCase));
+            
+            if (companyKeys.Any())
+            {
+                var companyValues = new List<string>();
+                foreach (var key in companyKeys)
+                {
+                    companyValues.AddRange(Request.Query[key]);
+                }
+                if (companyValues.Any())
+                {
+                    filter.Companies = companyValues.Distinct().ToList();
+                }
+            }
+
             var questions = await _questionService.GetQuestionsAsync(filter);
             var questionDtos = questions.Select(q => MapToQuestionListDto(q));
             return Ok(questionDtos);
@@ -68,7 +144,9 @@ public class QuestionController : ControllerBase
     }
 
     /// <summary>
-    /// Create a new question (admin or coach only)
+    /// Create a new question (admin or coach)
+    /// Admin-created questions are automatically approved
+    /// Coach-created questions require admin approval
     /// </summary>
     [HttpPost]
     [AuthorizeRole("admin", "coach")]
@@ -97,10 +175,10 @@ public class QuestionController : ControllerBase
     }
 
     /// <summary>
-    /// Update a question (admin or coach only)
+    /// Update a question (admin only)
     /// </summary>
     [HttpPut("{id}")]
-    [AuthorizeRole("admin", "coach")]
+    [AuthorizeRole("admin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateQuestion(Guid id, [FromBody] UpdateQuestionDto dto)
@@ -185,10 +263,10 @@ public class QuestionController : ControllerBase
     }
 
     /// <summary>
-    /// Add a test case to a question (admin or coach only)
+    /// Add a test case to a question (admin only)
     /// </summary>
     [HttpPost("{id}/test-cases")]
-    [AuthorizeRole("admin", "coach")]
+    [AuthorizeRole("admin")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     public async Task<IActionResult> AddTestCase(Guid id, [FromBody] CreateTestCaseDto dto)
     {
@@ -246,10 +324,10 @@ public class QuestionController : ControllerBase
     }
 
     /// <summary>
-    /// Add a solution to a question (admin or coach only)
+    /// Add a solution to a question (admin only)
     /// </summary>
     [HttpPost("{id}/solutions")]
-    [AuthorizeRole("admin", "coach")]
+    [AuthorizeRole("admin")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     public async Task<IActionResult> AddSolution(Guid id, [FromBody] CreateSolutionDto dto)
     {
@@ -285,8 +363,17 @@ public class QuestionController : ControllerBase
 
     private Guid? GetCurrentUserId()
     {
-        var userIdClaim = User.FindFirst("userId")?.Value;
-        return userIdClaim != null && Guid.TryParse(userIdClaim, out var userId) ? userId : null;
+        // JWT tokens may use different claim names
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? User.FindFirst("sub")?.Value
+            ?? User.FindFirst("userId")?.Value;
+
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+        {
+            return null;
+        }
+
+        return userId;
     }
 
     private QuestionListDto MapToQuestionListDto(Models.InterviewQuestion question)
@@ -301,7 +388,8 @@ public class QuestionController : ControllerBase
             Tags = question.Tags != null ? JsonSerializer.Deserialize<List<string>>(question.Tags) : null,
             CompanyTags = question.CompanyTags != null ? JsonSerializer.Deserialize<List<string>>(question.CompanyTags) : null,
             AcceptanceRate = question.AcceptanceRate,
-            IsActive = question.IsActive
+            IsActive = question.IsActive,
+            ApprovalStatus = question.ApprovalStatus
         };
     }
 
@@ -324,9 +412,101 @@ public class QuestionController : ControllerBase
             SpaceComplexityHint = question.SpaceComplexityHint,
             AcceptanceRate = question.AcceptanceRate,
             IsActive = question.IsActive,
+            ApprovalStatus = question.ApprovalStatus,
+            ApprovedBy = question.ApprovedBy,
+            ApprovedAt = question.ApprovedAt,
+            RejectionReason = question.RejectionReason,
+            CreatedBy = question.CreatedBy,
             CreatedAt = question.CreatedAt,
             UpdatedAt = question.UpdatedAt
         };
+    }
+
+    /// <summary>
+    /// Get pending questions (admin only)
+    /// </summary>
+    [HttpGet("pending")]
+    [AuthorizeRole("admin")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPendingQuestions()
+    {
+        try
+        {
+            var questions = await _questionService.GetPendingQuestionsAsync();
+            var dtos = questions.Select(q => MapToQuestionListDto(q));
+            return Ok(dtos);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting pending questions");
+            return StatusCode(500, new { error = "An error occurred while retrieving pending questions." });
+        }
+    }
+
+    /// <summary>
+    /// Approve a question (admin only)
+    /// </summary>
+    [HttpPost("{id}/approve")]
+    [AuthorizeRole("admin")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ApproveQuestion(Guid id)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null)
+            {
+                return Unauthorized(new { error = "Invalid token" });
+            }
+
+            var question = await _questionService.ApproveQuestionAsync(id, userId.Value);
+            var questionDto = MapToQuestionDto(question);
+
+            return Ok(questionDto);
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error approving question {QuestionId}", id);
+            return StatusCode(500, new { error = "An error occurred while approving the question." });
+        }
+    }
+
+    /// <summary>
+    /// Reject a question (admin only)
+    /// </summary>
+    [HttpPost("{id}/reject")]
+    [AuthorizeRole("admin")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RejectQuestion(Guid id, [FromBody] RejectQuestionDto? dto)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null)
+            {
+                return Unauthorized(new { error = "Invalid token" });
+            }
+
+            var question = await _questionService.RejectQuestionAsync(id, userId.Value, dto?.RejectionReason);
+            var questionDto = MapToQuestionDto(question);
+
+            return Ok(questionDto);
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error rejecting question {QuestionId}", id);
+            return StatusCode(500, new { error = "An error occurred while rejecting the question." });
+        }
     }
 }
 

@@ -11,19 +11,25 @@ import { ResendVerificationPage } from './pages/auth/ResendVerificationPage';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { ProfilePage } from './pages/profile/ProfilePage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import { PendingQuestionsPage } from './pages/admin/PendingQuestionsPage';
 import CoachApplicationPage from './pages/coach/CoachApplicationPage';
 import SubscriptionPlansPage from './pages/subscription/SubscriptionPlansPage';
 import { QuestionsPage } from './pages/questions/QuestionsPage';
 import { QuestionDetailPage } from './pages/questions/QuestionDetailPage';
 import { AddQuestionPage } from './pages/questions/AddQuestionPage';
 import { EditQuestionPage } from './pages/questions/EditQuestionPage';
+import { SolutionHistoryPage } from './pages/solutions/SolutionHistoryPage';
+import { ProgressPage } from './pages/progress/ProgressPage';
+import FindPeerPage from './pages/peer-interviews/FindPeerPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
+import { SessionNotificationManager } from './components/SessionNotificationManager';
 import { ROUTES } from './utils/constants';
 
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <SessionNotificationManager />
         <Routes>
         {/* Public routes - no protection */}
         <Route path={ROUTES.HOME} element={<IndexPage />} />
@@ -62,6 +68,21 @@ function App() {
             <QuestionsPage />
           </ProtectedRoute>
         } />
+        <Route path={ROUTES.SOLUTION_HISTORY} element={
+          <ProtectedRoute requireAuth>
+            <SolutionHistoryPage />
+          </ProtectedRoute>
+        } />
+        <Route path={ROUTES.PROGRESS} element={
+          <ProtectedRoute requireAuth>
+            <ProgressPage />
+          </ProtectedRoute>
+        } />
+        <Route path={ROUTES.FIND_PEER} element={
+          <ProtectedRoute requireAuth>
+            <FindPeerPage />
+          </ProtectedRoute>
+        } />
         <Route path={`${ROUTES.QUESTIONS}/:id`} element={
           <ProtectedRoute requireAuth>
             <QuestionDetailPage />
@@ -73,7 +94,7 @@ function App() {
           </ProtectedRoute>
         } />
         <Route path={`${ROUTES.EDIT_QUESTION}/:id`} element={
-          <ProtectedRoute requireAuth requiredRole={['admin', 'coach']}>
+          <ProtectedRoute requireAuth requiredRole="admin">
             <EditQuestionPage />
           </ProtectedRoute>
         } />
@@ -82,6 +103,11 @@ function App() {
         <Route path={ROUTES.ADMIN} element={
           <ProtectedRoute requireAuth requiredRole="admin">
             <AdminDashboardPage />
+          </ProtectedRoute>
+        } />
+        <Route path={ROUTES.PENDING_QUESTIONS} element={
+          <ProtectedRoute requireAuth requiredRole="admin">
+            <PendingQuestionsPage />
           </ProtectedRoute>
         } />
         

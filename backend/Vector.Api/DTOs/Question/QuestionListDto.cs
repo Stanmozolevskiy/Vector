@@ -11,5 +11,6 @@ public class QuestionListDto
     public List<string>? CompanyTags { get; set; }
     public double? AcceptanceRate { get; set; }
     public bool IsActive { get; set; }
+    public string ApprovalStatus { get; set; } = "Pending";
 }
 

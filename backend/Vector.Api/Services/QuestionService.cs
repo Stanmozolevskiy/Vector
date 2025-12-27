@@ -36,11 +36,24 @@ public class QuestionService : IQuestionService
                 query = query.Where(q => q.IsActive == filter.IsActive.Value);
             }
 
+            // Filter by approval status - if not specified, only show approved questions
+            if (!string.IsNullOrEmpty(filter.ApprovalStatus))
+            {
+                query = query.Where(q => q.ApprovalStatus == filter.ApprovalStatus);
+            }
+            else
+            {
+                // By default, only show approved questions
+                query = query.Where(q => q.ApprovalStatus == "Approved");
+            }
+
             if (!string.IsNullOrEmpty(filter.Search))
             {
+                var searchTerm = filter.Search.Trim();
+                // Use case-insensitive search that translates to SQL
                 query = query.Where(q => 
-                    q.Title.Contains(filter.Search) || 
-                    q.Description.Contains(filter.Search));
+                    EF.Functions.Like(q.Title, $"%{searchTerm}%") || 
+                    EF.Functions.Like(q.Description, $"%{searchTerm}%"));
             }
 
             if (!string.IsNullOrEmpty(filter.QuestionType))
@@ -48,35 +61,96 @@ public class QuestionService : IQuestionService
                 query = query.Where(q => q.QuestionType == filter.QuestionType);
             }
 
-            if (!string.IsNullOrEmpty(filter.Category))
+            // Support both single category and multiple categories
+            // Use array directly in Contains - EF Core can translate this to SQL IN clause
+            if (filter.Categories != null && filter.Categories.Any())
+            {
+                // Normalize categories for case-insensitive matching
+                var normalizedCategories = filter.Categories
+                    .Select(c => c?.Trim())
+                    .Where(c => !string.IsNullOrEmpty(c))
+                    .ToList();
+                
+                // EF Core can translate array.Contains() to SQL IN clause
+                query = query.Where(q => normalizedCategories.Contains(q.Category));
+            }
+            else if (!string.IsNullOrEmpty(filter.Category))
             {
                 query = query.Where(q => q.Category == filter.Category);
             }
 
-            if (!string.IsNullOrEmpty(filter.Difficulty))
+            // Support both single difficulty and multiple difficulties
+            // Use array directly in Contains - EF Core can translate this to SQL IN clause
+            if (filter.Difficulties != null && filter.Difficulties.Any())
+            {
+                // Normalize difficulties for case-insensitive matching
+                var normalizedDifficulties = filter.Difficulties
+                    .Select(d => d?.Trim())
+                    .Where(d => !string.IsNullOrEmpty(d))
+                    .ToList();
+                
+                // EF Core can translate array.Contains() to SQL IN clause
+                // But we need to handle case-insensitive matching
+                // Use a helper to build OR conditions that EF Core can translate
+                query = query.Where(q => normalizedDifficulties.Contains(q.Difficulty));
+            }
+            else if (!string.IsNullOrEmpty(filter.Difficulty))
             {
                 query = query.Where(q => q.Difficulty == filter.Difficulty);
             }
 
-            if (filter.Companies != null && filter.Companies.Any())
-            {
-                // Filter by company tags (stored as JSON)
-                foreach (var company in filter.Companies)
-                {
-                    query = query.Where(q => q.CompanyTags != null && q.CompanyTags.Contains(company));
-                }
-            }
+        }
+        else
+        {
+            // If no filter, only show approved questions
+            query = query.Where(q => q.ApprovalStatus == "Approved");
         }
 
-        return await query
+        // Apply company filtering in memory after fetching other filters
+        // This is necessary because JSON deserialization doesn't translate well to SQL
+        var results = await query
             .OrderBy(q => q.Title)
             .ToListAsync();
+
+        if (filter?.Companies != null && filter.Companies.Any())
+        {
+            var companyList = filter.Companies.Select(c => c.Trim()).ToList();
+            results = results.Where(q =>
+            {
+                if (string.IsNullOrEmpty(q.CompanyTags)) return false;
+                try
+                {
+                    var tags = JsonSerializer.Deserialize<List<string>>(q.CompanyTags);
+                    if (tags == null || !tags.Any()) return false;
+                    // Check if any of the filter companies match any of the question's company tags (case-insensitive)
+                    return tags.Any(tag => 
+                        companyList.Any(filterCompany => 
+                            string.Equals(tag?.Trim(), filterCompany, StringComparison.OrdinalIgnoreCase)));
+                }
+                catch
+                {
+                    return false;
+                }
+            }).ToList();
+        }
+
+        return results;
     }
 
     public async Task<InterviewQuestion> CreateQuestionAsync(CreateQuestionDto dto, Guid createdBy)
     {
         // Validation
         ValidateQuestion(dto);
+
+        // Check if creator is admin or coach
+        var creator = await _context.Users.FindAsync(createdBy);
+        var isAdmin = creator?.Role?.ToLower() == "admin";
+        
+        // Admin-created questions are automatically approved
+        // Coach-created questions require approval
+        var approvalStatus = isAdmin ? "Approved" : "Pending";
+        var approvedBy = isAdmin ? createdBy : (Guid?)null;
+        var approvedAt = isAdmin ? DateTime.UtcNow : (DateTime?)null;
 
         var question = new InterviewQuestion
         {
@@ -95,6 +169,9 @@ public class QuestionService : IQuestionService
             SpaceComplexityHint = dto.SpaceComplexityHint,
             AcceptanceRate = dto.AcceptanceRate,
             IsActive = true,
+            ApprovalStatus = approvalStatus,
+            ApprovedBy = approvedBy,
+            ApprovedAt = approvedAt,
             CreatedBy = createdBy,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -288,6 +365,50 @@ public class QuestionService : IQuestionService
         await _context.SaveChangesAsync();
 
         return solution;
+    }
+
+    public async Task<InterviewQuestion> ApproveQuestionAsync(Guid questionId, Guid approvedBy)
+    {
+        var question = await _context.InterviewQuestions.FindAsync(questionId);
+        if (question == null)
+        {
+            throw new ArgumentException($"Question with ID {questionId} not found.");
+        }
+
+        question.ApprovalStatus = "Approved";
+        question.ApprovedBy = approvedBy;
+        question.ApprovedAt = DateTime.UtcNow;
+        question.RejectionReason = null;
+        question.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+        return question;
+    }
+
+    public async Task<InterviewQuestion> RejectQuestionAsync(Guid questionId, Guid rejectedBy, string? rejectionReason = null)
+    {
+        var question = await _context.InterviewQuestions.FindAsync(questionId);
+        if (question == null)
+        {
+            throw new ArgumentException($"Question with ID {questionId} not found.");
+        }
+
+        question.ApprovalStatus = "Rejected";
+        question.ApprovedBy = rejectedBy;
+        question.ApprovedAt = DateTime.UtcNow;
+        question.RejectionReason = rejectionReason;
+        question.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+        return question;
+    }
+
+    public async Task<IEnumerable<InterviewQuestion>> GetPendingQuestionsAsync()
+    {
+        return await _context.InterviewQuestions
+            .Where(q => q.ApprovalStatus == "Pending")
+            .OrderBy(q => q.CreatedAt)
+            .ToListAsync();
     }
 }
 

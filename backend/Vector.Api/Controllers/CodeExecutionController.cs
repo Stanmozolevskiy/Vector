@@ -42,7 +42,57 @@ public class CodeExecutionController : ControllerBase
     }
 
     /// <summary>
-    /// Validate code against all test cases for a question
+    /// Run code against visible (non-hidden) test cases for a question (for "Run" button)
+    /// </summary>
+    [HttpPost("run/{questionId}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RunCode(Guid questionId, [FromBody] ExecutionRequestDto request)
+    {
+        try
+        {
+            var results = await _codeExecutionService.RunCodeAsync(questionId, request);
+            return Ok(results);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new { error = "Question not found." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error running code for question {QuestionId}", questionId);
+            return StatusCode(500, new { error = "An error occurred while running the code." });
+        }
+    }
+
+    /// <summary>
+    /// Run code with line-based testcase input (new UI format)
+    /// </summary>
+    [HttpPost("run-with-testcases/{questionId}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RunCodeWithTestCases(Guid questionId, [FromBody] RunCodeWithTestCasesDto request)
+    {
+        try
+        {
+            var result = await _codeExecutionService.RunCodeWithTestCasesAsync(questionId, request);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new { error = "Question not found." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error running code with testcases for question {QuestionId}", questionId);
+            return StatusCode(500, new { error = "An error occurred while running the code." });
+        }
+    }
+
+    /// <summary>
+    /// Validate code against all test cases for a question, including hidden ones (for "Submit" button)
     /// </summary>
     [HttpPost("validate/{questionId}")]
     [ProducesResponseType(StatusCodes.Status200OK)]

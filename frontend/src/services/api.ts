@@ -23,6 +23,63 @@ let failedQueue: Array<{
   reject: (reason?: unknown) => void;
 }> = [];
 
+// Proactive token refresh - refresh token before it expires
+let tokenRefreshInterval: ReturnType<typeof setInterval> | null = null;
+
+const startProactiveTokenRefresh = () => {
+  // Clear existing interval if any
+  if (tokenRefreshInterval) {
+    clearInterval(tokenRefreshInterval);
+  }
+
+  // Refresh token every 14 minutes (tokens typically expire in 15 minutes)
+  // This ensures token is refreshed before expiration
+  tokenRefreshInterval = setInterval(async () => {
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (!refreshToken) {
+      return; // No refresh token, can't refresh
+    }
+
+    try {
+      const { authService } = await import('./auth.service');
+      const response = await authService.refreshToken();
+      localStorage.setItem('accessToken', response.accessToken);
+      if (response.refreshToken) {
+        localStorage.setItem('refreshToken', response.refreshToken);
+      }
+      console.log('Token refreshed proactively');
+    } catch (error) {
+      // If refresh fails, clear tokens and stop interval
+      console.error('Proactive token refresh failed:', error);
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      if (tokenRefreshInterval) {
+        clearInterval(tokenRefreshInterval);
+        tokenRefreshInterval = null;
+      }
+    }
+  }, 14 * 60 * 1000); // 14 minutes
+};
+
+// Start proactive refresh if user is logged in
+if (localStorage.getItem('refreshToken')) {
+  startProactiveTokenRefresh();
+}
+
+// Listen for storage changes to start/stop proactive refresh
+window.addEventListener('storage', (e) => {
+  if (e.key === 'refreshToken') {
+    if (e.newValue) {
+      startProactiveTokenRefresh();
+    } else {
+      if (tokenRefreshInterval) {
+        clearInterval(tokenRefreshInterval);
+        tokenRefreshInterval = null;
+      }
+    }
+  }
+});
+
 const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue.forEach((prom) => {
     if (error) {
@@ -40,12 +97,15 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Suppress console errors for expected 404s on coach application endpoint
+    // Suppress console errors for expected 404s on coach application and code-drafts endpoints
     if (error.response?.status === 404 && 
-        error.config?.url?.includes('/coach/my-application')) {
+        (error.config?.url?.includes('/coach/my-application') ||
+         error.config?.url?.includes('/code-drafts'))) {
       error.isExpected404 = true;
-      if (error.config?.suppress404Logging !== false) {
-        error.suppressConsoleError = true;
+      error.suppressConsoleError = true;
+      // Prevent axios from logging this error
+      if (error.config) {
+        error.config.suppressErrorLog = true;
       }
       return Promise.reject(error);
     }
@@ -89,6 +149,11 @@ api.interceptors.response.use(
         
         localStorage.setItem('accessToken', response.accessToken);
         localStorage.setItem('refreshToken', response.refreshToken);
+        
+        // Restart proactive refresh if it was stopped
+        if (!tokenRefreshInterval && response.refreshToken) {
+          startProactiveTokenRefresh();
+        }
         
         // Update the original request with new token
         originalRequest.headers.Authorization = `Bearer ${response.accessToken}`;

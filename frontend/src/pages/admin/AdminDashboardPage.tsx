@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import api from '../../services/api';
 import { coachService, type CoachApplication } from '../../services/coach.service';
 import { adminService } from '../../services/admin.service';
+import { ROUTES } from '../../utils/constants';
 import '../../styles/admin.css';
 
 interface UserStats {
@@ -234,6 +236,27 @@ const AdminDashboardPage = () => {
             {success}
           </div>
         )}
+
+        {/* Quick Actions */}
+        <div style={{ marginBottom: '2rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+          <Link
+            to={ROUTES.PENDING_QUESTIONS}
+            style={{
+              padding: '0.75rem 1.5rem',
+              background: '#6366f1',
+              color: 'white',
+              textDecoration: 'none',
+              borderRadius: '8px',
+              fontWeight: 500,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}
+          >
+            <i className="fas fa-clipboard-check"></i>
+            Pending Questions
+          </Link>
+        </div>
 
         {/* Statistics Cards */}
         {stats && (

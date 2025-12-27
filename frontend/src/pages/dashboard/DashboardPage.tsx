@@ -1,20 +1,41 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { ROUTES } from '../../utils/constants';
 import { Navbar } from '../../components/layout/Navbar';
+import { analyticsService, type LearningAnalytics } from '../../services/analytics.service';
 import '../../styles/style.css';
 import '../../styles/dashboard.css';
 
 export const DashboardPage = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
+  const [analytics, setAnalytics] = useState<LearningAnalytics | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       navigate(ROUTES.LOGIN);
     }
   }, [isAuthenticated, isLoading, navigate]);
+
+  useEffect(() => {
+    const loadAnalytics = async () => {
+      if (!isAuthenticated) return;
+      
+      try {
+        setAnalyticsLoading(true);
+        const data = await analyticsService.getUserAnalytics();
+        setAnalytics(data);
+      } catch (err) {
+        console.error('Error loading analytics:', err);
+      } finally {
+        setAnalyticsLoading(false);
+      }
+    };
+
+    loadAnalytics();
+  }, [isAuthenticated]);
 
   if (isLoading) {
     return (
@@ -58,7 +79,7 @@ export const DashboardPage = () => {
                 <i className="fas fa-check-circle"></i>
               </div>
               <div className="stat-info">
-                <div className="stat-value">0</div>
+                <div className="stat-value">{analyticsLoading ? '...' : (analytics?.questionsSolved || 0)}</div>
                 <div className="stat-label">Problems Solved</div>
               </div>
             </div>
@@ -76,7 +97,7 @@ export const DashboardPage = () => {
                 <i className="fas fa-fire"></i>
               </div>
               <div className="stat-info">
-                <div className="stat-value">0</div>
+                <div className="stat-value">{analyticsLoading ? '...' : (analytics?.currentStreak || 0)}</div>
                 <div className="stat-label">Day Streak</div>
               </div>
             </div>
@@ -107,36 +128,48 @@ export const DashboardPage = () => {
 
               {/* Problem Solving Progress */}
               <div className="dashboard-card">
-                <h2>Problem Solving Progress</h2>
-                <div className="problem-stats">
-                  <div className="problem-stat-item">
-                    <div className="problem-stat-header">
-                      <span className="difficulty-badge easy">Easy</span>
-                      <span>0/234</span>
-                    </div>
-                    <div className="progress-bar-container">
-                      <div className="progress-bar-fill easy" style={{ width: '0%' }}></div>
-                    </div>
-                  </div>
-                  <div className="problem-stat-item">
-                    <div className="problem-stat-header">
-                      <span className="difficulty-badge medium">Medium</span>
-                      <span>0/456</span>
-                    </div>
-                    <div className="progress-bar-container">
-                      <div className="progress-bar-fill medium" style={{ width: '0%' }}></div>
-                    </div>
-                  </div>
-                  <div className="problem-stat-item">
-                    <div className="problem-stat-header">
-                      <span className="difficulty-badge hard">Hard</span>
-                      <span>0/310</span>
-                    </div>
-                    <div className="progress-bar-container">
-                      <div className="progress-bar-fill hard" style={{ width: '0%' }}></div>
-                    </div>
-                  </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <h2>Problem Solving Progress</h2>
+                  <Link to={ROUTES.PROGRESS} className="btn-outline" style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}>
+                    View Details
+                  </Link>
                 </div>
+                <div className="problem-stats">
+                  {['Easy', 'Medium', 'Hard'].map((difficulty) => {
+                    const solved = analytics?.questionsByDifficulty?.[difficulty] || 0;
+                    const total = difficulty === 'Easy' ? 234 : difficulty === 'Medium' ? 456 : 310;
+                    const percentage = total > 0 ? (solved / total) * 100 : 0;
+                    const colorClass = difficulty.toLowerCase();
+                    
+                    return (
+                      <div key={difficulty} className="problem-stat-item">
+                        <div className="problem-stat-header">
+                          <span className={`difficulty-badge ${colorClass}`}>{difficulty}</span>
+                          <span>{analyticsLoading ? '...' : `${solved}/${total}`}</span>
+                        </div>
+                        <div className="progress-bar-container">
+                          <div 
+                            className={`progress-bar-fill ${colorClass}`} 
+                            style={{ 
+                              width: analyticsLoading ? '0%' : `${percentage}%`,
+                              transition: 'width 0.3s ease'
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {analytics && analytics.successRate > 0 && (
+                  <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #e5e7eb' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>Success Rate</span>
+                      <span style={{ fontSize: '1rem', fontWeight: 600, color: '#111827' }}>
+                        {analytics.successRate.toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -173,7 +206,7 @@ export const DashboardPage = () => {
                   <i className="fas fa-calendar-alt" style={{ fontSize: '2rem', color: 'var(--text-secondary)', marginBottom: 'var(--spacing-sm)' }}></i>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', textAlign: 'center' }}>No interviews scheduled</p>
                 </div>
-                <Link to={ROUTES.DASHBOARD} className="btn-outline btn-full">Schedule Interview</Link>
+                <Link to={ROUTES.FIND_PEER} className="btn-outline btn-full">Schedule Interview</Link>
               </div>
 
 

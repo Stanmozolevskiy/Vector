@@ -36,12 +36,38 @@ dotnet test --filter "FullyQualifiedName~AuthControllerTests"
   - Reset Password
 - `UserControllerTests.cs` - Tests for user management endpoints
   - Get Current User
+- `PeerInterviewControllerTests.cs` - Tests for peer interview endpoints (25 tests)
+  - CreateSession (8 tests)
+  - GetMySessions (4 tests)
+  - GetSession (5 tests)
+  - UpdateSessionStatus (4 tests)
+  - CancelSession (4 tests)
+  - FindMatch (3 tests)
+  - UpdateMatchPreferences (2 tests)
+  - GetMatchPreferences (3 tests)
 
 ### Services
 - `AuthServiceTests.cs` - Tests for authentication business logic
   - User Registration
   - User Login
   - Email Verification
+- `PeerInterviewServiceTests.cs` - Tests for peer interview business logic (48 tests)
+  - CreateSessionAsync (20 tests)
+    - Valid data creation
+    - Automatic question assignment by interview level (Beginner/Intermediate/Advanced)
+    - Invalid interview level handling
+    - No questions available for level
+    - Null/optional parameter handling
+    - Default time and duration
+    - Last match date updates
+    - Case-insensitive level matching
+  - GetSessionByIdAsync (2 tests)
+  - GetUserSessionsAsync (4 tests)
+  - UpdateSessionStatusAsync (3 tests)
+  - CancelSessionAsync (8 tests)
+  - FindMatchAsync (8 tests)
+  - UpdateMatchPreferencesAsync (3 tests)
+  - GetMatchPreferencesAsync (2 tests)
 
 ## Important Notes
 

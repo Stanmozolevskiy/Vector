@@ -13,6 +13,7 @@ public class PeerInterviewController : ControllerBase
 {
     private readonly IPeerInterviewService _peerInterviewService;
     private readonly ILogger<PeerInterviewController> _logger;
+    private readonly IHubContext<CollaborationHub> _hubContext;
 
     public PeerInterviewController(
         IPeerInterviewService peerInterviewService,
@@ -20,6 +21,7 @@ public class PeerInterviewController : ControllerBase
     {
         _peerInterviewService = peerInterviewService;
         _logger = logger;
+        _hubContext = hubContext;
     }
 
     private Guid GetCurrentUserId()

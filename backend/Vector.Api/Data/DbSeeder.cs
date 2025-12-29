@@ -57,50 +57,6 @@ public static class DbSeeder
     }
 
     /// <summary>
-    /// Seeds mock interview videos
-    /// </summary>
-    public static async Task SeedMockInterviews(ApplicationDbContext context, ILogger logger)
-    {
-        try
-        {
-            // Check if mock interviews exist
-            var interviewsExist = await context.MockInterviews.AnyAsync();
-
-            if (interviewsExist)
-            {
-                logger.LogInformation("Mock interviews already exist. Skipping seed.");
-                return;
-            }
-
-            // Add initial mock interview video
-            var mockInterview = new MockInterview
-            {
-                Id = Guid.NewGuid(),
-                Title = "What Is Exponent? - Introduction to Mock Interviews",
-                Description = "An introduction to Exponent's mock interview platform and how to prepare for technical interviews effectively.",
-                VideoUrl = "https://dev-vector-user-uploads.s3.us-east-1.amazonaws.com/videos/mock-interviews/what-is-exponent.mp4",
-                ThumbnailUrl = "",
-                DurationSeconds = 180, // 3 minutes (approximate)
-                Category = "Introduction",
-                Difficulty = "Easy",
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-
-            context.MockInterviews.Add(mockInterview);
-            await context.SaveChangesAsync();
-
-            logger.LogInformation("Mock interview video seeded successfully: {Title}", mockInterview.Title);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Failed to seed mock interviews");
-            throw;
-        }
-    }
-
-    /// <summary>
     /// Seeds all initial data
     /// </summary>
     public static async Task SeedDatabase(ApplicationDbContext context, ILogger logger)
@@ -115,16 +71,6 @@ public static class DbSeeder
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to seed admin user, but continuing with other seeds...");
-        }
-
-        // Seed mock interviews (non-critical)
-        try
-        {
-            await SeedMockInterviews(context, logger);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to seed mock interviews, but this is non-critical. Continuing...");
         }
 
         // Seed interview questions (non-critical)

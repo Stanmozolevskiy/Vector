@@ -416,6 +416,27 @@
   transform: translateY(0);
 }
 
+.btn-join-interview:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-join-interview:disabled:hover {
+  background: #7c3aed;
+  transform: none;
+  box-shadow: none;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* Legacy styles for backward compatibility */
 .matching-status {
   text-align: center;

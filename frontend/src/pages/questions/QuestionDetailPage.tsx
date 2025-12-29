@@ -119,27 +119,22 @@ export const QuestionDetailPage = () => {
   useEffect(() => {
     if (id && user?.id) {
       loadQuestion();
-      // Check session immediately and also after a short delay to ensure everything loads
-      checkActiveSession();
-      // Also check after a delay to catch any race conditions
-      const timeoutId = setTimeout(() => {
+      // Only check session if sessionId is in URL - no automatic discovery
+      const sessionIdFromUrl = searchParams.get('session');
+      if (sessionIdFromUrl) {
         checkActiveSession();
-      }, 500);
-      return () => clearTimeout(timeoutId);
+      }
     }
-  }, [id, searchParams, user?.id]);
+  }, [id, user?.id, searchParams]);
 
   // Also check session when user becomes available
-  useEffect(() => {
-    if (user?.id && id) {
-      // Always check, even if activeSession exists, to ensure it's up to date
-      checkActiveSession();
-    }
-  }, [user?.id, id]);
+  // Session check removed - only checks when sessionId is in URL params
+  // No automatic session discovery to avoid 404 errors
 
   // Initialize SignalR connection for session events (test results, role switching, question changes)
+  // Show buttons once both users have joined (both interviewerId and intervieweeId exist)
   useEffect(() => {
-    if (!activeSession || !activeSession.intervieweeId || !user?.id) {
+    if (!activeSession || !activeSession.interviewerId || !activeSession.intervieweeId || !user?.id) {
       return;
     }
 
@@ -148,9 +143,9 @@ export const QuestionDetailPage = () => {
         const accessToken = localStorage.getItem('accessToken');
         if (!accessToken) return;
 
-        const baseUrl = api.defaults.baseURL?.replace('/api', '') || 'http://localhost:5000';
+        const baseUrl = (api.defaults.baseURL?.replace('/api', '') || 'http://localhost:5000');
         const connection = new signalR.HubConnectionBuilder()
-          .withUrl(`${baseUrl}/api/collaboration/${activeSession.id}?access_token=${accessToken}`, {
+          .withUrl(`${baseUrl}/api/collaboration?access_token=${accessToken}`, {
             transport: signalR.HttpTransportType.WebSockets,
           })
           .withAutomaticReconnect({
@@ -226,142 +221,53 @@ export const QuestionDetailPage = () => {
   }, [activeSession?.id, activeSession?.intervieweeId, user?.id, id, navigate]);
 
   // Check for active peer interview session for this question
+  // ONLY checks sessionId from URL params - no automatic session discovery
   const checkActiveSession = async () => {
     if (!id || !user?.id) return;
     
+    // Only check if sessionId is in URL query params - no automatic discovery
+    const sessionIdFromUrl = searchParams.get('session');
+    if (!sessionIdFromUrl) {
+      // No session ID in URL - don't try to find sessions automatically
+      return;
+    }
+    
     try {
-      // First check if sessionId is in URL query params
-      const sessionIdFromUrl = searchParams.get('session');
-      if (sessionIdFromUrl) {
-        try {
-          const session = await peerInterviewService.getSession(sessionIdFromUrl);
-          if (session) {
-            // Check if user is part of this session
-            const isUserInSession = session.interviewerId === user.id || 
-                                   (session.intervieweeId && session.intervieweeId === user.id);
-            
-            if (isUserInSession) {
-              // User is in session - set it as active regardless of questionId match
-              // This allows session features even if question was changed
-              setActiveSession(session);
-              setShowPartnerVideo(true);
-              
-              // Start timer ONLY if both users have joined (status is InProgress AND intervieweeId is set)
-              if (session.status === 'InProgress' && session.intervieweeId) {
-                // Get session start time from localStorage or use current time
-                const storedStartTime = localStorage.getItem(`session_start_${sessionIdFromUrl}`);
-                if (storedStartTime) {
-                  setSessionStartTime(new Date(storedStartTime));
-                } else {
-                  // Timer starts when both users join - set start time now
-                  const startTime = new Date();
-                  setSessionStartTime(startTime);
-                  localStorage.setItem(`session_start_${sessionIdFromUrl}`, startTime.toISOString());
-                }
-              }
-              
-              // If questionId doesn't match, redirect to correct question
-              if (session.questionId && session.questionId !== id) {
-                navigate(`${ROUTES.QUESTIONS}/${session.questionId}?session=${sessionIdFromUrl}`, { replace: true });
-                return;
-              }
-              
-              // Update session status to InProgress if it's Scheduled AND both users have joined
-              if (session.status === 'Scheduled' && session.intervieweeId) {
-                try {
-                  await peerInterviewService.updateSessionStatus(sessionIdFromUrl, 'InProgress');
-                  setActiveSession({ ...session, status: 'InProgress' });
-                  // Start timer only when both users have joined
-                  const startTime = new Date();
-                  setSessionStartTime(startTime);
-                  localStorage.setItem(`session_start_${sessionIdFromUrl}`, startTime.toISOString());
-                } catch (error) {
-                  // Silently fail - status update is optional
-                }
-              }
-              return;
+      const session = await peerInterviewService.getSession(sessionIdFromUrl);
+      if (session) {
+        // Check if user is part of this session
+        const isUserInSession = session.interviewerId === user.id || 
+                               (session.intervieweeId && session.intervieweeId === user.id);
+        
+        if (isUserInSession) {
+          // User is in session - set it as active
+          setActiveSession(session);
+          setShowPartnerVideo(true);
+          
+          // Start timer ONLY if both users have joined (status is InProgress AND intervieweeId is set)
+          if (session.status === 'InProgress' && session.intervieweeId) {
+            // Get session start time from localStorage or use current time
+            const storedStartTime = localStorage.getItem(`session_start_${sessionIdFromUrl}`);
+            if (storedStartTime) {
+              setSessionStartTime(new Date(storedStartTime));
+            } else {
+              // Timer starts when both users join - set start time now
+              const startTime = new Date();
+              setSessionStartTime(startTime);
+              localStorage.setItem(`session_start_${sessionIdFromUrl}`, startTime.toISOString());
             }
           }
-        } catch (error) {
-          console.error('Error loading session from URL:', error);
-          // Don't show rejoin modal immediately - try to reload session after a delay
-          // This handles cases where session is still being created
-          setTimeout(async () => {
-            try {
-              const retrySession = await peerInterviewService.getSession(sessionIdFromUrl);
-              if (retrySession) {
-                const isUserInSession = retrySession.interviewerId === user.id || 
-                                       (retrySession.intervieweeId && retrySession.intervieweeId === user.id);
-                if (isUserInSession) {
-                  setActiveSession(retrySession);
-                  setShowPartnerVideo(true);
-                  // Start timer if both users joined
-                  if (retrySession.status === 'InProgress' && retrySession.intervieweeId) {
-                    const storedStartTime = localStorage.getItem(`session_start_${sessionIdFromUrl}`);
-                    if (storedStartTime) {
-                      setSessionStartTime(new Date(storedStartTime));
-                    } else {
-                      const startTime = new Date();
-                      setSessionStartTime(startTime);
-                      localStorage.setItem(`session_start_${sessionIdFromUrl}`, startTime.toISOString());
-                    }
-                  }
-                  // Redirect if questionId doesn't match
-                  if (retrySession.questionId && retrySession.questionId !== id) {
-                    navigate(`${ROUTES.QUESTIONS}/${retrySession.questionId}?session=${sessionIdFromUrl}`, { replace: true });
-                  }
-                  return;
-                }
-              }
-            } catch (retryError) {
-              // Only show rejoin modal if retry also fails
-              if (sessionIdFromUrl && !connectionLostRef.current) {
-                connectionLostRef.current = true;
-                setShowRejoinModal(true);
-              }
-            }
-          }, 1000);
-          // Continue to check for other sessions
-        }
-      }
-      
-      // Otherwise, check for active sessions for this question
-      const sessions = await peerInterviewService.getMySessions();
-      const activeSession = sessions.find(
-        (session) =>
-          session.questionId === id &&
-          (session.status === 'InProgress' || session.status === 'Scheduled') &&
-          (session.interviewerId === user.id || (session.intervieweeId && session.intervieweeId === user.id))
-      );
-      
-      if (activeSession) {
-        setActiveSession(activeSession);
-        setShowPartnerVideo(true);
-        // Clear any rejoin modal since we found an active session
-        setShowRejoinModal(false);
-        connectionLostRef.current = false;
-        
-        // Force hide rejoin modal immediately
-        setTimeout(() => {
-          setShowRejoinModal(false);
-          connectionLostRef.current = false;
-        }, 0);
-        
-        // Start timer ONLY if both users have joined (status is InProgress AND intervieweeId is set)
-        if (activeSession.status === 'InProgress' && activeSession.intervieweeId) {
-          const storedStartTime = localStorage.getItem(`session_start_${activeSession.id}`);
-          if (storedStartTime) {
-            setSessionStartTime(new Date(storedStartTime));
-          } else {
-            // Timer starts when both users join - set start time now
-            const startTime = new Date();
-            setSessionStartTime(startTime);
-            localStorage.setItem(`session_start_${activeSession.id}`, startTime.toISOString());
+          
+          // If questionId doesn't match, redirect to correct question
+          if (session.questionId && session.questionId !== id) {
+            navigate(`${ROUTES.QUESTIONS}/${session.questionId}?session=${sessionIdFromUrl}`, { replace: true });
+            return;
           }
         }
       }
     } catch (error) {
       // Silently fail - session check is optional
+      // Don't log errors to console - they're expected when session doesn't exist
     }
   };
 
@@ -843,7 +749,10 @@ export const QuestionDetailPage = () => {
 
     try {
       setIsChangingQuestion(true);
-      const updatedSession = await peerInterviewService.changeQuestion(activeSession.id);
+      await peerInterviewService.changeQuestion(activeSession.id);
+      
+      // Reload the session to get the updated question
+      const updatedSession = await peerInterviewService.getSession(activeSession.id);
       setActiveSession(updatedSession);
       
       // Notify partner via SignalR
@@ -857,7 +766,7 @@ export const QuestionDetailPage = () => {
       
       // Navigate to the new question using replace to allow browser back button
       if (updatedSession.questionId) {
-        navigate(`${ROUTES.QUESTIONS}/${updatedSession.questionId}?session=${updatedSession.id}`, { replace: false });
+        navigate(`${ROUTES.QUESTIONS}/${updatedSession.questionId}?session=${activeSession.id}`, { replace: false });
       } else {
         showToast('Question changed, but no new question was assigned', 'warning');
       }
@@ -874,10 +783,10 @@ export const QuestionDetailPage = () => {
 
     try {
       setIsSwitchingRole(true);
-      const updatedSession = await peerInterviewService.switchRoles(activeSession.id);
+      await peerInterviewService.switchRoles(activeSession.id);
       
       // Reload the session to get fresh data
-      const freshSession = await peerInterviewService.getSession(updatedSession.id);
+      const freshSession = await peerInterviewService.getSession(activeSession.id);
       setActiveSession(freshSession);
       
       // Notify partner via SignalR
@@ -916,8 +825,8 @@ export const QuestionDetailPage = () => {
     try {
       setIsEndingSession(true);
       
-      // Update session status to Completed
-      await peerInterviewService.updateSessionStatus(activeSession.id, 'Completed');
+      // End the interview session
+      await peerInterviewService.endInterview(activeSession.id);
       
       // Clear timer
       if (activeSession.id) {
@@ -1440,10 +1349,10 @@ export const QuestionDetailPage = () => {
               <i className="fas fa-edit"></i>
             </Link>
           )}
-          {activeSession && activeSession.status === 'InProgress' && (
+          {/* Show session controls once both users have joined (session exists with both participants) */}
+          {activeSession && activeSession.interviewerId && activeSession.intervieweeId && (
             <>
               {/* Show current role */}
-              {activeSession.intervieweeId && (
               <div className="role-indicator" style={{ 
                 display: 'flex', 
                 alignItems: 'center', 
@@ -1458,9 +1367,8 @@ export const QuestionDetailPage = () => {
                 <i className={`fas ${activeSession.interviewerId === user?.id ? 'fa-user-tie' : 'fa-user'}`}></i>
                 {activeSession.interviewerId === user?.id ? 'Interviewer' : 'Interviewee'}
               </div>
-              )}
               {/* Change Question button - only for interviewer */}
-              {activeSession.interviewerId === user?.id && activeSession.intervieweeId && (
+              {activeSession.interviewerId === user?.id && (
                 <button
                   className="nav-icon-btn"
                   title="Change Question"
@@ -1469,7 +1377,11 @@ export const QuestionDetailPage = () => {
                   style={{ 
                     background: isChangingQuestion ? '#9ca3af' : '#7c3aed',
                     color: 'white',
-                    border: 'none'
+                    border: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.5rem 1rem'
                   }}
                 >
                   {isChangingQuestion ? (
@@ -1477,10 +1389,10 @@ export const QuestionDetailPage = () => {
                   ) : (
                     <i className="fas fa-sync-alt"></i>
                   )}
+                  <span>Change Question</span>
                 </button>
               )}
               {/* Switch Role button - for both */}
-              {activeSession.intervieweeId && (
               <button
                 className="nav-icon-btn"
                 title="Switch Role"
@@ -1489,7 +1401,11 @@ export const QuestionDetailPage = () => {
                 style={{ 
                   background: isSwitchingRole ? '#9ca3af' : '#10b981',
                   color: 'white',
-                  border: 'none'
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.5rem 1rem'
                 }}
               >
                 {isSwitchingRole ? (
@@ -1497,10 +1413,9 @@ export const QuestionDetailPage = () => {
                 ) : (
                   <i className="fas fa-exchange-alt"></i>
                 )}
+                <span>Switch Roles</span>
               </button>
-              )}
               {/* End Session button - for both */}
-              {activeSession.intervieweeId && (
               <button
                 className="nav-icon-btn"
                 title="End Session"
@@ -1523,9 +1438,8 @@ export const QuestionDetailPage = () => {
                 )}
                 <span>End Session</span>
               </button>
-              )}
               {/* Timer display */}
-              {activeSession.intervieweeId && sessionStartTime && (
+              {sessionStartTime && (
                 <div className="nav-timer" style={{ 
                   display: 'flex', 
                   alignItems: 'center', 
@@ -1568,7 +1482,7 @@ export const QuestionDetailPage = () => {
         />
       )}
 
-      {showPartnerVideo && activeSession && activeSession.intervieweeId && (
+      {showPartnerVideo && activeSession && activeSession.interviewerId && activeSession.intervieweeId && (
         <DraggableVideo
           sessionId={activeSession.id}
           userId={user?.id || ''}
@@ -1974,7 +1888,7 @@ export const QuestionDetailPage = () => {
             </div>
 
             <div className="code-area" ref={codeAreaRef} style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-              {activeSession && activeSession.status === 'InProgress' && activeSession.intervieweeId ? (
+              {activeSession && activeSession.interviewerId && activeSession.intervieweeId ? (
                 <CollaborativeCodeEditor
                   value={code}
                   language={selectedLanguage}

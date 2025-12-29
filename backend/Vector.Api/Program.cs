@@ -6,7 +6,6 @@ using StackExchange.Redis;
 using System.Security.Claims;
 using System.Text;
 using Vector.Api.Data;
-using Vector.Api.Hubs;
 using Vector.Api.Middleware;
 using Vector.Api.Services;
 
@@ -133,7 +132,6 @@ builder.Services.AddScoped<ISolutionService, SolutionService>();
 builder.Services.AddScoped<ICodeDraftService, CodeDraftService>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 builder.Services.AddScoped<IPeerInterviewService, PeerInterviewService>();
-builder.Services.AddScoped<IVideoSessionService, VideoSessionService>();
 
 // SignalR for real-time collaboration
 builder.Services.AddSignalR();
@@ -220,8 +218,8 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Map SignalR hub
-app.MapHub<CollaborationHub>("/api/collaboration/{sessionId}");
+// Map SignalR hubs
+app.MapHub<Vector.Api.Hubs.CollaborationHub>("/api/collaboration");
 
 // Health check endpoints are handled by HealthController
 // Removed duplicate MapGet endpoints to avoid conflicts

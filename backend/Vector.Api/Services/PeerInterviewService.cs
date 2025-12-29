@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
 using Vector.Api.Data;
+using Vector.Api.DTOs.PeerInterview;
 using Vector.Api.Models;
 
 namespace Vector.Api.Services;
@@ -8,941 +8,1169 @@ namespace Vector.Api.Services;
 public class PeerInterviewService : IPeerInterviewService
 {
     private readonly ApplicationDbContext _context;
+    private readonly IQuestionService _questionService;
     private readonly ILogger<PeerInterviewService> _logger;
+    private static readonly Random _random = new Random();
 
-    public PeerInterviewService(ApplicationDbContext context, ILogger<PeerInterviewService> logger)
+    public PeerInterviewService(
+        ApplicationDbContext context,
+        IQuestionService questionService,
+        ILogger<PeerInterviewService> logger)
     {
         _context = context;
+        _questionService = questionService;
         _logger = logger;
     }
 
-    private string? MapInterviewLevelToDifficulty(string? interviewLevel)
+    // Scheduling
+    public async Task<ScheduledInterviewSessionDto> ScheduleInterviewSessionAsync(Guid userId, ScheduleInterviewDto dto)
     {
-        return interviewLevel?.ToLower() switch
+        var session = new ScheduledInterviewSession
         {
-            "beginner" => "Easy",
-            "intermediate" => "Medium",
-            "advanced" => "Hard",
-            _ => null
-        };
-    }
-
-
-    public async Task<PeerInterviewMatch?> FindMatchAsync(Guid userId, string? preferredDifficulty = null, List<string>? preferredCategories = null)
-    {
-        // Get current user's match preferences
-        var userMatch = await GetMatchPreferencesAsync(userId);
-        if (userMatch == null || !userMatch.IsAvailable)
-        {
-            return null;
-        }
-
-        // Find available peers
-        var availablePeers = await _context.PeerInterviewMatches
-            .Include(m => m.User)
-            .Where(m => m.IsAvailable 
-                && m.UserId != userId
-                && (m.LastMatchDate == null || m.LastMatchDate < DateTime.UtcNow.AddHours(-1))) // Not matched in last hour
-            .ToListAsync();
-
-        if (!availablePeers.Any())
-        {
-            return null;
-        }
-
-        // Simple matching algorithm: find peer with compatible preferences
-        var difficulty = preferredDifficulty ?? userMatch.PreferredDifficulty;
-        var categories = preferredCategories ?? 
-            (string.IsNullOrEmpty(userMatch.PreferredCategories) 
-                ? new List<string>() 
-                : JsonSerializer.Deserialize<List<string>>(userMatch.PreferredCategories) ?? new List<string>());
-
-        // Score peers based on preference match
-        var scoredPeers = availablePeers.Select(peer =>
-        {
-            var score = 0;
-            
-            // Difficulty match
-            var peerDifficulty = peer.PreferredDifficulty;
-            if (!string.IsNullOrEmpty(difficulty) && !string.IsNullOrEmpty(peerDifficulty))
-            {
-                if (difficulty == peerDifficulty || difficulty == "Any" || peerDifficulty == "Any")
-                {
-                    score += 10;
-                }
-            }
-
-            // Category match
-            if (categories.Any())
-            {
-                var peerCategories = string.IsNullOrEmpty(peer.PreferredCategories)
-                    ? new List<string>()
-                    : JsonSerializer.Deserialize<List<string>>(peer.PreferredCategories) ?? new List<string>();
-                
-                var commonCategories = categories.Intersect(peerCategories).Count();
-                score += commonCategories * 5;
-            }
-
-            return new { Peer = peer, Score = score };
-        })
-        .Where(x => x.Score > 0)
-        .OrderByDescending(x => x.Score)
-        .FirstOrDefault();
-
-        return scoredPeers?.Peer;
-    }
-
-    public async Task<PeerInterviewSession> CreateSessionAsync(Guid interviewerId, Guid? intervieweeId = null, Guid? questionId = null, DateTime? scheduledTime = null, int duration = 45, string? interviewType = null, string? practiceType = null, string? interviewLevel = null)
-    {
-        // If no question is provided, assign one based on interview level
-        if (!questionId.HasValue && !string.IsNullOrEmpty(interviewLevel))
-        {
-            questionId = await AssignQuestionByLevelAsync(interviewLevel);
-        }
-
-        var session = new PeerInterviewSession
-        {
-            Id = Guid.NewGuid(),
-            InterviewerId = interviewerId,
-            IntervieweeId = intervieweeId, // Can be null if matching is pending
-            QuestionId = questionId,
+            UserId = userId,
+            InterviewType = dto.InterviewType,
+            PracticeType = dto.PracticeType,
+            InterviewLevel = dto.InterviewLevel,
+            ScheduledStartAt = dto.ScheduledStartAt,
             Status = "Scheduled",
-            ScheduledTime = scheduledTime ?? DateTime.UtcNow.AddMinutes(5), // Default: 5 minutes from now
-            Duration = duration,
-            InterviewType = interviewType,
-            PracticeType = practiceType,
-            InterviewLevel = interviewLevel,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
 
-        _context.PeerInterviewSessions.Add(session);
+        _context.ScheduledInterviewSessions.Add(session);
         await _context.SaveChangesAsync();
 
-        // Create participant record for the interviewer (independent tracking)
-        var interviewerParticipant = new UserSessionParticipant
-        {
-            Id = Guid.NewGuid(),
-            UserId = interviewerId,
-            SessionId = session.Id,
-            Role = "Interviewer",
-            Status = "Active",
-            JoinedAt = null, // Will be set when session actually starts
-            IsConnected = false,
-            LastSeenAt = null,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
-        _context.UserSessionParticipants.Add(interviewerParticipant);
-
-        // Create participant record for interviewee if provided
-        if (intervieweeId.HasValue)
-        {
-            var intervieweeParticipant = new UserSessionParticipant
-            {
-                Id = Guid.NewGuid(),
-                UserId = intervieweeId.Value,
-                SessionId = session.Id,
-                Role = "Interviewee",
-                Status = "Active",
-                JoinedAt = null,
-                IsConnected = false,
-                LastSeenAt = null,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-            _context.UserSessionParticipants.Add(intervieweeParticipant);
-        }
-
-        // Update last match date for interviewer (and interviewee if provided)
-        var interviewerMatch = await GetMatchPreferencesAsync(interviewerId);
-        if (interviewerMatch != null)
-        {
-            interviewerMatch.LastMatchDate = DateTime.UtcNow;
-            interviewerMatch.UpdatedAt = DateTime.UtcNow;
-        }
-
-        if (intervieweeId.HasValue)
-        {
-            var intervieweeMatch = await GetMatchPreferencesAsync(intervieweeId.Value);
-            if (intervieweeMatch != null)
-            {
-                intervieweeMatch.LastMatchDate = DateTime.UtcNow;
-                intervieweeMatch.UpdatedAt = DateTime.UtcNow;
-            }
-        }
-
-        await _context.SaveChangesAsync();
-
-        return session;
+        return await MapToScheduledSessionDtoAsync(session);
     }
 
-    public async Task<PeerInterviewSession?> GetSessionByIdAsync(Guid sessionId)
+    public async Task<IEnumerable<ScheduledInterviewSessionDto>> GetUpcomingSessionsAsync(Guid userId)
     {
-        return await _context.PeerInterviewSessions
-            .Include(s => s.Interviewer)
-            .Include(s => s.Interviewee)
-            .Include(s => s.Question)
-            .FirstOrDefaultAsync(s => s.Id == sessionId);
-    }
-
-    public async Task<List<PeerInterviewSession>> GetUserSessionsAsync(Guid userId, string? status = null)
-    {
-        // Get sessions where user is a participant (independent tracking)
-        // This allows one user to cancel without affecting the other user's view
-        var participantQuery = _context.UserSessionParticipants
-            .Include(p => p.Session)
-                .ThenInclude(s => s.Interviewer)
-            .Include(p => p.Session)
-                .ThenInclude(s => s.Interviewee)
-            .Include(p => p.Session)
-                .ThenInclude(s => s.Question)
-            .Where(p => p.UserId == userId);
-
-        // Filter by participant status if provided, otherwise only show active participants
-        if (!string.IsNullOrEmpty(status))
-        {
-            // Map session status to participant status
-            // For status filtering, we need to check both participant status and session status
-            if (status == "Cancelled")
-            {
-                participantQuery = participantQuery.Where(p => p.Status == "Cancelled" || p.Status == "Left" || p.Session.Status == "Cancelled");
-            }
-            else if (status == "Completed")
-            {
-                // For completed, check both participant status and session status
-                participantQuery = participantQuery.Where(p => p.Status == "Completed" || p.Session.Status == "Completed");
-            }
-            else if (status == "InProgress")
-            {
-                participantQuery = participantQuery.Where(p => p.Session.Status == "InProgress");
-            }
-            else if (status == "Scheduled")
-            {
-                participantQuery = participantQuery.Where(p => p.Session.Status == "Scheduled");
-            }
-        }
-        else
-        {
-            // Only show active participants by default
-            participantQuery = participantQuery.Where(p => p.Status == "Active");
-        }
-
-        var participants = await participantQuery
-            .OrderByDescending(p => p.CreatedAt)
+        var now = DateTime.UtcNow;
+        var sessions = await _context.ScheduledInterviewSessions
+            .Include(s => s.User)
+            .Where(s => s.UserId == userId 
+                && s.Status != "Cancelled"
+                && s.ScheduledStartAt > now)
+            .OrderBy(s => s.ScheduledStartAt)
             .ToListAsync();
 
-        var sessionsFromParticipants = participants.Select(p => p.Session).ToList();
-
-        // BACKWARD COMPATIBILITY: Also get sessions where user is directly involved but no participant record exists
-        // This handles old sessions created before UserSessionParticipant was introduced
-        var directSessionQuery = _context.PeerInterviewSessions
-            .Include(s => s.Interviewer)
-            .Include(s => s.Interviewee)
-            .Include(s => s.Question)
-            .Where(s => (s.InterviewerId == userId || (s.IntervieweeId.HasValue && s.IntervieweeId.Value == userId))
-                && !_context.UserSessionParticipants.Any(p => p.SessionId == s.Id && p.UserId == userId));
-
-        if (!string.IsNullOrEmpty(status))
+        var dtos = new List<ScheduledInterviewSessionDto>();
+        foreach (var session in sessions)
         {
-            // Filter by exact status match for direct sessions
-            directSessionQuery = directSessionQuery.Where(s => s.Status == status);
+            dtos.Add(await MapToScheduledSessionDtoAsync(session));
         }
-
-        var directSessions = await directSessionQuery
-            .OrderByDescending(s => s.CreatedAt)
-            .ToListAsync();
-
-        // Merge and deduplicate
-        var allSessions = sessionsFromParticipants
-            .Concat(directSessions)
-            .GroupBy(s => s.Id)
-            .Select(g => g.First())
-            .ToList();
-
-        return allSessions;
+        return dtos;
     }
 
-    public async Task<PeerInterviewSession> UpdateSessionStatusAsync(Guid sessionId, string status)
+    public async Task<ScheduledInterviewSessionDto?> GetScheduledSessionByIdAsync(Guid sessionId, Guid userId)
     {
-        var session = await _context.PeerInterviewSessions.FindAsync(sessionId);
-        if (session == null)
-        {
-            throw new KeyNotFoundException($"Session with ID {sessionId} not found");
-        }
+        var session = await _context.ScheduledInterviewSessions
+            .Include(s => s.User)
+            .FirstOrDefaultAsync(s => s.Id == sessionId && s.UserId == userId);
 
-        session.Status = status;
+        if (session == null) return null;
+
+        return await MapToScheduledSessionDtoAsync(session);
+    }
+
+    public async Task<bool> CancelScheduledSessionAsync(Guid sessionId, Guid userId)
+    {
+        var session = await _context.ScheduledInterviewSessions
+            .FirstOrDefaultAsync(s => s.Id == sessionId && s.UserId == userId);
+
+        if (session == null) return false;
+
+        session.Status = "Cancelled";
         session.UpdatedAt = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync();
-
-        return session;
-    }
-
-    public async Task<bool> CancelSessionAsync(Guid sessionId, Guid userId)
-    {
-        var session = await _context.PeerInterviewSessions.FindAsync(sessionId);
-        if (session == null)
-        {
-            return false;
-        }
-
-        // Only interviewer or interviewee can cancel
-        if (session.InterviewerId != userId && (session.IntervieweeId == null || session.IntervieweeId.Value != userId))
-        {
-            return false;
-        }
-
-        // Check if session can be cancelled (not already completed or cancelled)
-        if (session.Status == "Completed" || session.Status == "Cancelled")
-        {
-            return false;
-        }
-
-        // Check if there are any participant records for this session
-        var hasParticipants = await _context.UserSessionParticipants
-            .AnyAsync(p => p.SessionId == sessionId);
-
-        // NEW BEHAVIOR: Only mark THIS user's participation as cancelled if participant records exist
-        // This allows independent tracking - other user's view is not affected
-        if (hasParticipants)
-        {
-            var participant = await _context.UserSessionParticipants
-                .FirstOrDefaultAsync(p => p.SessionId == sessionId && p.UserId == userId);
-
-            if (participant == null)
-            {
-                // Create participant record if it doesn't exist
-                participant = new UserSessionParticipant
-                {
-                    Id = Guid.NewGuid(),
-                    UserId = userId,
-                    SessionId = sessionId,
-                    Role = session.InterviewerId == userId ? "Interviewer" : "Interviewee",
-                    Status = "Active",
-                    JoinedAt = DateTime.UtcNow,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
-                _context.UserSessionParticipants.Add(participant);
-            }
-
-            // Mark this user's participation as cancelled
-            participant.Status = "Cancelled";
-            participant.LeftAt = DateTime.UtcNow;
-            participant.UpdatedAt = DateTime.UtcNow;
-
-            // BACKWARD COMPATIBILITY: Also set session status to Cancelled for test compatibility
-            // This ensures tests that expect session.Status == "Cancelled" still pass
-            session.Status = "Cancelled";
-            session.UpdatedAt = DateTime.UtcNow;
-        }
-        else
-        {
-            // BACKWARD COMPATIBILITY: For old sessions without participant records, set session status directly
-            // This maintains compatibility with existing tests and old session data
-            session.Status = "Cancelled";
-            session.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
-            return true;
-        }
-
-        // NEW BEHAVIOR: If session has an interviewee and user cancels, allow the other user to re-match
-        // Only allow re-matching if cancelled within 10 minutes of scheduled time
-        if (session.IntervieweeId.HasValue && session.Status == "InProgress")
-        {
-            // Check if cancellation is within 10 minutes of scheduled time
-            var timeUntilScheduled = session.ScheduledTime.HasValue 
-                ? (session.ScheduledTime.Value - DateTime.UtcNow).TotalMinutes 
-                : double.MaxValue;
-            
-            // Allow re-matching if cancelled within 10 minutes of scheduled time (or if scheduled time has passed)
-            bool canRematch = timeUntilScheduled <= 10 || timeUntilScheduled < 0;
-            
-            if (canRematch)
-            {
-                // Check which user is cancelling
-                if (session.InterviewerId == userId)
-                {
-                    // Interviewer cancelled - remove interviewee and allow them to re-match
-                    var intervieweeId = session.IntervieweeId.Value;
-                    session.IntervieweeId = null;
-                    session.Status = "Scheduled"; // Reset to Scheduled so remaining user can match again
-                    
-                    // Mark the other user's participant as left (they can re-match)
-                    var otherParticipant = await _context.UserSessionParticipants
-                        .FirstOrDefaultAsync(p => p.SessionId == sessionId && p.UserId == intervieweeId);
-                    if (otherParticipant != null)
-                    {
-                        otherParticipant.Status = "Left";
-                        otherParticipant.LeftAt = DateTime.UtcNow;
-                        otherParticipant.UpdatedAt = DateTime.UtcNow;
-                    }
-                }
-                else if (session.IntervieweeId.Value == userId)
-                {
-                    // Interviewee cancelled - remove interviewee and allow interviewer to re-match
-                    session.IntervieweeId = null;
-                    session.Status = "Scheduled"; // Reset to Scheduled so interviewer can match again
-                    
-                    // Mark the interviewer's participant as left (they can re-match)
-                    var interviewerParticipant = await _context.UserSessionParticipants
-                        .FirstOrDefaultAsync(p => p.SessionId == sessionId && p.UserId == session.InterviewerId);
-                    if (interviewerParticipant != null)
-                    {
-                        interviewerParticipant.Status = "Left";
-                        interviewerParticipant.LeftAt = DateTime.UtcNow;
-                        interviewerParticipant.UpdatedAt = DateTime.UtcNow;
-                    }
-                }
-            }
-        }
-
-        // Check if session should be marked as cancelled (both users left)
-        var activeParticipants = await _context.UserSessionParticipants
-            .CountAsync(p => p.SessionId == sessionId && p.Status == "Active");
-
-        // Only mark session as cancelled if no active participants remain
-        // This allows the session to be cancelled when both users have left
-        if (activeParticipants == 0 && (session.Status == "Scheduled" || session.Status == "InProgress"))
-        {
-            session.Status = "Cancelled";
-            session.UpdatedAt = DateTime.UtcNow;
-        }
-
         await _context.SaveChangesAsync();
 
         return true;
     }
 
-    public async Task<PeerInterviewMatch> UpdateMatchPreferencesAsync(Guid userId, string? preferredDifficulty = null, List<string>? preferredCategories = null, string? availability = null, bool? isAvailable = null)
+    // Matching - SIMPLIFIED: Just add user to queue
+    public async Task<StartMatchingResponseDto> StartMatchingAsync(Guid scheduledSessionId, Guid userId)
     {
-        var match = await GetMatchPreferencesAsync(userId);
+        var scheduledSession = await _context.ScheduledInterviewSessions
+            .FirstOrDefaultAsync(s => s.Id == scheduledSessionId && s.UserId == userId);
 
-        if (match == null)
+        if (scheduledSession == null)
         {
-            match = new PeerInterviewMatch
-            {
-                Id = Guid.NewGuid(),
-                UserId = userId,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-            _context.PeerInterviewMatches.Add(match);
+            throw new KeyNotFoundException("Scheduled session not found.");
         }
 
-        if (preferredDifficulty != null)
+        if (scheduledSession.Status == "Cancelled")
         {
-            match.PreferredDifficulty = preferredDifficulty;
+            throw new InvalidOperationException("Cannot start matching for a cancelled session.");
         }
 
-        if (preferredCategories != null)
-        {
-            match.PreferredCategories = JsonSerializer.Serialize(preferredCategories);
-        }
-
-        if (availability != null)
-        {
-            match.Availability = availability;
-        }
-
-        if (isAvailable.HasValue)
-        {
-            match.IsAvailable = isAvailable.Value;
-        }
-
-        match.UpdatedAt = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync();
-
-        return match;
-    }
-
-    public async Task<PeerInterviewMatch?> GetMatchPreferencesAsync(Guid userId)
-    {
-        return await _context.PeerInterviewMatches
-            .Include(m => m.User)
-            .FirstOrDefaultAsync(m => m.UserId == userId);
-    }
-
-    public async Task<PeerInterviewSession> ChangeQuestionAsync(Guid sessionId, Guid userId)
-    {
-        var session = await _context.PeerInterviewSessions.FindAsync(sessionId);
-        if (session == null)
-        {
-            throw new KeyNotFoundException($"Session with ID {sessionId} not found");
-        }
-
-        // Only interviewer can change the question
-        if (session.InterviewerId != userId)
-        {
-            throw new UnauthorizedAccessException("Only the interviewer can change the question");
-        }
-
-        // Only allow changing question during active sessions
-        if (session.Status != "InProgress" && session.Status != "Scheduled")
-        {
-            throw new InvalidOperationException("Question can only be changed during active sessions");
-        }
-
-        // Get a new question based on the interview level (excluding current question)
-        var newQuestionId = await AssignQuestionByLevelAsync(session.InterviewLevel, session.QuestionId);
-        
-        if (!newQuestionId.HasValue)
-        {
-            throw new InvalidOperationException("No alternative question available for this interview level");
-        }
-
-        session.QuestionId = newQuestionId;
-        session.UpdatedAt = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync();
-
-        return session;
-    }
-
-    public async Task<PeerInterviewSession> SwitchRolesAsync(Guid sessionId, Guid userId)
-    {
-        var session = await _context.PeerInterviewSessions.FindAsync(sessionId);
-        if (session == null)
-        {
-            throw new KeyNotFoundException($"Session with ID {sessionId} not found");
-        }
-
-        // Only participants can switch roles
-        if (session.InterviewerId != userId && (session.IntervieweeId == null || session.IntervieweeId.Value != userId))
-        {
-            throw new UnauthorizedAccessException("Only session participants can switch roles");
-        }
-
-        // Can't switch roles if no interviewee assigned yet
-        if (!session.IntervieweeId.HasValue)
-        {
-            throw new InvalidOperationException("Cannot switch roles: no interviewee assigned yet");
-        }
-
-        // Only allow role switching during active sessions
-        if (session.Status != "InProgress" && session.Status != "Scheduled")
-        {
-            throw new InvalidOperationException("Roles can only be switched during active sessions");
-        }
-
-        // Swap interviewer and interviewee
-        var temp = session.InterviewerId;
-        session.InterviewerId = session.IntervieweeId.Value;
-        session.IntervieweeId = temp;
-
-        // Assign a new question for the new interviewer based on interview level
-        if (!string.IsNullOrEmpty(session.InterviewLevel))
-        {
-            var newQuestionId = await AssignQuestionByLevelAsync(session.InterviewLevel);
-            if (newQuestionId.HasValue)
-            {
-                session.QuestionId = newQuestionId;
-            }
-        }
-
-        session.UpdatedAt = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync();
-
-        // Reload session with all related data
-        return await GetSessionByIdAsync(sessionId) ?? session;
-    }
-
-    private async Task<Guid?> AssignQuestionByLevelAsync(string? interviewLevel, Guid? excludeQuestionId = null)
-    {
-        if (string.IsNullOrEmpty(interviewLevel))
-        {
-            return null;
-        }
-
-        var difficulty = MapInterviewLevelToDifficulty(interviewLevel);
-        if (string.IsNullOrEmpty(difficulty))
-        {
-            return null;
-        }
-
-        // Get questions of the appropriate difficulty, excluding the current one
-        var query = _context.InterviewQuestions
-            .Where(q => q.Difficulty == difficulty 
-                && q.IsActive 
-                && q.ApprovalStatus == "Approved");
-
-        if (excludeQuestionId.HasValue)
-        {
-            query = query.Where(q => q.Id != excludeQuestionId.Value);
-        }
-
-        var questions = await query.ToListAsync();
-
-        if (!questions.Any())
-        {
-            _logger.LogWarning($"No questions found for difficulty: {difficulty}");
-            return null;
-        }
-
-        // Select a random question
-        var random = new Random();
-        var selectedQuestion = questions[random.Next(questions.Count)];
-        
-        return selectedQuestion.Id;
-    }
-
-    public async Task<InterviewMatchingRequest> CreateMatchingRequestAsync(Guid sessionId, Guid userId)
-    {
-        // Verify session exists and user is the interviewer
-        var session = await _context.PeerInterviewSessions.FindAsync(sessionId);
-        if (session == null)
-        {
-            throw new KeyNotFoundException($"Session with ID {sessionId} not found");
-        }
-
-        if (session.InterviewerId != userId)
-        {
-            throw new UnauthorizedAccessException("Only the interviewer can create a matching request");
-        }
-
-        // If session already has an interviewee, check if there's a completed matching request
-        if (session.IntervieweeId.HasValue)
-        {
-            // Check if there's a matching request that was already completed
-            var completedRequest = await _context.InterviewMatchingRequests
-                .FirstOrDefaultAsync(r => r.ScheduledSessionId == sessionId && r.Status == "Confirmed");
-            
-            if (completedRequest != null)
-            {
-                // Return a request indicating the session is ready
-                return new InterviewMatchingRequest
-                {
-                    Id = completedRequest.Id,
-                    UserId = userId,
-                    ScheduledSessionId = sessionId,
-                    Status = "Confirmed",
-                    UserConfirmed = true,
-                    MatchedUserConfirmed = true
-                };
-            }
-            
-            throw new InvalidOperationException("Session already has an interviewee assigned");
-        }
-
-        // Check if there's already a matching request for this session (Pending or Matched)
+        // Check if there's already a matching request for this session
         var existingRequest = await _context.InterviewMatchingRequests
-            .FirstOrDefaultAsync(r => r.ScheduledSessionId == sessionId && (r.Status == "Pending" || r.Status == "Matched"));
+            .FirstOrDefaultAsync(m => m.ScheduledSessionId == scheduledSessionId 
+                && m.Status != "Expired" 
+                && m.Status != "Cancelled"
+                && m.Status != "Confirmed"); // Don't reuse confirmed requests
 
         if (existingRequest != null)
         {
-            return existingRequest;
+            // If already matched with live session, return it
+            if (existingRequest.Status == "Matched" && existingRequest.LiveSessionId.HasValue)
+            {
+                var liveSession = await GetLiveSessionByIdAsync(existingRequest.LiveSessionId.Value, userId);
+                if (liveSession != null)
+                {
+                    return new StartMatchingResponseDto
+                    {
+                        MatchingRequest = await MapToMatchingRequestDtoAsync(existingRequest),
+                        Matched = true,
+                        SessionComplete = true,
+                        Session = liveSession
+                    };
+                }
+            }
+
+            // Return existing request (might be Pending or Matched)
+            return new StartMatchingResponseDto
+            {
+                MatchingRequest = await MapToMatchingRequestDtoAsync(existingRequest),
+                Matched = existingRequest.Status == "Matched"
+            };
         }
 
+        // Create new matching request - user joins the queue
         var matchingRequest = new InterviewMatchingRequest
         {
-            Id = Guid.NewGuid(),
             UserId = userId,
-            ScheduledSessionId = sessionId,
-            Status = "Pending",
+            ScheduledSessionId = scheduledSessionId,
+            InterviewType = scheduledSession.InterviewType,
+            PracticeType = scheduledSession.PracticeType,
+            InterviewLevel = scheduledSession.InterviewLevel,
+            ScheduledStartAt = scheduledSession.ScheduledStartAt,
+            Status = "Pending", // User is in queue
+            ExpiresAt = DateTime.UtcNow.AddMinutes(10),
             CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(5) // Expires after 5 minutes
+            UpdatedAt = DateTime.UtcNow
         };
 
         _context.InterviewMatchingRequests.Add(matchingRequest);
         await _context.SaveChangesAsync();
 
-        return matchingRequest;
+        // Try to match immediately (might find a match right away)
+        var isMatched = await TryMatchAsync(matchingRequest);
+
+        return new StartMatchingResponseDto
+        {
+            MatchingRequest = await MapToMatchingRequestDtoAsync(matchingRequest),
+            Matched = isMatched
+        };
     }
 
-    public async Task<InterviewMatchingRequest?> FindMatchingPeerAsync(Guid userId, Guid sessionId)
+    public async Task<MatchingRequestDto?> GetMatchingStatusAsync(Guid scheduledSessionId, Guid userId)
     {
-        // Get the user's session
-        var userSession = await _context.PeerInterviewSessions.FindAsync(sessionId);
-        if (userSession == null || userSession.InterviewerId != userId)
+        var matchingRequest = await _context.InterviewMatchingRequests
+            .Include(m => m.User)
+            .Include(m => m.MatchedUser)
+            .Include(m => m.ScheduledSession)
+            .FirstOrDefaultAsync(m => m.ScheduledSessionId == scheduledSessionId 
+                && m.UserId == userId
+                && m.Status != "Expired"
+                && m.Status != "Cancelled");
+
+        if (matchingRequest == null) return null;
+
+        // Check if expired
+        if (matchingRequest.ExpiresAt < DateTime.UtcNow && matchingRequest.Status == "Pending")
         {
+            matchingRequest.Status = "Expired";
+            await _context.SaveChangesAsync();
             return null;
         }
 
-        // Check if user already has a matched request
-        var existingMatchedRequest = await _context.InterviewMatchingRequests
-            .FirstOrDefaultAsync(r => r.ScheduledSessionId == sessionId && r.Status == "Matched");
-
-        if (existingMatchedRequest != null)
-        {
-            return existingMatchedRequest;
-        }
-
-        // Find another user's matching request
-        // Primary requirement: InterviewType must match
-        // If no match on InterviewLevel, match anyone with same InterviewType
-        var availableRequests = await _context.InterviewMatchingRequests
-            .Include(r => r.User)
-            .Include(r => r.ScheduledSession)
-            .Where(r => r.Status == "Pending"
-                && r.UserId != userId
-                && r.ExpiresAt > DateTime.UtcNow
-                && (r.ScheduledSession.InterviewType == userSession.InterviewType || (r.ScheduledSession.InterviewType == null && userSession.InterviewType == null)))
-            .OrderBy(r => r.CreatedAt) // Match with oldest request first (FIFO)
-            .FirstOrDefaultAsync();
-
-        if (availableRequests == null)
-        {
-            return null;
-        }
-
-        // Create matching request for current user if it doesn't exist
-        var userRequest = await _context.InterviewMatchingRequests
-            .FirstOrDefaultAsync(r => r.ScheduledSessionId == sessionId && r.Status == "Pending");
-
-        if (userRequest == null)
-        {
-            userRequest = await CreateMatchingRequestAsync(sessionId, userId);
-        }
-
-        // Double-check userRequest is still pending (might have been matched by another thread)
-        if (userRequest.Status == "Matched")
-        {
-            return userRequest;
-        }
-
-        // Match the two requests
-        userRequest.MatchedUserId = availableRequests.UserId;
-        userRequest.MatchedRequestId = availableRequests.Id;
-        userRequest.Status = "Matched";
-        userRequest.UpdatedAt = DateTime.UtcNow;
-
-        availableRequests.MatchedUserId = userId;
-        availableRequests.MatchedRequestId = userRequest.Id;
-        availableRequests.Status = "Matched";
-        availableRequests.UpdatedAt = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync();
-
-        return userRequest;
+        return await MapToMatchingRequestDtoAsync(matchingRequest);
     }
 
-    public async Task<InterviewMatchingRequest?> ConfirmMatchAsync(Guid matchingRequestId, Guid userId)
+    // SIMPLIFIED: Just mark user as confirmed, check if both confirmed, update session status
+    public async Task<ConfirmMatchResponseDto> ConfirmMatchAsync(Guid matchingRequestId, Guid userId)
     {
-        var request = await _context.InterviewMatchingRequests
-            .Include(r => r.MatchedRequest)
-            .FirstOrDefaultAsync(r => r.Id == matchingRequestId);
+        _logger.LogInformation("ConfirmMatchAsync called for MatchingRequestId: {MatchingRequestId}, UserId: {UserId}", matchingRequestId, userId);
 
-        if (request == null)
+        // Find the matching request - user confirms on their OWN request
+        var matchingRequest = await _context.InterviewMatchingRequests
+            .Include(m => m.User)
+            .Include(m => m.MatchedUser)
+            .Include(m => m.ScheduledSession)
+            .FirstOrDefaultAsync(m => m.Id == matchingRequestId && m.UserId == userId);
+
+        if (matchingRequest == null)
         {
-            return null;
+            _logger.LogWarning("Matching request not found or user mismatch: {MatchingRequestId}, UserId: {UserId}", matchingRequestId, userId);
+            throw new KeyNotFoundException("Matching request not found.");
         }
 
-        // Verify user is part of this match
-        if (request.UserId != userId && request.MatchedUserId != userId)
+        // Must be matched and have live session already created
+        if (matchingRequest.Status != "Matched" || !matchingRequest.LiveSessionId.HasValue)
         {
-            throw new UnauthorizedAccessException("User is not part of this match");
+            _logger.LogWarning("Cannot confirm - Status: {Status}, LiveSessionId: {LiveSessionId}", 
+                matchingRequest.Status, matchingRequest.LiveSessionId);
+            throw new InvalidOperationException("Match not ready for confirmation.");
         }
 
-        if (request.Status != "Matched")
+        // Mark user as confirmed
+        if (matchingRequest.UserConfirmed)
         {
-            throw new InvalidOperationException("Match request is not in Matched status");
+            _logger.LogInformation("User {UserId} already confirmed", userId);
+        }
+        else
+        {
+            matchingRequest.UserConfirmed = true;
+            matchingRequest.UpdatedAt = DateTime.UtcNow;
+            _logger.LogInformation("User {UserId} confirmed", userId);
         }
 
-        // Mark user's confirmation
-        if (request.UserId == userId)
+        // Find the other user's matching request to check if they confirmed
+        InterviewMatchingRequest? otherUserRequest = null;
+        bool bothConfirmed = false;
+        
+        if (matchingRequest.MatchedUserId.HasValue)
         {
-            request.UserConfirmed = true;
-        }
-        else if (request.MatchedUserId == userId)
-        {
-            request.MatchedUserConfirmed = true;
-        }
+            otherUserRequest = await _context.InterviewMatchingRequests
+                .FirstOrDefaultAsync(m => m.UserId == matchingRequest.MatchedUserId.Value 
+                    && m.MatchedUserId == matchingRequest.UserId 
+                    && m.Status == "Matched");
 
-        request.UpdatedAt = DateTime.UtcNow;
-
-        // Also update the matched request
-        if (request.MatchedRequest != null)
-        {
-            if (request.MatchedRequest.UserId == userId)
+            if (otherUserRequest != null)
             {
-                request.MatchedRequest.UserConfirmed = true;
+                bothConfirmed = matchingRequest.UserConfirmed && otherUserRequest.UserConfirmed;
+                _logger.LogInformation("Both confirmed check - ThisUser: {ThisConfirmed}, OtherUser: {OtherConfirmed}, BothConfirmed: {BothConfirmed}",
+                    matchingRequest.UserConfirmed, otherUserRequest.UserConfirmed, bothConfirmed);
             }
-            else if (request.MatchedRequest.MatchedUserId == userId)
-            {
-                request.MatchedRequest.MatchedUserConfirmed = true;
-            }
-            request.MatchedRequest.UpdatedAt = DateTime.UtcNow;
         }
 
-        await _context.SaveChangesAsync();
-
-        return request;
-    }
-
-    public async Task<PeerInterviewSession?> CompleteMatchAsync(Guid matchingRequestId)
-    {
-        // Find the matching request - could be either the request itself or its matched request
-        var request = await _context.InterviewMatchingRequests
-            .Include(r => r.ScheduledSession)
-            .Include(r => r.MatchedRequest)
-            .ThenInclude(r => r.ScheduledSession)
-            .FirstOrDefaultAsync(r => r.Id == matchingRequestId);
-
-        if (request == null)
+        // If both confirmed, update session status to InProgress
+        if (bothConfirmed)
         {
-            // Try finding by MatchedRequestId (in case we're looking for the other side of the match)
-            request = await _context.InterviewMatchingRequests
-                .Include(r => r.ScheduledSession)
-                .Include(r => r.MatchedRequest)
-                .ThenInclude(r => r.ScheduledSession)
-                .FirstOrDefaultAsync(r => r.MatchedRequestId == matchingRequestId);
+            var liveSession = await _context.LiveInterviewSessions
+                .FirstOrDefaultAsync(s => s.Id == matchingRequest.LiveSessionId.Value);
             
-            if (request != null && request.MatchedRequest != null)
+            if (liveSession != null && liveSession.Status == "Pending")
             {
-                // Get the actual matched request
-                request = await _context.InterviewMatchingRequests
-                    .Include(r => r.ScheduledSession)
-                    .Include(r => r.MatchedRequest)
-                    .ThenInclude(r => r.ScheduledSession)
-                    .FirstOrDefaultAsync(r => r.Id == request.MatchedRequest.Id);
+                liveSession.Status = "InProgress";
+                liveSession.StartedAt = DateTime.UtcNow;
+                liveSession.UpdatedAt = DateTime.UtcNow;
+                
+                // Update both matching requests to Confirmed
+                matchingRequest.Status = "Confirmed";
+                if (otherUserRequest != null)
+                {
+                    otherUserRequest.Status = "Confirmed";
+                    otherUserRequest.UpdatedAt = DateTime.UtcNow;
+                }
+                
+                // Update scheduled session
+                var scheduledSession = await _context.ScheduledInterviewSessions
+                    .FirstOrDefaultAsync(s => s.Id == matchingRequest.ScheduledSessionId);
+                if (scheduledSession != null)
+                {
+                    scheduledSession.Status = "InProgress";
+                    scheduledSession.UpdatedAt = DateTime.UtcNow;
+                }
+                
+                _logger.LogInformation("Both users confirmed! Live session {LiveSessionId} started", liveSession.Id);
             }
         }
 
-        if (request == null || request.Status != "Matched")
+        await _context.SaveChangesAsync();
+
+        var liveSessionDto = matchingRequest.LiveSessionId.HasValue
+            ? await GetLiveSessionByIdAsync(matchingRequest.LiveSessionId.Value, userId)
+            : null;
+
+        return new ConfirmMatchResponseDto
         {
-            return null;
+            MatchingRequest = await MapToMatchingRequestDtoAsync(matchingRequest),
+            Completed = bothConfirmed,
+            Session = liveSessionDto
+        };
+    }
+
+    // Expire match if not both confirmed within 15 seconds, re-queue users
+    public async Task<bool> ExpireMatchIfNotConfirmedAsync(Guid matchingRequestId, Guid userId)
+    {
+        var matchingRequest = await _context.InterviewMatchingRequests
+            .Include(m => m.MatchedUser)
+            .FirstOrDefaultAsync(m => m.Id == matchingRequestId && m.UserId == userId);
+
+        if (matchingRequest == null || matchingRequest.Status != "Matched")
+        {
+            return false; // Already handled or not matched
+        }
+
+        // Check if match was created more than 15 seconds ago
+        var matchAge = DateTime.UtcNow - matchingRequest.UpdatedAt;
+        if (matchAge.TotalSeconds < 15)
+        {
+            return false; // Not expired yet
         }
 
         // Check if both users confirmed
-        if (!request.UserConfirmed || !request.MatchedUserConfirmed)
-        {
-            return null; // Not ready yet
-        }
-
-        // Get both sessions
-        var session1 = request.ScheduledSession;
-        var session2 = request.MatchedRequest?.ScheduledSession;
-
-        if (session1 == null || session2 == null)
-        {
-            return null;
-        }
-
-        // NEW BEHAVIOR: Complete the match immediately when both confirm
-        // Use session1 as the main session, assign session2's interviewer as interviewee
-        // session1 keeps its interviewer, session2's interviewer becomes the interviewee
-        session1.IntervieweeId = session2.InterviewerId;
-        session1.Status = "InProgress";
-        session1.UpdatedAt = DateTime.UtcNow;
-
-        // Ensure session1 has a question - assign one based on interview level
-        // If both sessions have the same question, assign a different random question
-        Guid? finalQuestionId = null;
+        InterviewMatchingRequest? otherUserRequest = null;
+        bool bothConfirmed = false;
         
-        if (session1.QuestionId.HasValue && session2.QuestionId.HasValue)
+        if (matchingRequest.MatchedUserId.HasValue)
         {
-            // Both have questions - check if they're the same
-            if (session1.QuestionId.Value == session2.QuestionId.Value)
+            otherUserRequest = await _context.InterviewMatchingRequests
+                .FirstOrDefaultAsync(m => m.UserId == matchingRequest.MatchedUserId.Value 
+                    && m.MatchedUserId == matchingRequest.UserId 
+                    && m.Status == "Matched");
+
+            if (otherUserRequest != null)
             {
-                // Same question - assign a different random question
-                finalQuestionId = await AssignQuestionByLevelAsync(session1.InterviewLevel, session1.QuestionId.Value);
-            }
-            else
-            {
-                // Different questions - use session1's question (or randomly pick one)
-                finalQuestionId = session1.QuestionId.Value;
+                bothConfirmed = matchingRequest.UserConfirmed && otherUserRequest.UserConfirmed;
             }
         }
-        else if (session1.QuestionId.HasValue)
+
+        if (bothConfirmed)
         {
-            // Only session1 has a question
-            finalQuestionId = session1.QuestionId.Value;
-        }
-        else if (session2.QuestionId.HasValue)
-        {
-            // Only session2 has a question
-            finalQuestionId = session2.QuestionId.Value;
-        }
-        
-        // If still no question, assign a random one based on interview level
-        if (!finalQuestionId.HasValue && !string.IsNullOrEmpty(session1.InterviewLevel))
-        {
-            finalQuestionId = await AssignQuestionByLevelAsync(session1.InterviewLevel);
-        }
-        
-        // Set the final question for session1 (the merged session)
-        if (finalQuestionId.HasValue)
-        {
-            session1.QuestionId = finalQuestionId;
+            return false; // Both confirmed, don't expire
         }
 
-        // Mark session2 as merged/cancelled
-        session2.Status = "Cancelled";
-        session2.UpdatedAt = DateTime.UtcNow;
+        _logger.LogInformation("Match expired - User {UserId1} and User {UserId2} did not both confirm within 15 seconds", 
+            matchingRequest.UserId, matchingRequest.MatchedUserId);
 
-        // Mark both matching requests as confirmed
-        request.Status = "Confirmed";
-        request.UpdatedAt = DateTime.UtcNow;
-
-        if (request.MatchedRequest != null)
+        // Delete the live session if it exists
+        if (matchingRequest.LiveSessionId.HasValue)
         {
-            request.MatchedRequest.Status = "Confirmed";
-            request.MatchedRequest.UpdatedAt = DateTime.UtcNow;
+            var liveSession = await _context.LiveInterviewSessions
+                .Include(s => s.Participants)
+                .FirstOrDefaultAsync(s => s.Id == matchingRequest.LiveSessionId.Value);
+            
+            if (liveSession != null)
+            {
+                _context.LiveInterviewParticipants.RemoveRange(liveSession.Participants);
+                _context.LiveInterviewSessions.Remove(liveSession);
+            }
+        }
+
+        // Re-queue users: set status back to Pending, clear match info
+        matchingRequest.Status = "Pending";
+        matchingRequest.MatchedUserId = null;
+        matchingRequest.LiveSessionId = null;
+        matchingRequest.UserConfirmed = false;
+        matchingRequest.MatchedUserConfirmed = false;
+        matchingRequest.UpdatedAt = DateTime.UtcNow;
+
+        if (otherUserRequest != null)
+        {
+            otherUserRequest.Status = "Pending";
+            otherUserRequest.MatchedUserId = null;
+            otherUserRequest.LiveSessionId = null;
+            otherUserRequest.UserConfirmed = false;
+            otherUserRequest.MatchedUserConfirmed = false;
+            otherUserRequest.UpdatedAt = DateTime.UtcNow;
         }
 
         await _context.SaveChangesAsync();
 
-        return await GetSessionByIdAsync(session1.Id);
+        // Try to match both users again immediately
+        if (otherUserRequest != null)
+        {
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(100); // Small delay to ensure save completed
+                await TryMatchAsync(matchingRequest);
+                await TryMatchAsync(otherUserRequest);
+            });
+        }
+        else
+        {
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(100);
+                await TryMatchAsync(matchingRequest);
+            });
+        }
+
+        return true;
     }
 
-    // NEW METHOD: Get session for immediate redirect after confirmation
-    // Returns the primary session (session1) so both users go to the same session
-    // This allows immediate redirect even if partner hasn't confirmed yet
-    public async Task<PeerInterviewSession?> GetSessionForMatchedRequestAsync(Guid matchingRequestId, Guid userId)
+    // Live Sessions
+    public async Task<LiveInterviewSessionDto?> GetLiveSessionByIdAsync(Guid sessionId, Guid userId)
     {
-        var request = await _context.InterviewMatchingRequests
-            .Include(r => r.ScheduledSession)
-                .ThenInclude(s => s.Question)
-            .Include(r => r.MatchedRequest)
-                .ThenInclude(r => r.ScheduledSession)
-                    .ThenInclude(s => s.Question)
-            .FirstOrDefaultAsync(r => r.Id == matchingRequestId || r.MatchedRequestId == matchingRequestId);
+        var session = await _context.LiveInterviewSessions
+            .Include(s => s.FirstQuestion)
+            .Include(s => s.SecondQuestion)
+            .Include(s => s.Participants)
+                .ThenInclude(p => p.User)
+            .Include(s => s.ScheduledSession)
+            .FirstOrDefaultAsync(s => s.Id == sessionId);
 
-        if (request == null || request.Status != "Matched")
+        if (session == null) return null;
+
+        // Verify user is a participant
+        var isParticipant = session.Participants.Any(p => p.UserId == userId);
+        if (!isParticipant)
+        {
+            throw new UnauthorizedAccessException("User is not a participant in this session.");
+        }
+
+        return await MapToLiveSessionDtoAsync(session, userId);
+    }
+
+    public async Task<SwitchRolesResponseDto> SwitchRolesAsync(Guid sessionId, Guid userId)
+    {
+        var session = await _context.LiveInterviewSessions
+            .Include(s => s.Participants)
+            .FirstOrDefaultAsync(s => s.Id == sessionId);
+
+        if (session == null)
+        {
+            throw new KeyNotFoundException("Session not found.");
+        }
+
+        var participant = session.Participants.FirstOrDefault(p => p.UserId == userId);
+        if (participant == null)
+        {
+            throw new UnauthorizedAccessException("User is not a participant in this session.");
+        }
+
+        var otherParticipant = session.Participants.FirstOrDefault(p => p.UserId != userId);
+        if (otherParticipant == null)
+        {
+            throw new InvalidOperationException("Session must have exactly 2 participants.");
+        }
+
+        // Swap roles
+        var tempRole = participant.Role;
+        participant.Role = otherParticipant.Role;
+        otherParticipant.Role = tempRole;
+
+        participant.UpdatedAt = DateTime.UtcNow;
+        otherParticipant.UpdatedAt = DateTime.UtcNow;
+        session.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        // Reload session with all includes
+        var updatedSession = await _context.LiveInterviewSessions
+            .Include(s => s.FirstQuestion)
+            .Include(s => s.SecondQuestion)
+            .Include(s => s.Participants)
+                .ThenInclude(p => p.User)
+            .FirstOrDefaultAsync(s => s.Id == sessionId);
+
+        return new SwitchRolesResponseDto
+        {
+            Session = await MapToLiveSessionDtoAsync(updatedSession!, userId),
+            YourNewRole = participant.Role,
+            PartnerNewRole = otherParticipant.Role
+        };
+    }
+
+    public async Task<ChangeQuestionResponseDto> ChangeQuestionAsync(Guid sessionId, Guid userId, Guid? newQuestionId = null)
+    {
+        var session = await _context.LiveInterviewSessions
+            .Include(s => s.Participants)
+            .Include(s => s.FirstQuestion)
+            .Include(s => s.SecondQuestion)
+            .FirstOrDefaultAsync(s => s.Id == sessionId);
+
+        if (session == null)
+        {
+            throw new KeyNotFoundException("Session not found.");
+        }
+
+        var participant = session.Participants.FirstOrDefault(p => p.UserId == userId);
+        if (participant == null || participant.Role != "Interviewer")
+        {
+            throw new UnauthorizedAccessException("Only the interviewer can change the question.");
+        }
+
+        // If no question ID provided, select a random question based on interview type
+        if (!newQuestionId.HasValue)
+        {
+            newQuestionId = await SelectRandomQuestionAsync(session);
+        }
+
+        if (!newQuestionId.HasValue)
+        {
+            throw new InvalidOperationException("Could not find a suitable question.");
+        }
+
+        // Verify question exists
+        var question = await _context.InterviewQuestions
+            .FirstOrDefaultAsync(q => q.Id == newQuestionId.Value && q.IsActive);
+
+        if (question == null)
+        {
+            throw new KeyNotFoundException("Question not found.");
+        }
+
+        // Update active question
+        // If FirstQuestionId is not set, set it; otherwise set SecondQuestionId
+        if (session.FirstQuestionId == null)
+        {
+            session.FirstQuestionId = newQuestionId.Value;
+            session.ActiveQuestionId = newQuestionId.Value;
+        }
+        else if (session.SecondQuestionId == null)
+        {
+            session.SecondQuestionId = newQuestionId.Value;
+            session.ActiveQuestionId = newQuestionId.Value;
+        }
+        else
+        {
+            // Both questions set, just update active
+            session.ActiveQuestionId = newQuestionId.Value;
+        }
+
+        session.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+
+        // Reload session
+        var updatedSession = await _context.LiveInterviewSessions
+            .Include(s => s.FirstQuestion)
+            .Include(s => s.SecondQuestion)
+            .Include(s => s.Participants)
+                .ThenInclude(p => p.User)
+            .FirstOrDefaultAsync(s => s.Id == sessionId);
+
+        var activeQuestion = updatedSession!.ActiveQuestionId.HasValue
+            ? await _context.InterviewQuestions.FindAsync(updatedSession.ActiveQuestionId.Value)
+            : null;
+
+        return new ChangeQuestionResponseDto
+        {
+            Session = await MapToLiveSessionDtoAsync(updatedSession, userId),
+            NewActiveQuestion = activeQuestion != null ? new QuestionSummaryDto
+            {
+                Id = activeQuestion.Id,
+                Title = activeQuestion.Title,
+                Difficulty = activeQuestion.Difficulty,
+                QuestionType = activeQuestion.QuestionType
+            } : null
+        };
+    }
+
+    public async Task<LiveInterviewSessionDto> EndInterviewAsync(Guid sessionId, Guid userId)
+    {
+        var session = await _context.LiveInterviewSessions
+            .Include(s => s.Participants)
+            .FirstOrDefaultAsync(s => s.Id == sessionId);
+
+        if (session == null)
+        {
+            throw new KeyNotFoundException("Session not found.");
+        }
+
+        var participant = session.Participants.FirstOrDefault(p => p.UserId == userId);
+        if (participant == null)
+        {
+            throw new UnauthorizedAccessException("User is not a participant in this session.");
+        }
+
+        session.Status = "Completed";
+        session.EndedAt = DateTime.UtcNow;
+        session.UpdatedAt = DateTime.UtcNow;
+
+        // Update scheduled session if exists
+        if (session.ScheduledSessionId.HasValue)
+        {
+            var scheduledSession = await _context.ScheduledInterviewSessions
+                .FirstOrDefaultAsync(s => s.Id == session.ScheduledSessionId.Value);
+            if (scheduledSession != null)
+            {
+                scheduledSession.Status = "Completed";
+                scheduledSession.UpdatedAt = DateTime.UtcNow;
+            }
+        }
+
+        await _context.SaveChangesAsync();
+
+        // Reload session with all includes
+        var updatedSession = await _context.LiveInterviewSessions
+            .Include(s => s.FirstQuestion)
+            .Include(s => s.SecondQuestion)
+            .Include(s => s.Participants)
+                .ThenInclude(p => p.User)
+            .FirstOrDefaultAsync(s => s.Id == sessionId);
+
+        return await MapToLiveSessionDtoAsync(updatedSession!, userId);
+    }
+
+    // Feedback
+    public async Task<InterviewFeedbackDto> SubmitFeedbackAsync(Guid userId, SubmitFeedbackDto dto)
+    {
+        // Verify session exists and user is a participant
+        var session = await _context.LiveInterviewSessions
+            .Include(s => s.Participants)
+            .FirstOrDefaultAsync(s => s.Id == dto.LiveSessionId);
+
+        if (session == null)
+        {
+            throw new KeyNotFoundException("Session not found.");
+        }
+
+        var participant = session.Participants.FirstOrDefault(p => p.UserId == userId);
+        if (participant == null)
+        {
+            throw new UnauthorizedAccessException("User is not a participant in this session.");
+        }
+
+        // Verify reviewee is the other participant
+        var otherParticipant = session.Participants.FirstOrDefault(p => p.UserId == dto.RevieweeId);
+        if (otherParticipant == null || otherParticipant.UserId == userId)
+        {
+            throw new InvalidOperationException("Reviewee must be the other participant in the session.");
+        }
+
+        // Check if feedback already exists
+        var existingFeedback = await _context.InterviewFeedbacks
+            .FirstOrDefaultAsync(f => f.LiveSessionId == dto.LiveSessionId 
+                && f.ReviewerId == userId 
+                && f.RevieweeId == dto.RevieweeId);
+
+        InterviewFeedback feedback;
+        if (existingFeedback != null)
+        {
+            // Update existing feedback
+            feedback = existingFeedback;
+            feedback.ProblemSolvingRating = dto.ProblemSolvingRating;
+            feedback.ProblemSolvingDescription = dto.ProblemSolvingDescription;
+            feedback.CodingSkillsRating = dto.CodingSkillsRating;
+            feedback.CodingSkillsDescription = dto.CodingSkillsDescription;
+            feedback.CommunicationRating = dto.CommunicationRating;
+            feedback.CommunicationDescription = dto.CommunicationDescription;
+            feedback.ThingsDidWell = dto.ThingsDidWell;
+            feedback.AreasForImprovement = dto.AreasForImprovement;
+            feedback.InterviewerPerformanceRating = dto.InterviewerPerformanceRating;
+            feedback.InterviewerPerformanceDescription = dto.InterviewerPerformanceDescription;
+            feedback.UpdatedAt = DateTime.UtcNow;
+        }
+        else
+        {
+            // Create new feedback
+            feedback = new InterviewFeedback
+            {
+                LiveSessionId = dto.LiveSessionId,
+                ReviewerId = userId,
+                RevieweeId = dto.RevieweeId,
+                ProblemSolvingRating = dto.ProblemSolvingRating,
+                ProblemSolvingDescription = dto.ProblemSolvingDescription,
+                CodingSkillsRating = dto.CodingSkillsRating,
+                CodingSkillsDescription = dto.CodingSkillsDescription,
+                CommunicationRating = dto.CommunicationRating,
+                CommunicationDescription = dto.CommunicationDescription,
+                ThingsDidWell = dto.ThingsDidWell,
+                AreasForImprovement = dto.AreasForImprovement,
+                InterviewerPerformanceRating = dto.InterviewerPerformanceRating,
+                InterviewerPerformanceDescription = dto.InterviewerPerformanceDescription,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _context.InterviewFeedbacks.Add(feedback);
+        }
+
+        await _context.SaveChangesAsync();
+
+        return await MapToFeedbackDtoAsync(feedback);
+    }
+
+    public async Task<IEnumerable<InterviewFeedbackDto>> GetFeedbackForSessionAsync(Guid sessionId, Guid userId)
+    {
+        // Verify user is a participant
+        var session = await _context.LiveInterviewSessions
+            .Include(s => s.Participants)
+            .FirstOrDefaultAsync(s => s.Id == sessionId);
+
+        if (session == null)
+        {
+            throw new KeyNotFoundException("Session not found.");
+        }
+
+        var participant = session.Participants.FirstOrDefault(p => p.UserId == userId);
+        if (participant == null)
+        {
+            throw new UnauthorizedAccessException("User is not a participant in this session.");
+        }
+
+        var feedbacks = await _context.InterviewFeedbacks
+            .Include(f => f.Reviewer)
+            .Include(f => f.Reviewee)
+            .Where(f => f.LiveSessionId == sessionId)
+            .ToListAsync();
+
+        var dtos = new List<InterviewFeedbackDto>();
+        foreach (var feedback in feedbacks)
+        {
+            dtos.Add(await MapToFeedbackDtoAsync(feedback));
+        }
+        return dtos;
+    }
+
+    public async Task<InterviewFeedbackDto?> GetFeedbackAsync(Guid feedbackId, Guid userId)
+    {
+        var feedback = await _context.InterviewFeedbacks
+            .Include(f => f.Reviewer)
+            .Include(f => f.Reviewee)
+            .Include(f => f.LiveSession)
+                .ThenInclude(s => s!.Participants)
+            .FirstOrDefaultAsync(f => f.Id == feedbackId);
+
+        if (feedback == null) return null;
+
+        // Verify user is part of the session
+        var isParticipant = feedback.LiveSession?.Participants.Any(p => p.UserId == userId) ?? false;
+        if (!isParticipant)
+        {
+            throw new UnauthorizedAccessException("User is not a participant in this session.");
+        }
+
+        return await MapToFeedbackDtoAsync(feedback);
+    }
+
+    // Private helper methods
+    // SIMPLIFIED: Match 2 users from queue, IMMEDIATELY create live session with questions and roles
+    private async Task<bool> TryMatchAsync(InterviewMatchingRequest request)
+    {
+        // Clean up expired requests first
+        await CleanupExpiredRequestsAsync();
+
+        // Find matching requests (FIFO - oldest first)
+        var potentialMatches = await _context.InterviewMatchingRequests
+            .Where(m => m.Id != request.Id
+                && m.Status == "Pending"
+                && m.ExpiresAt > DateTime.UtcNow
+                && m.InterviewType == request.InterviewType // Hard match
+                && m.PracticeType == request.PracticeType // Hard match
+                && m.ScheduledStartAt.Date == request.ScheduledStartAt.Date // Same day
+                && m.UserId != request.UserId) // Not the same user
+            .OrderBy(m => m.CreatedAt) // FIFO
+            .ToListAsync();
+
+        // Try to find best match (prefer same level, but accept any)
+        InterviewMatchingRequest? bestMatch = null;
+
+        // First try exact level match
+        bestMatch = potentialMatches.FirstOrDefault(m => m.InterviewLevel == request.InterviewLevel);
+        
+        // If no exact match, take any match (soft match on level)
+        if (bestMatch == null)
+        {
+            bestMatch = potentialMatches.FirstOrDefault();
+        }
+
+        if (bestMatch != null)
+        {
+            _logger.LogInformation("Match found! User {UserId1} matched with User {UserId2}", request.UserId, bestMatch.UserId);
+            
+            // IMMEDIATELY create live session with questions and roles
+            // The scheduler (request.UserId) becomes Interviewer, matched user becomes Interviewee
+            var liveSession = await CreateLiveSessionForMatchAsync(request, bestMatch);
+            
+            // Update both matching requests
+            request.MatchedUserId = bestMatch.UserId;
+            bestMatch.MatchedUserId = request.UserId;
+            request.Status = "Matched";
+            bestMatch.Status = "Matched";
+            request.LiveSessionId = liveSession.Id; // Set live session ID immediately
+            bestMatch.LiveSessionId = liveSession.Id; // Set live session ID immediately
+            request.UpdatedAt = DateTime.UtcNow;
+            bestMatch.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            
+            _logger.LogInformation("Live session {LiveSessionId} created for match between User {UserId1} and User {UserId2}", 
+                liveSession.Id, request.UserId, bestMatch.UserId);
+            
+            return true;
+        }
+
+        return false;
+    }
+    
+    // Create live session immediately when match is found (before confirmation)
+    private async Task<LiveInterviewSession> CreateLiveSessionForMatchAsync(
+        InterviewMatchingRequest request1, 
+        InterviewMatchingRequest request2)
+    {
+        // Determine which user is the scheduler (Interviewer)
+        // The user who scheduled first (older CreatedAt) is the Interviewer
+        var schedulerRequest = request1.CreatedAt < request2.CreatedAt ? request1 : request2;
+        var matchedRequest = schedulerRequest.Id == request1.Id ? request2 : request1;
+        
+        var schedulerUserId = schedulerRequest.UserId;
+        var matchedUserId = matchedRequest.UserId;
+        
+        _logger.LogInformation("Creating live session - Scheduler (Interviewer): {SchedulerId}, Matched User (Interviewee): {MatchedId}", 
+            schedulerUserId, matchedUserId);
+
+        // Select 2 questions based on interview type
+        var firstQuestionId = await SelectRandomQuestionAsync(schedulerRequest.InterviewType);
+        var secondQuestionId = await SelectRandomQuestionAsync(schedulerRequest.InterviewType, firstQuestionId);
+
+        if (!firstQuestionId.HasValue)
+        {
+            throw new InvalidOperationException("Could not find questions for the interview type.");
+        }
+
+        // Create live session
+        var liveSession = new LiveInterviewSession
+        {
+            Id = Guid.NewGuid(),
+            ScheduledSessionId = schedulerRequest.ScheduledSessionId,
+            FirstQuestionId = firstQuestionId.Value,
+            SecondQuestionId = secondQuestionId,
+            ActiveQuestionId = firstQuestionId.Value, // Start with first question
+            Status = "Pending", // Will change to "InProgress" when both confirm
+            StartedAt = null, // Will be set when both confirm
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        _context.LiveInterviewSessions.Add(liveSession);
+
+        // Create participants with roles
+        var schedulerParticipant = new LiveInterviewParticipant
+        {
+            Id = Guid.NewGuid(),
+            LiveSessionId = liveSession.Id,
+            UserId = schedulerUserId,
+            Role = "Interviewer", // Scheduler is always Interviewer
+            IsActive = true,
+            JoinedAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        var matchedParticipant = new LiveInterviewParticipant
+        {
+            Id = Guid.NewGuid(),
+            LiveSessionId = liveSession.Id,
+            UserId = matchedUserId,
+            Role = "Interviewee", // Matched user is always Interviewee initially
+            IsActive = true,
+            JoinedAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        _context.LiveInterviewParticipants.Add(schedulerParticipant);
+        _context.LiveInterviewParticipants.Add(matchedParticipant);
+
+        // Update scheduled session status (LiveSessionId is set via navigation property)
+        var scheduledSession = await _context.ScheduledInterviewSessions
+            .FirstOrDefaultAsync(s => s.Id == schedulerRequest.ScheduledSessionId);
+        if (scheduledSession != null)
+        {
+            scheduledSession.UpdatedAt = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync();
+
+        return liveSession;
+    }
+
+    private async Task<LiveInterviewSession> CreateLiveSessionAsync(InterviewMatchingRequest matchingRequest)
+    {
+        // Select first question based on interview type
+        var firstQuestionId = await SelectRandomQuestionAsync(matchingRequest.InterviewType);
+        
+        var liveSession = new LiveInterviewSession
+        {
+            ScheduledSessionId = matchingRequest.ScheduledSessionId,
+            FirstQuestionId = firstQuestionId,
+            ActiveQuestionId = firstQuestionId,
+            Status = "InProgress",
+            StartedAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        _context.LiveInterviewSessions.Add(liveSession);
+        await _context.SaveChangesAsync();
+
+        // Create participants
+        // Session creator = Interviewer, matched user = Interviewee
+        var interviewer = new LiveInterviewParticipant
+        {
+            LiveSessionId = liveSession.Id,
+            UserId = matchingRequest.UserId,
+            Role = "Interviewer",
+            IsActive = true,
+            JoinedAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        var interviewee = new LiveInterviewParticipant
+        {
+            LiveSessionId = liveSession.Id,
+            UserId = matchingRequest.MatchedUserId!.Value,
+            Role = "Interviewee",
+            IsActive = true,
+            JoinedAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        _context.LiveInterviewParticipants.Add(interviewer);
+        _context.LiveInterviewParticipants.Add(interviewee);
+        await _context.SaveChangesAsync();
+
+        return liveSession;
+    }
+
+    private async Task<Guid?> SelectRandomQuestionAsync(string interviewType, Guid? excludeQuestionId = null)
+    {
+        // Map interview types to question types
+        var questionTypeMap = new Dictionary<string, string>
+        {
+            { "data-structures-algorithms", "Coding" },
+            { "system-design", "System Design" },
+            { "behavioral", "Behavioral" },
+            { "product-management", "Behavioral" }, // Product management uses behavioral questions
+            { "sql", "Coding" },
+            { "data-science-ml", "Coding" }
+        };
+
+        var questionType = questionTypeMap.GetValueOrDefault(interviewType, "Coding");
+
+        // Get random approved question of the appropriate type
+        var query = _context.InterviewQuestions
+            .Where(q => q.IsActive 
+                && q.ApprovalStatus == "Approved"
+                && q.QuestionType == questionType);
+        
+        // Exclude a question if specified (for second question)
+        if (excludeQuestionId.HasValue)
+        {
+            query = query.Where(q => q.Id != excludeQuestionId.Value);
+        }
+        
+        var questions = await query.ToListAsync();
+
+        if (!questions.Any())
+        {
+            // Fallback to any approved question
+            var fallbackQuery = _context.InterviewQuestions
+                .Where(q => q.IsActive && q.ApprovalStatus == "Approved");
+            
+            if (excludeQuestionId.HasValue)
+            {
+                fallbackQuery = fallbackQuery.Where(q => q.Id != excludeQuestionId.Value);
+            }
+            
+            questions = await fallbackQuery.ToListAsync();
+        }
+
+        if (!questions.Any())
         {
             return null;
         }
 
-        // If both confirmed, complete the match and return the merged session
-        if (request.UserConfirmed && request.MatchedUserConfirmed)
-        {
-            var completedSession = await CompleteMatchAsync(matchingRequestId);
-            if (completedSession != null)
-            {
-                return completedSession;
-            }
-        }
+        var randomQuestion = questions[_random.Next(questions.Count)];
+        return randomQuestion.Id;
+    }
 
-        // NEW BEHAVIOR: Return the primary session (session1) immediately
-        // This allows both users to be redirected to the same session right away
-        // The session will be "completed" when both confirm, but users can start before that
-        // Use session1 as the primary session (the one from the original request)
-        var primarySession = request.ScheduledSession;
-        
-        if (primarySession != null)
+    private async Task<Guid?> SelectRandomQuestionAsync(LiveInterviewSession session)
+    {
+        // Get interview type from scheduled session
+        if (session.ScheduledSessionId.HasValue)
         {
-            // Ensure session has a question assigned so both users get the same question
-            if (!primarySession.QuestionId.HasValue && !string.IsNullOrEmpty(primarySession.InterviewLevel))
-            {
-                var questionId = await AssignQuestionByLevelAsync(primarySession.InterviewLevel);
-                if (questionId.HasValue)
-                {
-                    primarySession.QuestionId = questionId;
-                    primarySession.UpdatedAt = DateTime.UtcNow;
-                    await _context.SaveChangesAsync();
-                }
-            }
+            var scheduledSession = await _context.ScheduledInterviewSessions
+                .FirstOrDefaultAsync(s => s.Id == session.ScheduledSessionId.Value);
             
-            // If match isn't completed yet, we can still return session1
-            // When both confirm, CompleteMatchAsync will merge and update it
-            return primarySession;
+            if (scheduledSession != null)
+            {
+                return await SelectRandomQuestionAsync(scheduledSession.InterviewType);
+            }
         }
 
-        return null;
+        // Fallback to any question
+        return await SelectRandomQuestionAsync("data-structures-algorithms");
+    }
+
+    private async Task CleanupExpiredRequestsAsync()
+    {
+        var expiredRequests = await _context.InterviewMatchingRequests
+            .Where(m => m.Status == "Pending" && m.ExpiresAt < DateTime.UtcNow)
+            .ToListAsync();
+
+        foreach (var request in expiredRequests)
+        {
+            request.Status = "Expired";
+            request.UpdatedAt = DateTime.UtcNow;
+        }
+
+        if (expiredRequests.Any())
+        {
+            await _context.SaveChangesAsync();
+        }
+    }
+
+    // Mapping methods
+    private async Task<ScheduledInterviewSessionDto> MapToScheduledSessionDtoAsync(ScheduledInterviewSession session)
+    {
+        await _context.Entry(session).Reference(s => s.User).LoadAsync();
+        await _context.Entry(session).Reference(s => s.LiveSession).LoadAsync();
+
+        return new ScheduledInterviewSessionDto
+        {
+            Id = session.Id,
+            UserId = session.UserId,
+            InterviewType = session.InterviewType,
+            PracticeType = session.PracticeType,
+            InterviewLevel = session.InterviewLevel,
+            ScheduledStartAt = session.ScheduledStartAt,
+            Status = session.Status,
+            LiveSessionId = session.LiveSession?.Id,
+            CreatedAt = session.CreatedAt,
+            UpdatedAt = session.UpdatedAt,
+            User = session.User != null ? new UserDto
+            {
+                Id = session.User.Id,
+                FirstName = session.User.FirstName,
+                LastName = session.User.LastName,
+                Email = session.User.Email
+            } : null,
+            LiveSession = session.LiveSession != null 
+                ? await MapToLiveSessionDtoAsync(session.LiveSession, session.UserId)
+                : null
+        };
+    }
+
+    private async Task<MatchingRequestDto> MapToMatchingRequestDtoAsync(InterviewMatchingRequest request)
+    {
+        return new MatchingRequestDto
+        {
+            Id = request.Id,
+            UserId = request.UserId,
+            ScheduledSessionId = request.ScheduledSessionId,
+            InterviewType = request.InterviewType,
+            PracticeType = request.PracticeType,
+            InterviewLevel = request.InterviewLevel,
+            ScheduledStartAt = request.ScheduledStartAt,
+            Status = request.Status,
+            MatchedUserId = request.MatchedUserId,
+            LiveSessionId = request.LiveSessionId,
+            UserConfirmed = request.UserConfirmed,
+            MatchedUserConfirmed = request.MatchedUserConfirmed,
+            ExpiresAt = request.ExpiresAt,
+            CreatedAt = request.CreatedAt,
+            UpdatedAt = request.UpdatedAt,
+            User = request.User != null ? new UserDto
+            {
+                Id = request.User.Id,
+                FirstName = request.User.FirstName,
+                LastName = request.User.LastName,
+                Email = request.User.Email
+            } : null,
+            MatchedUser = request.MatchedUser != null ? new UserDto
+            {
+                Id = request.MatchedUser.Id,
+                FirstName = request.MatchedUser.FirstName,
+                LastName = request.MatchedUser.LastName,
+                Email = request.MatchedUser.Email
+            } : null,
+            ScheduledSession = request.ScheduledSession != null
+                ? await MapToScheduledSessionDtoAsync(request.ScheduledSession)
+                : null
+        };
+    }
+
+    private async Task<LiveInterviewSessionDto> MapToLiveSessionDtoAsync(LiveInterviewSession session, Guid userId)
+    {
+        var participants = session.Participants.Select(p => new ParticipantDto
+        {
+            Id = p.Id,
+            UserId = p.UserId,
+            Role = p.Role,
+            IsActive = p.IsActive,
+            JoinedAt = p.JoinedAt,
+            User = p.User != null ? new UserDto
+            {
+                Id = p.User.Id,
+                FirstName = p.User.FirstName,
+                LastName = p.User.LastName,
+                Email = p.User.Email
+            } : null
+        }).ToList();
+
+        var activeQuestion = session.ActiveQuestionId.HasValue
+            ? await _context.InterviewQuestions.FindAsync(session.ActiveQuestionId.Value)
+            : null;
+
+        return new LiveInterviewSessionDto
+        {
+            Id = session.Id,
+            ScheduledSessionId = session.ScheduledSessionId,
+            FirstQuestionId = session.FirstQuestionId,
+            SecondQuestionId = session.SecondQuestionId,
+            ActiveQuestionId = session.ActiveQuestionId,
+            Status = session.Status,
+            StartedAt = session.StartedAt,
+            EndedAt = session.EndedAt,
+            CreatedAt = session.CreatedAt,
+            UpdatedAt = session.UpdatedAt,
+            FirstQuestion = session.FirstQuestion != null ? new QuestionSummaryDto
+            {
+                Id = session.FirstQuestion.Id,
+                Title = session.FirstQuestion.Title,
+                Difficulty = session.FirstQuestion.Difficulty,
+                QuestionType = session.FirstQuestion.QuestionType
+            } : null,
+            SecondQuestion = session.SecondQuestion != null ? new QuestionSummaryDto
+            {
+                Id = session.SecondQuestion.Id,
+                Title = session.SecondQuestion.Title,
+                Difficulty = session.SecondQuestion.Difficulty,
+                QuestionType = session.SecondQuestion.QuestionType
+            } : null,
+            ActiveQuestion = activeQuestion != null ? new QuestionSummaryDto
+            {
+                Id = activeQuestion.Id,
+                Title = activeQuestion.Title,
+                Difficulty = activeQuestion.Difficulty,
+                QuestionType = activeQuestion.QuestionType
+            } : null,
+            Participants = participants
+        };
+    }
+
+    private async Task<InterviewFeedbackDto> MapToFeedbackDtoAsync(InterviewFeedback feedback)
+    {
+        return new InterviewFeedbackDto
+        {
+            Id = feedback.Id,
+            LiveSessionId = feedback.LiveSessionId,
+            ReviewerId = feedback.ReviewerId,
+            RevieweeId = feedback.RevieweeId,
+            ProblemSolvingRating = feedback.ProblemSolvingRating,
+            ProblemSolvingDescription = feedback.ProblemSolvingDescription,
+            CodingSkillsRating = feedback.CodingSkillsRating,
+            CodingSkillsDescription = feedback.CodingSkillsDescription,
+            CommunicationRating = feedback.CommunicationRating,
+            CommunicationDescription = feedback.CommunicationDescription,
+            ThingsDidWell = feedback.ThingsDidWell,
+            AreasForImprovement = feedback.AreasForImprovement,
+            InterviewerPerformanceRating = feedback.InterviewerPerformanceRating,
+            InterviewerPerformanceDescription = feedback.InterviewerPerformanceDescription,
+            CreatedAt = feedback.CreatedAt,
+            UpdatedAt = feedback.UpdatedAt,
+            Reviewer = feedback.Reviewer != null ? new UserDto
+            {
+                Id = feedback.Reviewer.Id,
+                FirstName = feedback.Reviewer.FirstName,
+                LastName = feedback.Reviewer.LastName,
+                Email = feedback.Reviewer.Email
+            } : null,
+            Reviewee = feedback.Reviewee != null ? new UserDto
+            {
+                Id = feedback.Reviewee.Id,
+                FirstName = feedback.Reviewee.FirstName,
+                LastName = feedback.Reviewee.LastName,
+                Email = feedback.Reviewee.Email
+            } : null
+        };
     }
 }
 

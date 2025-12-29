@@ -16,7 +16,6 @@ public class ApplicationDbContext : DbContext
     public DbSet<EmailVerification> EmailVerifications { get; set; }
     public DbSet<PasswordReset> PasswordResets { get; set; }
     public DbSet<RefreshToken> RefreshTokens { get; set; }
-    public DbSet<MockInterview> MockInterviews { get; set; }
     public DbSet<CoachApplication> CoachApplications { get; set; }
     public DbSet<InterviewQuestion> InterviewQuestions { get; set; }
     public DbSet<QuestionTestCase> QuestionTestCases { get; set; }
@@ -26,11 +25,11 @@ public class ApplicationDbContext : DbContext
     public DbSet<UserCodeDraft> UserCodeDrafts { get; set; }
     public DbSet<LearningAnalytics> LearningAnalytics { get; set; }
     public DbSet<UserSolvedQuestion> UserSolvedQuestions { get; set; }
-    public DbSet<PeerInterviewSession> PeerInterviewSessions { get; set; }
-    public DbSet<PeerInterviewMatch> PeerInterviewMatches { get; set; }
+    public DbSet<ScheduledInterviewSession> ScheduledInterviewSessions { get; set; }
     public DbSet<InterviewMatchingRequest> InterviewMatchingRequests { get; set; }
-    public DbSet<UserSessionParticipant> UserSessionParticipants { get; set; }
-    public DbSet<VideoSession> VideoSessions { get; set; }
+    public DbSet<LiveInterviewSession> LiveInterviewSessions { get; set; }
+    public DbSet<LiveInterviewParticipant> LiveInterviewParticipants { get; set; }
+    public DbSet<InterviewFeedback> InterviewFeedbacks { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -107,16 +106,6 @@ public class ApplicationDbContext : DbContext
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(e => e.Token).IsUnique();
-        });
-
-        // Configure MockInterview entity
-        modelBuilder.Entity<MockInterview>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.Title).IsRequired().HasMaxLength(255);
-            entity.Property(e => e.VideoUrl).IsRequired();
-            entity.Property(e => e.Category).HasMaxLength(50);
-            entity.Property(e => e.Difficulty).HasMaxLength(20).HasDefaultValue("Medium");
         });
 
         // Configure CoachApplication entity
@@ -271,41 +260,31 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(e => e.SolvedAt); // For sorting by solve date
         });
 
-        // Configure PeerInterviewSession entity
-        modelBuilder.Entity<PeerInterviewSession>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.HasOne(e => e.Interviewer)
-                .WithMany()
-                .HasForeignKey(e => e.InterviewerId)
-                .OnDelete(DeleteBehavior.Restrict);
-            entity.HasOne(e => e.Interviewee)
-                .WithMany()
-                .HasForeignKey(e => e.IntervieweeId)
-                .OnDelete(DeleteBehavior.Restrict);
-            entity.HasOne(e => e.Question)
-                .WithMany()
-                .HasForeignKey(e => e.QuestionId)
-                .OnDelete(DeleteBehavior.SetNull);
-            
-            entity.HasIndex(e => e.InterviewerId);
-            entity.HasIndex(e => e.IntervieweeId);
-            entity.HasIndex(e => e.Status);
-            entity.HasIndex(e => e.ScheduledTime);
-        });
-
-        // Configure PeerInterviewMatch entity
-        modelBuilder.Entity<PeerInterviewMatch>(entity =>
+        // Configure ScheduledInterviewSession entity
+        modelBuilder.Entity<ScheduledInterviewSession>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.HasOne(e => e.User)
                 .WithMany()
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
-            
-            entity.HasIndex(e => e.UserId).IsUnique();
-            entity.HasIndex(e => e.IsAvailable);
+            entity.Property(e => e.InterviewType).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.PracticeType).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.InterviewLevel).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue("Scheduled");
+            entity.HasIndex(e => e.UserId); // For querying user's scheduled sessions
+            entity.HasIndex(e => e.ScheduledStartAt); // For sorting by scheduled time
+            entity.HasIndex(e => e.Status); // For filtering by status
+            entity.HasIndex(e => new { e.InterviewType, e.PracticeType, e.InterviewLevel }); // For matching queries
         });
+        
+        // Configure one-to-one relationship: ScheduledInterviewSession <-> LiveInterviewSession
+        // LiveInterviewSession holds the foreign key (ScheduledSessionId) pointing to ScheduledInterviewSession
+        modelBuilder.Entity<LiveInterviewSession>()
+            .HasOne(l => l.ScheduledSession)
+            .WithOne(s => s.LiveSession)
+            .HasForeignKey<LiveInterviewSession>(l => l.ScheduledSessionId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         // Configure InterviewMatchingRequest entity
         modelBuilder.Entity<InterviewMatchingRequest>(entity =>
@@ -314,59 +293,90 @@ public class ApplicationDbContext : DbContext
             entity.HasOne(e => e.User)
                 .WithMany()
                 .HasForeignKey(e => e.UserId)
-                .OnDelete(DeleteBehavior.Restrict);
-            entity.HasOne(e => e.ScheduledSession)
-                .WithMany()
-                .HasForeignKey(e => e.ScheduledSessionId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(e => e.MatchedUser)
                 .WithMany()
                 .HasForeignKey(e => e.MatchedUserId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .IsRequired(false);
-            entity.HasOne(e => e.MatchedRequest)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(e => e.ScheduledSession)
                 .WithMany()
-                .HasForeignKey(e => e.MatchedRequestId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .IsRequired(false);
-            entity.Property(e => e.Status).IsRequired().HasMaxLength(50).HasDefaultValue("Pending");
-            entity.HasIndex(e => e.ScheduledSessionId);
-            entity.HasIndex(e => e.Status);
+                .HasForeignKey(e => e.ScheduledSessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.LiveSession)
+                .WithMany()
+                .HasForeignKey(e => e.LiveSessionId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.Property(e => e.InterviewType).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.PracticeType).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.InterviewLevel).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue("Pending");
+            entity.HasIndex(e => e.UserId); // For querying user's matching requests
+            entity.HasIndex(e => e.Status); // For filtering by status
+            entity.HasIndex(e => e.ExpiresAt); // For cleanup queries
+            entity.HasIndex(e => new { e.InterviewType, e.PracticeType, e.Status, e.ExpiresAt }); // For matching queries
         });
 
-        // Configure UserSessionParticipant entity
-        modelBuilder.Entity<UserSessionParticipant>(entity =>
+        // Configure LiveInterviewSession entity
+        modelBuilder.Entity<LiveInterviewSession>(entity =>
         {
             entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.FirstQuestion)
+                .WithMany()
+                .HasForeignKey(e => e.FirstQuestionId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(e => e.SecondQuestion)
+                .WithMany()
+                .HasForeignKey(e => e.SecondQuestionId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue("InProgress");
+            entity.HasIndex(e => e.ScheduledSessionId); // For querying by scheduled session
+            entity.HasIndex(e => e.Status); // For filtering by status
+            entity.HasIndex(e => e.StartedAt); // For sorting by start time
+        });
+
+        // Configure LiveInterviewParticipant entity
+        modelBuilder.Entity<LiveInterviewParticipant>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.LiveSession)
+                .WithMany(s => s.Participants)
+                .HasForeignKey(e => e.LiveSessionId)
+                .OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(e => e.User)
                 .WithMany()
                 .HasForeignKey(e => e.UserId)
-                .OnDelete(DeleteBehavior.Restrict);
-            entity.HasOne(e => e.Session)
-                .WithMany()
-                .HasForeignKey(e => e.SessionId)
-                .OnDelete(DeleteBehavior.Restrict);
-            entity.Property(e => e.Role).IsRequired().HasMaxLength(50);
-            entity.Property(e => e.Status).IsRequired().HasMaxLength(50).HasDefaultValue("Active");
-            entity.HasIndex(e => e.UserId);
-            entity.HasIndex(e => e.SessionId);
-            entity.HasIndex(e => new { e.UserId, e.SessionId }).IsUnique();
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.Role).IsRequired().HasMaxLength(20).HasDefaultValue("Interviewee");
+            // Unique constraint: one participant record per user per session
+            entity.HasIndex(e => new { e.LiveSessionId, e.UserId }).IsUnique();
+            entity.HasIndex(e => e.LiveSessionId); // For querying session participants
+            entity.HasIndex(e => e.UserId); // For querying user's sessions
+            entity.HasIndex(e => e.Role); // For filtering by role
         });
 
-        // Configure VideoSession entity
-        modelBuilder.Entity<VideoSession>(entity =>
+        // Configure InterviewFeedback entity
+        modelBuilder.Entity<InterviewFeedback>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.HasOne(e => e.Session)
-                .WithMany()
-                .HasForeignKey(e => e.SessionId)
+            entity.HasOne(e => e.LiveSession)
+                .WithMany(s => s.Feedbacks)
+                .HasForeignKey(e => e.LiveSessionId)
                 .OnDelete(DeleteBehavior.Cascade);
-            entity.Property(e => e.Token).IsRequired().HasMaxLength(500);
-            entity.Property(e => e.Status).IsRequired().HasMaxLength(50).HasDefaultValue("Active");
-            entity.Property(e => e.SignalingData).HasMaxLength(1000);
-            entity.HasIndex(e => e.SessionId);
-            entity.HasIndex(e => e.Token).IsUnique();
+            entity.HasOne(e => e.Reviewer)
+                .WithMany()
+                .HasForeignKey(e => e.ReviewerId)
+                .OnDelete(DeleteBehavior.Restrict); // Don't delete user if feedback exists
+            entity.HasOne(e => e.Reviewee)
+                .WithMany()
+                .HasForeignKey(e => e.RevieweeId)
+                .OnDelete(DeleteBehavior.Restrict); // Don't delete user if feedback exists
+            // Unique constraint: one feedback per reviewer-reviewee-session combination
+            entity.HasIndex(e => new { e.LiveSessionId, e.ReviewerId, e.RevieweeId }).IsUnique();
+            entity.HasIndex(e => e.LiveSessionId); // For querying session feedback
+            entity.HasIndex(e => e.ReviewerId); // For querying reviewer's feedback
+            entity.HasIndex(e => e.RevieweeId); // For querying feedback about a user
         });
+
     }
 }
 

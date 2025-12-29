@@ -36,7 +36,6 @@ dotnet test --filter "FullyQualifiedName~AuthControllerTests"
   - Reset Password
 - `UserControllerTests.cs` - Tests for user management endpoints
   - Get Current User
-- `PeerInterviewControllerTests.cs` - Tests for peer interview endpoints (25 tests)
   - CreateSession (8 tests)
   - GetMySessions (4 tests)
   - GetSession (5 tests)
@@ -51,7 +50,6 @@ dotnet test --filter "FullyQualifiedName~AuthControllerTests"
   - User Registration
   - User Login
   - Email Verification
-- `PeerInterviewServiceTests.cs` - Tests for peer interview business logic (48 tests)
   - CreateSessionAsync (20 tests)
     - Valid data creation
     - Automatic question assignment by interview level (Beginner/Intermediate/Advanced)

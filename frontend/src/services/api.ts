@@ -164,15 +164,32 @@ api.interceptors.response.use(
         
         // Retry the original request
         return api(originalRequest);
-      } catch (refreshError) {
-        // Refresh failed - logout user and redirect to login with return URL
-        processQueue(refreshError, null);
-        isRefreshing = false;
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
-        window.location.href = `/login?returnUrl=${returnUrl}`;
-        return Promise.reject(refreshError);
+      } catch (refreshError: any) {
+        // Check if refresh failed due to expired refresh token (401) or invalid token (400)
+        // Only redirect if the refresh token itself is invalid/expired
+        const isRefreshTokenExpired = refreshError?.response?.status === 401 || 
+                                     refreshError?.response?.status === 400 ||
+                                     refreshError?.message?.includes('expired') ||
+                                     refreshError?.message?.includes('invalid');
+        
+        if (isRefreshTokenExpired) {
+          // Refresh token expired - logout user and redirect to login with return URL
+          processQueue(refreshError, null);
+          isRefreshing = false;
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+          window.location.href = `/login?returnUrl=${returnUrl}`;
+          return Promise.reject(refreshError);
+        } else {
+          // Network error or other issue - retry the original request with current token
+          // Don't redirect, let the user continue working
+          processQueue(null, null);
+          isRefreshing = false;
+          console.warn('Token refresh failed but not due to expiration, retrying original request');
+          // Retry original request - it might work if token is still valid
+          return api(originalRequest);
+        }
       }
     }
     

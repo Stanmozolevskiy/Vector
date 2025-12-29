@@ -50,11 +50,13 @@ export const CollaborativeCodeEditor: React.FC<CollaborativeCodeEditorProps> = (
       }
 
       // Get base URL without /api suffix
-      const baseUrl = api.defaults.baseURL?.replace('/api', '') || 'http://localhost:5000';
+      const baseUrl = (api.defaults.baseURL && typeof api.defaults.baseURL === 'string') 
+        ? api.defaults.baseURL.replace('/api', '') 
+        : 'http://localhost:5000';
       
       // Create SignalR connection
       const connection = new signalR.HubConnectionBuilder()
-        .withUrl(`${baseUrl}/api/collaboration/${sessionId}?access_token=${accessToken}`, {
+        .withUrl(`${baseUrl}/api/collaboration?access_token=${accessToken}`, {
           transport: signalR.HttpTransportType.WebSockets,
         })
         .withAutomaticReconnect({

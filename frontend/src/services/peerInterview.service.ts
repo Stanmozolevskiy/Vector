@@ -119,6 +119,11 @@ export interface PeerInterviewSession {
   interviewer?: UserDto;
   interviewee?: UserDto;
   question?: QuestionSummary;
+  // Include both questions for past interviews
+  firstQuestion?: QuestionSummary;
+  secondQuestion?: QuestionSummary;
+  firstQuestionId?: string;
+  secondQuestionId?: string;
 }
 
 // Request DTOs

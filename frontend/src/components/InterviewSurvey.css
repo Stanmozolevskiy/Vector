@@ -154,6 +154,51 @@
   text-decoration: underline;
 }
 
+/* Star rating input styles */
+.star-rating-input {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.star-rating-input label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.star-rating-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.star-btn {
+  background: none;
+  border: 2px solid #d1d5db;
+  border-radius: 4px;
+  padding: 0.5rem;
+  font-size: 1.25rem;
+  color: #d1d5db;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.star-btn:hover {
+  border-color: #7c3aed;
+  color: #7c3aed;
+}
+
+.star-btn.selected {
+  border-color: #fbbf24;
+  color: #fbbf24;
+  background: #fef3c7;
+}
+
 
 
 

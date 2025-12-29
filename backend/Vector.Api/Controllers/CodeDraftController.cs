@@ -41,7 +41,7 @@ public class CodeDraftController : ControllerBase
             var draft = await _codeDraftService.GetCodeDraftAsync(userId.Value, questionId, language);
             if (draft == null)
             {
-                return NotFound(new { error = "Code draft not found." });
+                return NoContent(); // Return 204 No Content instead of 404
             }
 
             return Ok(draft);

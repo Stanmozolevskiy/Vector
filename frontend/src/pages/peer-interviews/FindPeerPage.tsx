@@ -51,6 +51,8 @@ const FindPeerPage: React.FC = () => {
   const [scheduledSession, setScheduledSession] = useState<PeerInterviewSession | null>(null);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [selectedSessionForFeedback, setSelectedSessionForFeedback] = useState<PeerInterviewSession | null>(null);
+  const [feedbackData, setFeedbackData] = useState<FeedbackData | null>(null);
+  const [loadingFeedback, setLoadingFeedback] = useState(false);
   const [showMatchingModal, setShowMatchingModal] = useState(false);
   const [matchingStatus, setMatchingStatus] = useState<any>(null);
   const [matchingPollInterval, setMatchingPollInterval] = useState<ReturnType<typeof setInterval> | null>(null);
@@ -121,10 +123,17 @@ const FindPeerPage: React.FC = () => {
         intervieweeId: s.liveSession?.participants?.find(p => p.role === 'Interviewee')?.userId,
         questionId: s.liveSession?.activeQuestionId,
         question: s.liveSession?.activeQuestion,
+        // Include both questions for past interviews
+        firstQuestion: s.liveSession?.firstQuestion,
+        secondQuestion: s.liveSession?.secondQuestion,
+        firstQuestionId: s.liveSession?.firstQuestionId,
+        secondQuestionId: s.liveSession?.secondQuestionId,
       }));
       
       const upcoming = legacySessions.filter(s => {
         if (s.status === 'Cancelled') return false;
+        // If status is Completed, move to past regardless of time
+        if (s.status === 'Completed') return false;
         const scheduledTime = s.scheduledTime ? new Date(s.scheduledTime) : null;
         return scheduledTime && scheduledTime > now;
       }).sort((a, b) => {
@@ -135,8 +144,10 @@ const FindPeerPage: React.FC = () => {
 
       const past = legacySessions.filter(s => {
         if (s.status === 'Cancelled') return false;
+        // Include completed sessions regardless of time
+        if (s.status === 'Completed') return true;
         const scheduledTime = s.scheduledTime ? new Date(s.scheduledTime) : null;
-        return !scheduledTime || scheduledTime <= now || s.status === 'Completed';
+        return !scheduledTime || scheduledTime <= now;
       }).sort((a, b) => {
         const timeA = a.scheduledTime ? new Date(a.scheduledTime).getTime() : 0;
         const timeB = b.scheduledTime ? new Date(b.scheduledTime).getTime() : 0;
@@ -229,7 +240,6 @@ const FindPeerPage: React.FC = () => {
         const matchingStatus = await peerInterviewService.getMatchingStatus(sessionId);
         if (matchingStatus?.liveSessionId && matchingStatus.status === 'Confirmed') {
           // Both users confirmed and session exists - redirect to live session
-          console.log('Session already active, redirecting to live session:', matchingStatus.liveSessionId);
           try {
             const liveSession = await peerInterviewService.getSession(matchingStatus.liveSessionId);
             if (liveSession.questionId) {
@@ -566,15 +576,9 @@ const FindPeerPage: React.FC = () => {
         // Both confirmed if status is 'Confirmed' (backend sets this when both confirm)
         const bothConfirmed = isConfirmed && hasLiveSession;
         
-        // Add logging to debug polling
-        if (status) {
-          console.log('POLLING: Status check - Status:', status.status, 'UserConfirmed:', status.userConfirmed, 'MatchedUserConfirmed:', status.matchedUserConfirmed, 'LiveSessionId:', status.liveSessionId, 'BothConfirmed:', bothConfirmed);
-        }
-        
         // If both confirmed, redirect immediately
         if (bothConfirmed) {
           // Both users confirmed - get the live session and redirect
-          console.log('Polling detected both users confirmed! Status:', status?.status, 'UserConfirmed:', status?.userConfirmed, 'MatchedUserConfirmed:', status?.matchedUserConfirmed);
           
           clearInterval(interval);
           if (countdownInterval) {
@@ -602,9 +606,8 @@ const FindPeerPage: React.FC = () => {
             try {
               const scheduledSession = await peerInterviewService.getScheduledSession(sessionId);
               liveSessionId = scheduledSession.liveSessionId;
-              console.log('Got liveSessionId from scheduled session:', liveSessionId);
             } catch (error) {
-              console.warn('Error getting scheduled session during poll:', error);
+              // Silently handle error
             }
           }
           
@@ -612,43 +615,36 @@ const FindPeerPage: React.FC = () => {
             // Get the live session
             try {
               const liveSession = await peerInterviewService.getSession(liveSessionId);
-              console.log('Got live session:', liveSession);
               if (liveSession.questionId) {
-                console.log('Polling detected both confirmed, redirecting to question:', liveSession.questionId);
                 window.location.href = `${ROUTES.QUESTIONS}/${liveSession.questionId}?session=${liveSessionId}`;
                 return;
               } else {
-                console.log('Polling detected both confirmed, redirecting to questions list');
                 window.location.href = `${ROUTES.QUESTIONS}?session=${liveSessionId}`;
                 return;
               }
             } catch (error) {
-              console.error('Error getting live session during poll:', error);
+              // Silently handle error
             }
           }
           
           // Fallback: try to get live session one more time by checking both matching requests
-          console.log('Fallback: trying to find live session from matching request...');
           try {
             // Get matching status again to see if liveSessionId is now available
             const latestStatus = await peerInterviewService.getMatchingStatus(sessionId);
             if (latestStatus?.liveSessionId) {
               const liveSession = await peerInterviewService.getSession(latestStatus.liveSessionId);
               if (liveSession.questionId) {
-                console.log('Found live session in fallback, redirecting:', liveSession.questionId);
                 window.location.href = `${ROUTES.QUESTIONS}/${liveSession.questionId}?session=${latestStatus.liveSessionId}`;
               } else {
-                console.log('Found live session in fallback, redirecting to questions list');
                 window.location.href = `${ROUTES.QUESTIONS}?session=${latestStatus.liveSessionId}`;
               }
               return;
             }
           } catch (error) {
-            console.error('Error in fallback redirect:', error);
+            // Silently handle error
           }
           
           // Last resort: wait a bit and try again
-          console.log('Last resort: waiting 2 seconds and retrying...');
           setTimeout(async () => {
             try {
               const latestStatus = await peerInterviewService.getMatchingStatus(sessionId);
@@ -730,14 +726,11 @@ const FindPeerPage: React.FC = () => {
 
   // SIMPLIFIED: Expire match and re-queue users if timeout occurs
   const handleMatchTimeout = async (sessionId: string) => {
-    console.log('TIMEOUT: Match confirmation timeout (15 seconds expired), expiring match and re-queuing...');
-    
     // Check if both users have confirmed before timing out
     // If they have, don't timeout - let the polling handle the redirect
     try {
       const currentStatus = await peerInterviewService.getMatchingStatus(sessionId);
       if (currentStatus && currentStatus.status === 'Confirmed') {
-        console.log('TIMEOUT: Both users confirmed, skipping timeout - polling will handle redirect');
         return; // Don't timeout if both confirmed
       }
       
@@ -745,9 +738,8 @@ const FindPeerPage: React.FC = () => {
       if (currentStatus?.id) {
         try {
           await peerInterviewService.expireMatch(currentStatus.id);
-          console.log('TIMEOUT: Match expired on backend, users re-queued');
         } catch (error) {
-          console.error('TIMEOUT: Error expiring match on backend:', error);
+          // Silently handle error
         }
       }
     } catch (error) {
@@ -789,7 +781,6 @@ const FindPeerPage: React.FC = () => {
     try {
       // Set this user's readiness to true
       const result = await peerInterviewService.confirmMatch(matchingStatus.id);
-      console.log('Confirm match result:', result);
       
       // Update matching status with the latest from backend
       setMatchingStatus(result.matchingRequest);
@@ -797,7 +788,6 @@ const FindPeerPage: React.FC = () => {
       // Check if both users have confirmed - if so, redirect immediately
       if (result.completed && result.session) {
         // Both users confirmed, session is ready - navigate immediately
-        console.log('Both users confirmed, redirecting to session:', result.session.id);
         
         // Clear all intervals and timeouts
         if (matchingPollInterval) {
@@ -818,24 +808,19 @@ const FindPeerPage: React.FC = () => {
         
         if (sessionId && result.session.activeQuestionId) {
           // Session has question - redirect to question page
-          console.log('Redirecting to question:', result.session.activeQuestionId);
           window.location.href = `${ROUTES.QUESTIONS}/${result.session.activeQuestionId}?session=${sessionId}`;
           return;
         } else if (sessionId) {
           // Session exists but no question yet - wait for backend to assign
-          console.log('Session exists but no question yet, waiting...');
           setTimeout(async () => {
             try {
               const session = await peerInterviewService.getSession(sessionId);
               if (session.questionId) {
-                console.log('Redirecting to question:', session.questionId);
                 window.location.href = `${ROUTES.QUESTIONS}/${session.questionId}?session=${sessionId}`;
               } else {
-                console.log('No question assigned, redirecting to questions list');
                 window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
               }
             } catch (error) {
-              console.error('Error getting session after confirm:', error);
               window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
             }
           }, 1000);
@@ -843,7 +828,6 @@ const FindPeerPage: React.FC = () => {
         }
       } else if (result.completed && result.matchingRequest?.liveSessionId) {
         // Both users confirmed but session not in response, get it using liveSessionId
-        console.log('Both confirmed, getting session from liveSessionId:', result.matchingRequest.liveSessionId);
         
         // Clear all intervals and timeouts
         if (matchingPollInterval) {
@@ -862,15 +846,12 @@ const FindPeerPage: React.FC = () => {
         try {
           const liveSession = await peerInterviewService.getSession(result.matchingRequest.liveSessionId);
           if (liveSession.questionId) {
-            console.log('Redirecting to question:', liveSession.questionId);
             window.location.href = `${ROUTES.QUESTIONS}/${liveSession.questionId}?session=${result.matchingRequest.liveSessionId}`;
           } else {
-            console.log('No question assigned, redirecting to questions list');
             window.location.href = `${ROUTES.QUESTIONS}?session=${result.matchingRequest.liveSessionId}`;
           }
           return;
         } catch (error) {
-          console.error('Error getting live session:', error);
           window.location.href = `${ROUTES.QUESTIONS}?session=${result.matchingRequest.liveSessionId}`;
           return;
         }
@@ -878,7 +859,6 @@ const FindPeerPage: React.FC = () => {
         // Only this user confirmed - waiting for other user
         // DO NOT redirect - wait for the other user to confirm
         // The polling will detect when both users confirm and redirect
-        console.log('CONFIRM: This user confirmed, waiting for partner. Status:', result.matchingRequest.status, 'UserConfirmed:', result.matchingRequest.userConfirmed, 'LiveSessionId:', result.matchingRequest.liveSessionId);
         
         // Keep isConfirmingMatch as true to show "Confirmed" state (waiting for partner)
         // The polling will detect when both users confirm and redirect
@@ -890,13 +870,10 @@ const FindPeerPage: React.FC = () => {
       
       // Don't show alert for network errors
       if (error?.code === 'ERR_NETWORK' || error?.message === 'Network Error') {
-        console.warn('Network error during confirm match, but match may still be processing');
-        // Continue - the polling will detect when match is confirmed
+        // Silently handle network errors - polling will detect when match is confirmed
         return;
       }
-      console.error('Error confirming match:', error);
-      const errorMessage = error?.response?.data?.message || 'Failed to confirm match';
-      console.error('Confirm match error:', errorMessage);
+      // Silently handle other errors
     }
   };
 
@@ -1294,10 +1271,20 @@ const FindPeerPage: React.FC = () => {
                     <td>{formatDate(session.scheduledTime)}</td>
                     <td>{session.interviewType || 'N/A'}</td>
                     <td>
-                      {session.question ? (
-                        <Link to={`/questions/${session.questionId}`} className="question-link">
-                          {session.question.title}
-                        </Link>
+                      {session.firstQuestion || session.secondQuestion ? (
+                        <div className="questions-list">
+                          {session.firstQuestion && (
+                            <Link to={`/questions/${session.firstQuestionId}`} className="question-link">
+                              {session.firstQuestion.title}
+                            </Link>
+                          )}
+                          {session.firstQuestion && session.secondQuestion && <span className="question-separator">, </span>}
+                          {session.secondQuestion && (
+                            <Link to={`/questions/${session.secondQuestionId}`} className="question-link">
+                              {session.secondQuestion.title}
+                            </Link>
+                          )}
+                        </div>
                       ) : (
                         <span className="no-question">n/a</span>
                       )}
@@ -1311,21 +1298,75 @@ const FindPeerPage: React.FC = () => {
                     <td>
                       <button 
                         className="btn-view-feedback"
-                        onClick={() => {
-                          // Check if survey is completed
-                          const surveyCompleted = localStorage.getItem(`survey_completed_${session.id}`);
-                          if (!surveyCompleted) {
-                            // Show survey instead of feedback
-                            setSurveySessionId(session.id);
-                            setShowSurvey(true);
-                          } else {
-                            // Show feedback
-                            setSelectedSessionForFeedback(session);
-                            setShowFeedbackModal(true);
+                        onClick={async () => {
+                          try {
+                            // Check if user has submitted feedback by trying to get feedback
+                            // If empty array is returned, user hasn't submitted feedback yet
+                            setLoadingFeedback(true);
+                            const feedbacks = await peerInterviewService.getSessionFeedback(session.id);
+                            
+                            if (feedbacks.length === 0) {
+                              // User hasn't submitted feedback yet - show survey
+                              setSurveySessionId(session.id);
+                              setShowSurvey(true);
+                            } else {
+                              // User has submitted feedback - show feedback
+                              // Find feedback from opponent (not the user's own feedback)
+                              const opponentFeedback = feedbacks.find(f => f.revieweeId === user?.id);
+                              if (opponentFeedback) {
+                                // Convert backend feedback to frontend format
+                                const feedback: FeedbackData = {
+                                  interviewType: session.interviewType || 'Data Structures & Algorithms',
+                                  date: session.scheduledTime 
+                                    ? new Date(session.scheduledTime).toLocaleDateString('en-US', { 
+                                        month: 'long', 
+                                        day: 'numeric', 
+                                        year: 'numeric' 
+                                      })
+                                    : 'Unknown date',
+                                  problemSolving: {
+                                    rating: opponentFeedback.problemSolvingRating || 0,
+                                    description: opponentFeedback.problemSolvingDescription || ''
+                                  },
+                                  codingSkills: {
+                                    rating: opponentFeedback.codingSkillsRating || 0,
+                                    description: opponentFeedback.codingSkillsDescription || ''
+                                  },
+                                  communication: {
+                                    rating: opponentFeedback.communicationRating || 0,
+                                    description: opponentFeedback.communicationDescription || ''
+                                  },
+                                  thingsDoneWell: opponentFeedback.thingsDidWell || '',
+                                  areasForImprovement: opponentFeedback.areasForImprovement || '',
+                                  interviewerPerformance: {
+                                    rating: opponentFeedback.interviewerPerformanceRating || 0,
+                                    description: opponentFeedback.interviewerPerformanceDescription || ''
+                                  }
+                                };
+                                setFeedbackData(feedback);
+                                setSelectedSessionForFeedback(session);
+                                setShowFeedbackModal(true);
+                              } else {
+                                // No feedback from opponent yet
+                                alert('Your partner has not submitted feedback yet.');
+                              }
+                            }
+                          } catch (error: any) {
+                            // If error (e.g., user hasn't submitted feedback), show survey
+                            if (error?.response?.status === 404 || error?.response?.data?.message?.includes('not found')) {
+                              setSurveySessionId(session.id);
+                              setShowSurvey(true);
+                            } else {
+                              console.error('Error loading feedback:', error);
+                              alert('Failed to load feedback. Please try again.');
+                            }
+                          } finally {
+                            setLoadingFeedback(false);
                           }
                         }}
+                        disabled={loadingFeedback}
                       >
-                        {localStorage.getItem(`survey_completed_${session.id}`) ? 'View feedback' : 'Complete survey'}
+                        {loadingFeedback ? 'Loading...' : 'View feedback / Leave feedback'}
                       </button>
                     </td>
                   </tr>
@@ -1594,12 +1635,13 @@ const FindPeerPage: React.FC = () => {
       )}
 
       {/* Feedback Modal */}
-      {showFeedbackModal && selectedSessionForFeedback && (
+      {showFeedbackModal && selectedSessionForFeedback && feedbackData && (
         <FeedbackView
-          feedback={generateFeedbackData(selectedSessionForFeedback)}
+          feedback={feedbackData}
           onClose={() => {
             setShowFeedbackModal(false);
             setSelectedSessionForFeedback(null);
+            setFeedbackData(null);
           }}
         />
       )}
@@ -1619,38 +1661,5 @@ const FindPeerPage: React.FC = () => {
   );
 };
 
-// Generate feedback data from session (template for all interviews)
-const generateFeedbackData = (session: PeerInterviewSession): FeedbackData => {
-  const date = session.scheduledTime 
-    ? new Date(session.scheduledTime).toLocaleDateString('en-US', { 
-        month: 'long', 
-        day: 'numeric', 
-        year: 'numeric' 
-      })
-    : 'Unknown date';
-
-  return {
-    interviewType: session.interviewType || 'Data Structures & Algorithms',
-    date: date,
-    problemSolving: {
-      rating: 4,
-      description: 'Demonstrated good problem-solving approach. Thought through the problem systematically and asked clarifying questions before jumping into code.'
-    },
-    codingSkills: {
-      rating: 4,
-      description: 'Solid coding skills with clean implementation. Code was well-structured and followed best practices. Minor improvements could be made in edge case handling.'
-    },
-    communication: {
-      rating: 5,
-      description: 'Excellent communication throughout the interview. Clearly explained thought process and reasoning. Engaged well with the problem and asked thoughtful questions.'
-    },
-    thingsDoneWell: 'Strong problem-solving approach, clear communication, and good code structure. Demonstrated understanding of data structures and algorithms.',
-    areasForImprovement: 'Consider practicing more edge cases and optimizing solutions further. Work on time complexity analysis and space optimization techniques.',
-    interviewerPerformance: {
-      rating: 5,
-      description: 'Great interview experience. The interviewer provided helpful hints when needed and created a supportive environment.'
-    }
-  };
-};
 
 export default FindPeerPage;

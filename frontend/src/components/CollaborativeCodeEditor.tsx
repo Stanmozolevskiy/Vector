@@ -59,6 +59,7 @@ export const CollaborativeCodeEditor: React.FC<CollaborativeCodeEditorProps> = (
         .withUrl(`${baseUrl}/api/collaboration?access_token=${accessToken}`, {
           transport: signalR.HttpTransportType.WebSockets,
         })
+        .configureLogging(signalR.LogLevel.Warning) // Only show warnings and errors, not Information
         .withAutomaticReconnect({
           nextRetryDelayInMilliseconds: (retryContext) => {
             if (retryContext.previousRetryCount < 3) {

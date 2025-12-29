@@ -127,6 +127,20 @@ export const QuestionDetailPage = () => {
     }
   }, [id, user?.id, searchParams]);
 
+  // Reload test cases when question ID changes (e.g., when question is switched)
+  useEffect(() => {
+    if (id && question?.id !== id) {
+      // Question ID changed - reload test cases
+      questionService.getTestCases(id, false)
+        .then((testCasesData) => {
+          setTestCases(testCasesData);
+        })
+        .catch(() => {
+          // Silently handle error
+        });
+    }
+  }, [id, question?.id]);
+
   // Also check session when user becomes available
   // Session check removed - only checks when sessionId is in URL params
   // No automatic session discovery to avoid 404 errors
@@ -148,6 +162,7 @@ export const QuestionDetailPage = () => {
           .withUrl(`${baseUrl}/api/collaboration?access_token=${accessToken}`, {
             transport: signalR.HttpTransportType.WebSockets,
           })
+          .configureLogging(signalR.LogLevel.Warning) // Only show warnings and errors, not Information
           .withAutomaticReconnect({
             nextRetryDelayInMilliseconds: (retryContext) => {
               // Show rejoin modal if connection fails
@@ -177,13 +192,31 @@ export const QuestionDetailPage = () => {
         });
 
         // Listen for role switching
-        connection.on('RoleSwitched', async (data: { sessionId: string }) => {
+        connection.on('RoleSwitched', async (data: { sessionId: string; newActiveQuestionId?: string }) => {
           try {
             const updatedSession = await peerInterviewService.getSession(data.sessionId);
             setActiveSession(updatedSession);
-            if (updatedSession.questionId && updatedSession.questionId !== id) {
-              navigate(`${ROUTES.QUESTIONS}/${updatedSession.questionId}?session=${updatedSession.id}`, { replace: false });
+            // If question changed (switched to second question), navigate to it and reload test cases
+            const newQuestionId = data.newActiveQuestionId || (updatedSession as any).activeQuestionId || updatedSession.questionId;
+            if (newQuestionId && newQuestionId !== id) {
+              // Reload question data and test cases for the new question
+              const [questionData, testCasesData] = await Promise.all([
+                questionService.getQuestionById(newQuestionId),
+                questionService.getTestCases(newQuestionId, false),
+              ]);
+              setQuestion(questionData);
+              setTestCases(testCasesData);
+              setTestCaseText('');
+              setTestResults([]);
+              setRunResult(null);
+              navigate(`${ROUTES.QUESTIONS}/${newQuestionId}?session=${data.sessionId}`, { replace: false });
             } else {
+              // Question didn't change, just reload to update role indicators and test cases
+              // Reload test cases for current question to ensure they're fresh
+              if (id) {
+                const testCasesData = await questionService.getTestCases(id, false);
+                setTestCases(testCasesData);
+              }
               window.location.reload();
             }
           } catch (error) {
@@ -196,17 +229,46 @@ export const QuestionDetailPage = () => {
           try {
             const updatedSession = await peerInterviewService.getSession(data.sessionId);
             setActiveSession(updatedSession);
+            // Reload question data (including test cases) when question changes
+            if (data.questionId) {
+              const [questionData, testCasesData] = await Promise.all([
+                questionService.getQuestionById(data.questionId),
+                questionService.getTestCases(data.questionId, false),
+              ]);
+              setQuestion(questionData);
+              setTestCases(testCasesData);
+            }
             navigate(`${ROUTES.QUESTIONS}/${data.questionId}?session=${data.sessionId}`, { replace: false });
           } catch (error) {
             console.error('Error navigating to new question:', error);
           }
         });
 
+        // Listen for interview ended event
+        connection.on('InterviewEnded', async (data: { sessionId: string }) => {
+          try {
+            // If interview was ended by the other user, show survey and redirect to feedback
+            if (activeSession && activeSession.id === data.sessionId) {
+              // Clear timer
+              if (activeSession.id) {
+                localStorage.removeItem(`session_start_${activeSession.id}`);
+              }
+              setSessionStartTime(null);
+              setElapsedTime(0);
+              
+              // Show survey
+              setShowSurvey(true);
+            }
+          } catch (error) {
+            console.error('Error handling interview ended event:', error);
+          }
+        });
+
         await connection.start();
         await connection.invoke('JoinSession', activeSession.id);
         sessionHubConnectionRef.current = connection;
-      } catch (error) {
-        console.error('Failed to initialize session hub:', error);
+      } catch {
+        // Silently handle connection errors
       }
     };
 
@@ -825,7 +887,7 @@ export const QuestionDetailPage = () => {
     try {
       setIsEndingSession(true);
       
-      // End the interview session
+      // End the interview session (this will notify the other user via SignalR)
       await peerInterviewService.endInterview(activeSession.id);
       
       // Clear timer
@@ -835,7 +897,7 @@ export const QuestionDetailPage = () => {
       setSessionStartTime(null);
       setElapsedTime(0);
       
-      // Show survey
+      // Show survey (both users will see this - the one who clicked and the one notified)
       setShowSurvey(true);
       setActiveSession(null);
       setShowPartnerVideo(false);

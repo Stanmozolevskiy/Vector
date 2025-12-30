@@ -1322,10 +1322,29 @@ const FindPeerPage: React.FC = () => {
                     <td>{formatDate(session.scheduledTime)}</td>
                     <td>{session.interviewType || 'N/A'}</td>
                     <td>
-                      {session.question ? (
-                        <Link to={`/questions/${session.questionId}`} className="question-link">
-                          {session.question.title}
-                        </Link>
+                      {session.firstQuestion || session.secondQuestion ? (
+                        <div>
+                          {session.firstQuestion && (
+                            <div>
+                              <Link 
+                                to={`/questions/${session.firstQuestionId}`} 
+                                className="question-link"
+                              >
+                                {session.firstQuestion.title}
+                              </Link>
+                            </div>
+                          )}
+                          {session.secondQuestion && (
+                            <div>
+                              <Link 
+                                to={`/questions/${session.secondQuestionId}`} 
+                                className="question-link"
+                              >
+                                {session.secondQuestion.title}
+                              </Link>
+                            </div>
+                          )}
+                        </div>
                       ) : (
                         <span className="no-question">n/a</span>
                       )}

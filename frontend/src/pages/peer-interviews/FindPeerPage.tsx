@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { Navbar } from '../../components/layout/Navbar';
 import { peerInterviewService } from '../../services/peerInterview.service';
@@ -7,7 +7,6 @@ import type { PeerInterviewSession, ScheduledInterviewSession } from '../../serv
 import { FeedbackView, type FeedbackData } from '../../components/FeedbackView';
 import { FeedbackForm } from '../../components/FeedbackForm';
 import { NoFeedbackView } from '../../components/NoFeedbackView';
-import { InterviewSurvey } from '../../components/InterviewSurvey';
 import { ROUTES } from '../../utils/constants';
 import '../../styles/find-peer.css';
 
@@ -42,7 +41,6 @@ const INTERVIEW_LEVELS = [
 
 const FindPeerPage: React.FC = () => {
   const { user } = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [upcomingSessions, setUpcomingSessions] = useState<PeerInterviewSession[]>([]);
   const [pastSessions, setPastSessions] = useState<PeerInterviewSession[]>([]);
@@ -64,8 +62,6 @@ const FindPeerPage: React.FC = () => {
   const [countdownInterval, setCountdownInterval] = useState<ReturnType<typeof setInterval> | null>(null);
   const [estimatedTimeRemaining, setEstimatedTimeRemaining] = useState<number>(600); // 10 minutes default
   const matchSoundPlayedRef = useRef<boolean>(false);
-  const [showSurvey, setShowSurvey] = useState(false);
-  const [surveySessionId, setSurveySessionId] = useState<string | null>(null);
   const [isConfirmingMatch, setIsConfirmingMatch] = useState(false);
   const [confirmationCountdown, setConfirmationCountdown] = useState<number | null>(null);
   const [confirmationTimeout, setConfirmationTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
@@ -78,15 +74,6 @@ const FindPeerPage: React.FC = () => {
     loadSessions();
     generateTimeSlots();
     
-    // Check if survey should be shown from URL parameter
-    const sessionIdFromUrl = searchParams.get('session');
-    const showSurveyFromUrl = searchParams.get('showSurvey');
-    if (sessionIdFromUrl && showSurveyFromUrl === 'true') {
-      setSurveySessionId(sessionIdFromUrl);
-      setShowSurvey(true);
-      // Clean up URL parameters
-      setSearchParams({}, { replace: true });
-    }
     
     // Cleanup polling and timeouts on unmount
     return () => {
@@ -581,7 +568,7 @@ const FindPeerPage: React.FC = () => {
         const elapsed = Math.floor((Date.now() - startTime) / 1000);
         const remaining = Math.max(0, 600 - elapsed); // 10 minutes - elapsed
         setEstimatedTimeRemaining(remaining);
-        
+
         // SIMPLIFIED: Check if match is ready (both confirmed)
         // In the new flow, LiveSessionId is set IMMEDIATELY when match is found (before confirmation)
         // Status is 'Confirmed' when both users have confirmed
@@ -601,13 +588,13 @@ const FindPeerPage: React.FC = () => {
           // Both users confirmed - get the live session and redirect
           console.log('Polling detected both users confirmed! Status:', status?.status, 'UserConfirmed:', status?.userConfirmed, 'MatchedUserConfirmed:', status?.matchedUserConfirmed);
           
-          clearInterval(interval);
-          if (countdownInterval) {
-            clearInterval(countdownInterval);
-          }
-          setMatchingPollInterval(null);
-          setCountdownInterval(null);
-          setShowMatchingModal(false);
+            clearInterval(interval);
+            if (countdownInterval) {
+              clearInterval(countdownInterval);
+            }
+            setMatchingPollInterval(null);
+            setCountdownInterval(null);
+            setShowMatchingModal(false);
           setIsConfirmingMatch(false);
           setConfirmationCountdown(null);
           setMatchStartTime(null);
@@ -624,7 +611,7 @@ const FindPeerPage: React.FC = () => {
           
           if (!liveSessionId) {
             // If liveSessionId not in status, try to get it from scheduled session
-            try {
+                    try {
               const scheduledSession = await peerInterviewService.getScheduledSession(sessionId);
               liveSessionId = scheduledSession.liveSessionId;
               console.log('Got liveSessionId from scheduled session:', liveSessionId);
@@ -642,15 +629,15 @@ const FindPeerPage: React.FC = () => {
                 console.log('Polling detected both confirmed, redirecting to question:', liveSession.questionId);
                 window.location.href = `${ROUTES.QUESTIONS}/${liveSession.questionId}?session=${liveSessionId}`;
                 return;
-              } else {
+                    } else {
                 console.log('Polling detected both confirmed, redirecting to questions list');
                 window.location.href = `${ROUTES.QUESTIONS}?session=${liveSessionId}`;
-                return;
-              }
-            } catch (error) {
+                    return;
+                  }
+                } catch (error) {
               console.error('Error getting live session during poll:', error);
-            }
-          }
+                }
+              }
           
           // Fallback: try to get live session one more time by checking both matching requests
           console.log('Fallback: trying to find live session from matching request...');
@@ -662,30 +649,30 @@ const FindPeerPage: React.FC = () => {
               if (liveSession.questionId) {
                 console.log('Found live session in fallback, redirecting:', liveSession.questionId);
                 window.location.href = `${ROUTES.QUESTIONS}/${liveSession.questionId}?session=${latestStatus.liveSessionId}`;
-              } else {
+                } else {
                 console.log('Found live session in fallback, redirecting to questions list');
                 window.location.href = `${ROUTES.QUESTIONS}?session=${latestStatus.liveSessionId}`;
+                }
+                return;
               }
-              return;
-            }
-          } catch (error) {
+            } catch (error) {
             console.error('Error in fallback redirect:', error);
-          }
+              }
           
           // Last resort: wait a bit and try again
           console.log('Last resort: waiting 2 seconds and retrying...');
-          setTimeout(async () => {
-            try {
+                      setTimeout(async () => {
+                        try {
               const latestStatus = await peerInterviewService.getMatchingStatus(sessionId);
               if (latestStatus?.liveSessionId) {
                 const liveSession = await peerInterviewService.getSession(latestStatus.liveSessionId);
                 if (liveSession.questionId) {
                   window.location.href = `${ROUTES.QUESTIONS}/${liveSession.questionId}?session=${latestStatus.liveSessionId}`;
-                } else {
+                          } else {
                   window.location.href = `${ROUTES.QUESTIONS}?session=${latestStatus.liveSessionId}`;
                 }
                 return;
-              }
+                          }
             } catch (error) {
               console.error('Error in last resort redirect:', error);
             }
@@ -889,7 +876,7 @@ const FindPeerPage: React.FC = () => {
           if (liveSession.questionId) {
             console.log('Redirecting to question:', liveSession.questionId);
             window.location.href = `${ROUTES.QUESTIONS}/${liveSession.questionId}?session=${result.matchingRequest.liveSessionId}`;
-          } else {
+      } else {
             console.log('No question assigned, redirecting to questions list');
             window.location.href = `${ROUTES.QUESTIONS}?session=${result.matchingRequest.liveSessionId}`;
           }
@@ -1341,7 +1328,7 @@ const FindPeerPage: React.FC = () => {
                                 className="question-link"
                               >
                                 {session.firstQuestion.title}
-                              </Link>
+                        </Link>
                             </div>
                           )}
                           {session.secondQuestion && (
@@ -1375,7 +1362,7 @@ const FindPeerPage: React.FC = () => {
                           }
 
                           setLoadingFeedback(true);
-                          setSelectedSessionForFeedback(session);
+                            setSelectedSessionForFeedback(session);
                           
                           try {
                             // Get feedback status
@@ -1419,11 +1406,11 @@ const FindPeerPage: React.FC = () => {
                                   }
                                 };
                                 setFeedbackData(feedbackFormatted);
-                                setShowFeedbackModal(true);
+                            setShowFeedbackModal(true);
                               } else {
                                 // Opponent hasn't left feedback yet
                                 setShowNoFeedback(true);
-                              }
+                          }
                             }
                           } catch (error: any) {
                             console.error('Error loading feedback status:', error);
@@ -1620,8 +1607,8 @@ const FindPeerPage: React.FC = () => {
                                 Please confirm within {confirmationCountdown} seconds
                               </div>
                             )}
-                            <button
-                              className="btn-join-interview"
+                    <button
+                      className="btn-join-interview"
                               disabled={true}
                             >
                               <span className="spinner" style={{ 
@@ -1677,9 +1664,9 @@ const FindPeerPage: React.FC = () => {
                                 handleConfirmMatch();
                               }}
                               disabled={false}
-                            >
-                              Join your interview
-                            </button>
+                    >
+                      Join your interview
+                    </button>
                           </>
                         );
                       }
@@ -1807,17 +1794,6 @@ const FindPeerPage: React.FC = () => {
         />
       )}
 
-      {/* Survey Modal */}
-      {showSurvey && surveySessionId && (
-        <InterviewSurvey
-          sessionId={surveySessionId}
-          onComplete={() => {
-            setShowSurvey(false);
-            setSurveySessionId(null);
-            loadSessions(); // Reload to refresh UI
-          }}
-        />
-      )}
     </div>
   );
 };

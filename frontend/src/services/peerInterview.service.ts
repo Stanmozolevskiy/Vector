@@ -144,6 +144,7 @@ export interface ChangeQuestionRequest {
 export interface SubmitFeedbackRequest {
   liveSessionId: string;
   revieweeId: string;
+  didSessionHappen?: boolean;
   problemSolvingRating?: number;
   problemSolvingDescription?: string;
   codingSkillsRating?: number;
@@ -154,6 +155,10 @@ export interface SubmitFeedbackRequest {
   areasForImprovement?: string;
   interviewerPerformanceRating?: number;
   interviewerPerformanceDescription?: string;
+  audioVideoIssues?: string | null;
+  codeEditorIssues?: string | null;
+  additionalFeedback?: string;
+  wantEmailIntroduction?: string | null;
 }
 
 export interface InterviewFeedback {

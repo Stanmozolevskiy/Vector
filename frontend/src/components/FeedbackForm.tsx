@@ -38,15 +38,46 @@ const StarRatingInput: React.FC<{
   );
 };
 
+const YesNoButton: React.FC<{
+  value: string | null;
+  onChange: (value: string) => void;
+  required?: boolean;
+}> = ({ value, onChange, required = false }) => {
+  return (
+    <div className="yes-no-input">
+      <div className="yes-no-buttons">
+        <button
+          type="button"
+          className={`yes-no-btn ${value === 'yes' ? 'selected' : ''}`}
+          onClick={() => onChange('yes')}
+        >
+          Yes
+        </button>
+        <button
+          type="button"
+          className={`yes-no-btn ${value === 'no' ? 'selected' : ''}`}
+          onClick={() => onChange('no')}
+        >
+          No
+        </button>
+      </div>
+      {required && !value && (
+        <span className="yes-no-required">* Required</span>
+      )}
+    </div>
+  );
+};
+
 export const FeedbackForm: React.FC<FeedbackFormProps> = ({
   liveSessionId,
   opponentId,
-  opponentName,
-  interviewType = 'Data Structures & Algorithms',
+  opponentName: _opponentName,
+  interviewType: _interviewType = 'Data Structures & Algorithms',
   date,
   onComplete,
   onCancel,
 }) => {
+  const [didSessionHappen, setDidSessionHappen] = useState<string | null>(null);
   const [formData, setFormData] = useState<SubmitFeedbackRequest>({
     liveSessionId,
     revieweeId: opponentId,
@@ -60,6 +91,10 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
     areasForImprovement: '',
     interviewerPerformanceRating: 0,
     interviewerPerformanceDescription: '',
+    audioVideoIssues: null,
+    codeEditorIssues: null,
+    additionalFeedback: '',
+    wantEmailIntroduction: null,
   });
 
   const [submitting, setSubmitting] = useState(false);
@@ -68,23 +103,31 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.problemSolvingRating || formData.problemSolvingRating < 1) {
-      newErrors.problemSolvingRating = 'Problem solving rating is required';
+    // Did session happen is always required
+    if (!didSessionHappen) {
+      newErrors.didSessionHappen = 'Please indicate if the session happened';
     }
-    if (!formData.codingSkillsRating || formData.codingSkillsRating < 1) {
-      newErrors.codingSkillsRating = 'Coding skills rating is required';
-    }
-    if (!formData.communicationRating || formData.communicationRating < 1) {
-      newErrors.communicationRating = 'Communication rating is required';
-    }
-    if (!formData.thingsDidWell || formData.thingsDidWell.trim().length === 0) {
-      newErrors.thingsDidWell = 'This field is required';
-    }
-    if (!formData.areasForImprovement || formData.areasForImprovement.trim().length === 0) {
-      newErrors.areasForImprovement = 'This field is required';
-    }
-    if (!formData.interviewerPerformanceRating || formData.interviewerPerformanceRating < 1) {
-      newErrors.interviewerPerformanceRating = 'Interviewer performance rating is required';
+
+    // If session happened, partner feedback fields are required
+    if (didSessionHappen === 'yes') {
+      if (!formData.problemSolvingRating || formData.problemSolvingRating < 1) {
+        newErrors.problemSolvingRating = 'Problem solving rating is required';
+      }
+      if (!formData.codingSkillsRating || formData.codingSkillsRating < 1) {
+        newErrors.codingSkillsRating = 'Coding skills rating is required';
+      }
+      if (!formData.communicationRating || formData.communicationRating < 1) {
+        newErrors.communicationRating = 'Communication rating is required';
+      }
+      if (!formData.thingsDidWell || formData.thingsDidWell.trim().length === 0) {
+        newErrors.thingsDidWell = 'This field is required';
+      }
+      if (!formData.areasForImprovement || formData.areasForImprovement.trim().length === 0) {
+        newErrors.areasForImprovement = 'This field is required';
+      }
+      if (!formData.interviewerPerformanceRating || formData.interviewerPerformanceRating < 1) {
+        newErrors.interviewerPerformanceRating = 'Interviewer performance rating is required';
+      }
     }
 
     setErrors(newErrors);
@@ -100,13 +143,43 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
 
     setSubmitting(true);
     try {
-      await peerInterviewService.submitFeedback(formData);
+      // Only submit partner feedback if session happened
+      const feedbackToSubmit: SubmitFeedbackRequest = {
+        ...formData,
+        didSessionHappen: didSessionHappen === 'yes',
+        // Clear partner feedback fields if session didn't happen
+        ...(didSessionHappen === 'no' ? {
+          problemSolvingRating: undefined,
+          problemSolvingDescription: '',
+          codingSkillsRating: undefined,
+          codingSkillsDescription: '',
+          communicationRating: undefined,
+          communicationDescription: '',
+          thingsDidWell: '',
+          areasForImprovement: '',
+          interviewerPerformanceRating: undefined,
+          interviewerPerformanceDescription: '',
+        } : {}),
+      };
+      
+      await peerInterviewService.submitFeedback(feedbackToSubmit);
       onComplete();
     } catch (error: any) {
       console.error('Error submitting feedback:', error);
       alert('Failed to submit feedback. Please try again.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return '';
+    try {
+      const date = new Date(dateStr);
+      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      return days[date.getDay()];
+    } catch {
+      return dateStr;
     }
   };
 
@@ -118,159 +191,194 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
         </button>
 
         <div className="feedback-form-header">
-          <h2>Feedback for your interview</h2>
+          <h2>How did your interview {date ? `on ${formatDate(date)}` : 'today'} go?</h2>
           <p className="feedback-form-subtitle">
-            {interviewType}{date && `, ${date}`}
+            Help your partner improve by providing genuine feedback. Your partner will do the same for you.
           </p>
-          {opponentName && (
-            <p className="feedback-form-opponent">
-              Providing feedback for: <strong>{opponentName}</strong>
-            </p>
-          )}
         </div>
 
         <form onSubmit={handleSubmit} className="feedback-form">
-          {/* Problem Solving */}
+          {/* Did this session happen? */}
           <div className="feedback-form-section">
             <label className="feedback-form-label">
-              Problem solving <span className="required">*</span>
+              Did this session happen? <span className="required">*</span>
             </label>
-            <StarRatingInput
-              rating={formData.problemSolvingRating || 0}
-              onRatingChange={(rating) =>
-                setFormData({ ...formData, problemSolvingRating: rating })
-              }
-              required
+            <YesNoButton
+              value={didSessionHappen}
+              onChange={(value) => setDidSessionHappen(value)}
+              required={true}
             />
-            {errors.problemSolvingRating && (
-              <span className="error-message">{errors.problemSolvingRating}</span>
+            {errors.didSessionHappen && (
+              <span className="error-message">{errors.didSessionHappen}</span>
             )}
-            <textarea
-              className="feedback-form-textarea"
-              placeholder="Describe their problem-solving approach..."
-              value={formData.problemSolvingDescription || ''}
-              onChange={(e) =>
-                setFormData({ ...formData, problemSolvingDescription: e.target.value })
+          </div>
+
+          {/* Partner Feedback - Only show if session happened */}
+          {didSessionHappen === 'yes' && (
+            <>
+              {/* Problem Solving */}
+              <div className="feedback-form-section">
+                <label className="feedback-form-label">
+                  How were your partner's problem solving skills? <span className="required">*</span>
+                </label>
+                <StarRatingInput
+                  rating={formData.problemSolvingRating || 0}
+                  onRatingChange={(rating) =>
+                    setFormData({ ...formData, problemSolvingRating: rating })
+                  }
+                  required
+                />
+                {errors.problemSolvingRating && (
+                  <span className="error-message">{errors.problemSolvingRating}</span>
+                )}
+              </div>
+
+              {/* Coding Skills */}
+              <div className="feedback-form-section">
+                <label className="feedback-form-label">
+                  How were your partner's coding skills? <span className="required">*</span>
+                </label>
+                <StarRatingInput
+                  rating={formData.codingSkillsRating || 0}
+                  onRatingChange={(rating) =>
+                    setFormData({ ...formData, codingSkillsRating: rating })
+                  }
+                  required
+                />
+                {errors.codingSkillsRating && (
+                  <span className="error-message">{errors.codingSkillsRating}</span>
+                )}
+              </div>
+
+              {/* Communication */}
+              <div className="feedback-form-section">
+                <label className="feedback-form-label">
+                  How were your partner's communication skills? <span className="required">*</span>
+                </label>
+                <StarRatingInput
+                  rating={formData.communicationRating || 0}
+                  onRatingChange={(rating) =>
+                    setFormData({ ...formData, communicationRating: rating })
+                  }
+                  required
+                />
+                {errors.communicationRating && (
+                  <span className="error-message">{errors.communicationRating}</span>
+                )}
+              </div>
+
+              {/* Things Done Well */}
+              <div className="feedback-form-section">
+                <label className="feedback-form-label">
+                  What did your partner do well during the session? <span className="required">*</span>
+                </label>
+                {errors.thingsDidWell && (
+                  <span className="error-message">{errors.thingsDidWell}</span>
+                )}
+                <textarea
+                  className="feedback-form-textarea"
+                  placeholder="What are your partner's strengths? What impressed you?"
+                  value={formData.thingsDidWell || ''}
+                  onChange={(e) =>
+                    setFormData({ ...formData, thingsDidWell: e.target.value })
+                  }
+                  rows={4}
+                  required
+                />
+              </div>
+
+              {/* Areas for Improvement */}
+              <div className="feedback-form-section">
+                <label className="feedback-form-label">
+                  What could your partner improve? <span className="required">*</span>
+                </label>
+                {errors.areasForImprovement && (
+                  <span className="error-message">{errors.areasForImprovement}</span>
+                )}
+                <textarea
+                  className="feedback-form-textarea"
+                  placeholder="What should your partner improve? How would you advise them to get better?"
+                  value={formData.areasForImprovement || ''}
+                  onChange={(e) =>
+                    setFormData({ ...formData, areasForImprovement: e.target.value })
+                  }
+                  rows={4}
+                  required
+                />
+              </div>
+
+              {/* Interviewer Performance */}
+              <div className="feedback-form-section">
+                <label className="feedback-form-label">
+                  How did your partner perform as your interviewer? <span className="required">*</span>
+                </label>
+                <StarRatingInput
+                  rating={formData.interviewerPerformanceRating || 0}
+                  onRatingChange={(rating) =>
+                    setFormData({ ...formData, interviewerPerformanceRating: rating })
+                  }
+                  required
+                />
+                {errors.interviewerPerformanceRating && (
+                  <span className="error-message">{errors.interviewerPerformanceRating}</span>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Audio/Video Issues - Always show */}
+          <div className="feedback-form-section">
+            <label className="feedback-form-label">
+              Did you experience any audio or video issues during today's session?
+            </label>
+            <YesNoButton
+              value={formData.audioVideoIssues || null}
+              onChange={(value) =>
+                setFormData({ ...formData, audioVideoIssues: value })
               }
-              rows={3}
             />
           </div>
 
-          {/* Coding Skills */}
+          {/* Code Editor Issues - Always show */}
           <div className="feedback-form-section">
             <label className="feedback-form-label">
-              Coding skills <span className="required">*</span>
+              Did you experience any issues with the code editor during today's session?
             </label>
-            <StarRatingInput
-              rating={formData.codingSkillsRating || 0}
-              onRatingChange={(rating) =>
-                setFormData({ ...formData, codingSkillsRating: rating })
+            <YesNoButton
+              value={formData.codeEditorIssues || null}
+              onChange={(value) =>
+                setFormData({ ...formData, codeEditorIssues: value })
               }
-              required
-            />
-            {errors.codingSkillsRating && (
-              <span className="error-message">{errors.codingSkillsRating}</span>
-            )}
-            <textarea
-              className="feedback-form-textarea"
-              placeholder="Describe their coding skills..."
-              value={formData.codingSkillsDescription || ''}
-              onChange={(e) =>
-                setFormData({ ...formData, codingSkillsDescription: e.target.value })
-              }
-              rows={3}
             />
           </div>
 
-          {/* Communication */}
+          {/* Additional Feedback for Exponent - Always show */}
           <div className="feedback-form-section">
             <label className="feedback-form-label">
-              Communication <span className="required">*</span>
+              Any additional feedback for Exponent?
             </label>
-            <StarRatingInput
-              rating={formData.communicationRating || 0}
-              onRatingChange={(rating) =>
-                setFormData({ ...formData, communicationRating: rating })
-              }
-              required
-            />
-            {errors.communicationRating && (
-              <span className="error-message">{errors.communicationRating}</span>
-            )}
             <textarea
               className="feedback-form-textarea"
-              placeholder="Describe their communication skills..."
-              value={formData.communicationDescription || ''}
+              placeholder="What issues did you encounter? How can we improve?"
+              value={formData.additionalFeedback || ''}
               onChange={(e) =>
-                setFormData({ ...formData, communicationDescription: e.target.value })
-              }
-              rows={3}
-            />
-          </div>
-
-          {/* Things Done Well */}
-          <div className="feedback-form-section">
-            <label className="feedback-form-label">
-              Things you did well <span className="required">*</span>
-            </label>
-            {errors.thingsDidWell && (
-              <span className="error-message">{errors.thingsDidWell}</span>
-            )}
-            <textarea
-              className="feedback-form-textarea"
-              placeholder="What did they do well during the interview?"
-              value={formData.thingsDidWell || ''}
-              onChange={(e) =>
-                setFormData({ ...formData, thingsDidWell: e.target.value })
+                setFormData({ ...formData, additionalFeedback: e.target.value })
               }
               rows={4}
-              required
             />
           </div>
 
-          {/* Areas for Improvement */}
+          {/* Email Introduction - Always show */}
           <div className="feedback-form-section">
             <label className="feedback-form-label">
-              Areas where you could improve <span className="required">*</span>
+              Do you want an email introduction to your partner?
+              <i className="fas fa-info-circle" style={{ marginLeft: '8px', color: '#6b7280', cursor: 'help' }}></i>
             </label>
-            {errors.areasForImprovement && (
-              <span className="error-message">{errors.areasForImprovement}</span>
-            )}
-            <textarea
-              className="feedback-form-textarea"
-              placeholder="What areas could they improve?"
-              value={formData.areasForImprovement || ''}
-              onChange={(e) =>
-                setFormData({ ...formData, areasForImprovement: e.target.value })
+            <YesNoButton
+              value={formData.wantEmailIntroduction || null}
+              onChange={(value) =>
+                setFormData({ ...formData, wantEmailIntroduction: value })
               }
-              rows={4}
-              required
-            />
-          </div>
-
-          {/* Interviewer Performance */}
-          <div className="feedback-form-section">
-            <label className="feedback-form-label">
-              Interviewer performance <span className="required">*</span>
-            </label>
-            <StarRatingInput
-              rating={formData.interviewerPerformanceRating || 0}
-              onRatingChange={(rating) =>
-                setFormData({ ...formData, interviewerPerformanceRating: rating })
-              }
-              required
-            />
-            {errors.interviewerPerformanceRating && (
-              <span className="error-message">{errors.interviewerPerformanceRating}</span>
-            )}
-            <textarea
-              className="feedback-form-textarea"
-              placeholder="How was their performance as an interviewer?"
-              value={formData.interviewerPerformanceDescription || ''}
-              onChange={(e) =>
-                setFormData({ ...formData, interviewerPerformanceDescription: e.target.value })
-              }
-              rows={3}
             />
           </div>
 
@@ -279,12 +387,15 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
               Cancel
             </button>
             <button type="submit" className="btn-submit" disabled={submitting}>
-              {submitting ? 'Submitting...' : 'Submit Feedback'}
+              {submitting ? 'Submitting...' : 'Submit'}
             </button>
+          </div>
+
+          <div className="feedback-form-footer">
+            <p>Got more to say? Let us know at <a href="mailto:practice@tryexponent.com">practice@tryexponent.com</a></p>
           </div>
         </form>
       </div>
     </div>
   );
 };
-

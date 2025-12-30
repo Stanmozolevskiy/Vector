@@ -17,7 +17,7 @@ import { peerInterviewService } from '../../services/peerInterview.service';
 import type { PeerInterviewSession } from '../../services/peerInterview.service';
 import api from '../../services/api';
 import { RejoinModal } from '../../components/RejoinModal';
-import { InterviewSurvey } from '../../components/InterviewSurvey';
+import { FeedbackForm } from '../../components/FeedbackForm';
 import '../../styles/question-detail.css';
 
 export const QuestionDetailPage = () => {
@@ -78,7 +78,7 @@ export const QuestionDetailPage = () => {
   const [isChangingQuestion, setIsChangingQuestion] = useState(false);
   const [isSwitchingRole, setIsSwitchingRole] = useState(false);
   const [showRejoinModal, setShowRejoinModal] = useState(false);
-  const [showSurvey, setShowSurvey] = useState(false);
+  const [showFeedbackForm, setShowFeedbackForm] = useState(false);
   const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [isEndingSession, setIsEndingSession] = useState(false);
@@ -243,13 +243,9 @@ export const QuestionDetailPage = () => {
             setSessionStartTime(null);
             setElapsedTime(0);
             
-            // Show survey and navigate to feedback
-            setShowSurvey(true);
-            setActiveSession(null);
+            // Show feedback form
+            setShowFeedbackForm(true);
             setShowPartnerVideo(false);
-            
-            // Navigate to peer interviews page to show feedback
-            navigate(ROUTES.FIND_PEER);
           } catch (error) {
             console.error('Error handling interview ended event:', error);
           }
@@ -888,9 +884,8 @@ export const QuestionDetailPage = () => {
       setSessionStartTime(null);
       setElapsedTime(0);
       
-      // Show survey
-      setShowSurvey(true);
-      setActiveSession(null);
+      // Show feedback form
+      setShowFeedbackForm(true);
       setShowPartnerVideo(false);
     } catch (error: any) {
       console.error('Error ending session:', error);
@@ -915,8 +910,9 @@ export const QuestionDetailPage = () => {
     }
   };
 
-  const handleSurveyComplete = () => {
-    setShowSurvey(false);
+  const handleFeedbackComplete = () => {
+    setShowFeedbackForm(false);
+    setActiveSession(null);
     // Navigate to find peer page
     navigate(ROUTES.FIND_PEER);
   };
@@ -1521,17 +1517,34 @@ export const QuestionDetailPage = () => {
           onFeedback={() => {
             setShowRejoinModal(false);
             if (activeSession) {
-              setShowSurvey(true);
+              setShowFeedbackForm(true);
             }
           }}
         />
       )}
 
-      {/* Survey Modal */}
-      {showSurvey && (activeSession || searchParams.get('session')) && (
-        <InterviewSurvey
-          sessionId={activeSession?.id || searchParams.get('session') || ''}
-          onComplete={handleSurveyComplete}
+      {/* Feedback Form Modal */}
+      {showFeedbackForm && activeSession && user?.id && (
+        <FeedbackForm
+          liveSessionId={activeSession.liveSessionId || activeSession.id}
+          opponentId={
+            activeSession.intervieweeId === user.id 
+              ? activeSession.interviewerId || '' 
+              : activeSession.intervieweeId || ''
+          }
+          opponentName={
+            activeSession.intervieweeId === user.id
+              ? activeSession.interviewer 
+                ? `${activeSession.interviewer.firstName} ${activeSession.interviewer.lastName}`
+                : undefined
+              : activeSession.interviewee
+                ? `${activeSession.interviewee.firstName} ${activeSession.interviewee.lastName}`
+                : undefined
+          }
+          interviewType={activeSession.interviewType}
+          date={activeSession.scheduledTime}
+          onComplete={handleFeedbackComplete}
+          onCancel={handleFeedbackComplete}
         />
       )}
 

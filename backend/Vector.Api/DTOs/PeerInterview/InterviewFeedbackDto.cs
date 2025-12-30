@@ -14,6 +14,11 @@ public class SubmitFeedbackDto
     public Guid RevieweeId { get; set; }
     
     /// <summary>
+    /// Whether the session actually happened
+    /// </summary>
+    public bool? DidSessionHappen { get; set; }
+    
+    /// <summary>
     /// Problem solving rating (1-5)
     /// </summary>
     [Range(1, 5)]
@@ -66,6 +71,26 @@ public class SubmitFeedbackDto
     /// Interviewer performance description
     /// </summary>
     public string? InterviewerPerformanceDescription { get; set; }
+    
+    /// <summary>
+    /// Audio/video issues (yes/no/null)
+    /// </summary>
+    public string? AudioVideoIssues { get; set; }
+    
+    /// <summary>
+    /// Code editor issues (yes/no/null)
+    /// </summary>
+    public string? CodeEditorIssues { get; set; }
+    
+    /// <summary>
+    /// Additional feedback for Exponent
+    /// </summary>
+    public string? AdditionalFeedback { get; set; }
+    
+    /// <summary>
+    /// Whether user wants email introduction to partner (yes/no/null)
+    /// </summary>
+    public string? WantEmailIntroduction { get; set; }
 }
 
 /// <summary>
@@ -130,4 +155,3 @@ public class FeedbackStatusDto
     /// </summary>
     public InterviewFeedbackDto? OpponentFeedback { get; set; }
 }
-

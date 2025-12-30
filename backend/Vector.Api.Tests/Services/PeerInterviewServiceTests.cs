@@ -1431,6 +1431,271 @@ public class PeerInterviewServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ChangeQuestionAsync_ReplacesActiveQuestionInFirstOrSecondQuestion()
+    {
+        // Arrange: Session with both questions set, FirstQuestionId is active
+        var userId1 = Guid.NewGuid();
+        var userId2 = Guid.NewGuid();
+        var user1 = new User { Id = userId1, Email = "user1@example.com" };
+        var user2 = new User { Id = userId2, Email = "user2@example.com" };
+        await _context.Users.AddRangeAsync(user1, user2);
+
+        var question1 = new InterviewQuestion
+        {
+            Id = Guid.NewGuid(),
+            Title = "Question 1",
+            QuestionType = "Coding",
+            Difficulty = "Easy",
+            IsActive = true,
+            ApprovalStatus = "Approved"
+        };
+        var question2 = new InterviewQuestion
+        {
+            Id = Guid.NewGuid(),
+            Title = "Question 2",
+            QuestionType = "Coding",
+            Difficulty = "Medium",
+            IsActive = true,
+            ApprovalStatus = "Approved"
+        };
+        var question3 = new InterviewQuestion
+        {
+            Id = Guid.NewGuid(),
+            Title = "Question 3",
+            QuestionType = "Coding",
+            Difficulty = "Hard",
+            IsActive = true,
+            ApprovalStatus = "Approved"
+        };
+        await _context.InterviewQuestions.AddRangeAsync(question1, question2, question3);
+        await _context.SaveChangesAsync();
+
+        var liveSession = new LiveInterviewSession
+        {
+            Id = Guid.NewGuid(),
+            FirstQuestionId = question1.Id,
+            SecondQuestionId = question2.Id,
+            ActiveQuestionId = question1.Id, // FirstQuestionId is active
+            Status = "InProgress",
+            StartedAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _context.LiveInterviewSessions.AddAsync(liveSession);
+
+        var participant1 = new LiveInterviewParticipant
+        {
+            LiveSessionId = liveSession.Id,
+            UserId = userId1,
+            Role = "Interviewer",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        var participant2 = new LiveInterviewParticipant
+        {
+            LiveSessionId = liveSession.Id,
+            UserId = userId2,
+            Role = "Interviewee",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _context.LiveInterviewParticipants.AddRangeAsync(participant1, participant2);
+        await _context.SaveChangesAsync();
+
+        // Act: Change question (should replace FirstQuestionId since it's active)
+        var result = await _service.ChangeQuestionAsync(liveSession.Id, userId1, question3.Id);
+
+        // Assert: FirstQuestionId should be replaced with question3, SecondQuestionId should remain question2
+        var sessionInDb = await _context.LiveInterviewSessions.FindAsync(liveSession.Id);
+        Assert.NotNull(sessionInDb);
+        Assert.Equal(question3.Id, sessionInDb.FirstQuestionId); // FirstQuestionId replaced
+        Assert.Equal(question2.Id, sessionInDb.SecondQuestionId); // SecondQuestionId unchanged
+        Assert.Equal(question3.Id, sessionInDb.ActiveQuestionId); // ActiveQuestionId updated
+    }
+
+    [Fact]
+    public async Task ChangeQuestionAsync_ReplacesSecondQuestionWhenItIsActive()
+    {
+        // Arrange: Session with both questions set, SecondQuestionId is active
+        var userId1 = Guid.NewGuid();
+        var userId2 = Guid.NewGuid();
+        var user1 = new User { Id = userId1, Email = "user1@example.com" };
+        var user2 = new User { Id = userId2, Email = "user2@example.com" };
+        await _context.Users.AddRangeAsync(user1, user2);
+
+        var question1 = new InterviewQuestion
+        {
+            Id = Guid.NewGuid(),
+            Title = "Question 1",
+            QuestionType = "Coding",
+            Difficulty = "Easy",
+            IsActive = true,
+            ApprovalStatus = "Approved"
+        };
+        var question2 = new InterviewQuestion
+        {
+            Id = Guid.NewGuid(),
+            Title = "Question 2",
+            QuestionType = "Coding",
+            Difficulty = "Medium",
+            IsActive = true,
+            ApprovalStatus = "Approved"
+        };
+        var question3 = new InterviewQuestion
+        {
+            Id = Guid.NewGuid(),
+            Title = "Question 3",
+            QuestionType = "Coding",
+            Difficulty = "Hard",
+            IsActive = true,
+            ApprovalStatus = "Approved"
+        };
+        await _context.InterviewQuestions.AddRangeAsync(question1, question2, question3);
+        await _context.SaveChangesAsync();
+
+        var liveSession = new LiveInterviewSession
+        {
+            Id = Guid.NewGuid(),
+            FirstQuestionId = question1.Id,
+            SecondQuestionId = question2.Id,
+            ActiveQuestionId = question2.Id, // SecondQuestionId is active
+            Status = "InProgress",
+            StartedAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _context.LiveInterviewSessions.AddAsync(liveSession);
+
+        var participant1 = new LiveInterviewParticipant
+        {
+            LiveSessionId = liveSession.Id,
+            UserId = userId1,
+            Role = "Interviewer",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        var participant2 = new LiveInterviewParticipant
+        {
+            LiveSessionId = liveSession.Id,
+            UserId = userId2,
+            Role = "Interviewee",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _context.LiveInterviewParticipants.AddRangeAsync(participant1, participant2);
+        await _context.SaveChangesAsync();
+
+        // Act: Change question (should replace SecondQuestionId since it's active)
+        var result = await _service.ChangeQuestionAsync(liveSession.Id, userId1, question3.Id);
+
+        // Assert: SecondQuestionId should be replaced with question3, FirstQuestionId should remain question1
+        var sessionInDb = await _context.LiveInterviewSessions.FindAsync(liveSession.Id);
+        Assert.NotNull(sessionInDb);
+        Assert.Equal(question1.Id, sessionInDb.FirstQuestionId); // FirstQuestionId unchanged
+        Assert.Equal(question3.Id, sessionInDb.SecondQuestionId); // SecondQuestionId replaced
+        Assert.Equal(question3.Id, sessionInDb.ActiveQuestionId); // ActiveQuestionId updated
+    }
+
+    [Fact]
+    public async Task ChangeQuestionAsync_ThenSwitchRoles_StillSwitchesToOtherQuestion()
+    {
+        // Arrange: Session with both questions set
+        var userId1 = Guid.NewGuid();
+        var userId2 = Guid.NewGuid();
+        var user1 = new User { Id = userId1, Email = "user1@example.com" };
+        var user2 = new User { Id = userId2, Email = "user2@example.com" };
+        await _context.Users.AddRangeAsync(user1, user2);
+
+        var question1 = new InterviewQuestion
+        {
+            Id = Guid.NewGuid(),
+            Title = "Question 1",
+            QuestionType = "Coding",
+            Difficulty = "Easy",
+            IsActive = true,
+            ApprovalStatus = "Approved"
+        };
+        var question2 = new InterviewQuestion
+        {
+            Id = Guid.NewGuid(),
+            Title = "Question 2",
+            QuestionType = "Coding",
+            Difficulty = "Medium",
+            IsActive = true,
+            ApprovalStatus = "Approved"
+        };
+        var question3 = new InterviewQuestion
+        {
+            Id = Guid.NewGuid(),
+            Title = "Question 3",
+            QuestionType = "Coding",
+            Difficulty = "Hard",
+            IsActive = true,
+            ApprovalStatus = "Approved"
+        };
+        await _context.InterviewQuestions.AddRangeAsync(question1, question2, question3);
+        await _context.SaveChangesAsync();
+
+        var liveSession = new LiveInterviewSession
+        {
+            Id = Guid.NewGuid(),
+            FirstQuestionId = question1.Id,
+            SecondQuestionId = question2.Id,
+            ActiveQuestionId = question1.Id, // FirstQuestionId is active
+            Status = "InProgress",
+            StartedAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _context.LiveInterviewSessions.AddAsync(liveSession);
+
+        var participant1 = new LiveInterviewParticipant
+        {
+            LiveSessionId = liveSession.Id,
+            UserId = userId1,
+            Role = "Interviewer",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        var participant2 = new LiveInterviewParticipant
+        {
+            LiveSessionId = liveSession.Id,
+            UserId = userId2,
+            Role = "Interviewee",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _context.LiveInterviewParticipants.AddRangeAsync(participant1, participant2);
+        await _context.SaveChangesAsync();
+
+        // Act 1: Change question (replaces FirstQuestionId with question3)
+        await _service.ChangeQuestionAsync(liveSession.Id, userId1, question3.Id);
+
+        // Verify FirstQuestionId was replaced
+        var sessionAfterChange = await _context.LiveInterviewSessions.FindAsync(liveSession.Id);
+        Assert.NotNull(sessionAfterChange);
+        Assert.Equal(question3.Id, sessionAfterChange.FirstQuestionId);
+        Assert.Equal(question2.Id, sessionAfterChange.SecondQuestionId);
+        Assert.Equal(question3.Id, sessionAfterChange.ActiveQuestionId);
+
+        // Act 2: Switch roles (should switch to SecondQuestionId which is question2)
+        var switchResult = await _service.SwitchRolesAsync(liveSession.Id, userId1);
+
+        // Assert: After role switch, ActiveQuestionId should be question2 (SecondQuestionId)
+        var sessionAfterSwitch = await _context.LiveInterviewSessions.FindAsync(liveSession.Id);
+        Assert.NotNull(sessionAfterSwitch);
+        Assert.Equal(question2.Id, sessionAfterSwitch.ActiveQuestionId); // Should switch to SecondQuestionId
+        Assert.Equal(question3.Id, sessionAfterSwitch.FirstQuestionId); // FirstQuestionId still question3
+        Assert.Equal(question2.Id, sessionAfterSwitch.SecondQuestionId); // SecondQuestionId still question2
+    }
+
+    [Fact]
     public async Task ChangeQuestionAsync_WithInvalidQuestion_ThrowsKeyNotFoundException()
     {
         // Arrange
@@ -1837,6 +2102,195 @@ public class PeerInterviewServiceTests : IDisposable
         var scheduledSessionInDb = await _context.ScheduledInterviewSessions.FindAsync(session.Id);
         Assert.NotNull(scheduledSessionInDb);
         Assert.Equal("Completed", scheduledSessionInDb.Status);
+    }
+
+    [Fact]
+    public async Task GetPastSessionsAsync_AfterEndingInterview_ReturnsCompleteDataForBothUsers()
+    {
+        // Arrange: Create two users
+        var userId1 = Guid.NewGuid();
+        var userId2 = Guid.NewGuid();
+        var user1 = new User { Id = userId1, Email = "user1@example.com", FirstName = "User", LastName = "One" };
+        var user2 = new User { Id = userId2, Email = "user2@example.com", FirstName = "User", LastName = "Two" };
+        await _context.Users.AddRangeAsync(user1, user2);
+
+        // Create two scheduled sessions
+        var scheduledSession1 = new ScheduledInterviewSession
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId1,
+            InterviewType = "data-structures-algorithms",
+            PracticeType = "peers",
+            InterviewLevel = "beginner",
+            ScheduledStartAt = DateTime.UtcNow.AddHours(-1), // Past time
+            Status = "Scheduled",
+            CreatedAt = DateTime.UtcNow.AddHours(-2),
+            UpdatedAt = DateTime.UtcNow.AddHours(-2)
+        };
+        var scheduledSession2 = new ScheduledInterviewSession
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId2,
+            InterviewType = "data-structures-algorithms",
+            PracticeType = "peers",
+            InterviewLevel = "beginner",
+            ScheduledStartAt = DateTime.UtcNow.AddHours(-1), // Past time
+            Status = "Scheduled",
+            CreatedAt = DateTime.UtcNow.AddHours(-2),
+            UpdatedAt = DateTime.UtcNow.AddHours(-2)
+        };
+        await _context.ScheduledInterviewSessions.AddRangeAsync(scheduledSession1, scheduledSession2);
+
+        // Create questions
+        var question1 = new InterviewQuestion 
+        { 
+            Id = Guid.NewGuid(), 
+            Title = "Question One", 
+            QuestionType = "Coding", 
+            Difficulty = "Easy", 
+            IsActive = true, 
+            ApprovalStatus = "Approved" 
+        };
+        var question2 = new InterviewQuestion 
+        { 
+            Id = Guid.NewGuid(), 
+            Title = "Question Two", 
+            QuestionType = "Coding", 
+            Difficulty = "Medium", 
+            IsActive = true, 
+            ApprovalStatus = "Approved" 
+        };
+        await _context.InterviewQuestions.AddRangeAsync(question1, question2);
+
+        // Create live session
+        var liveSession = new LiveInterviewSession
+        {
+            Id = Guid.NewGuid(),
+            ScheduledSessionId = scheduledSession1.Id, // Direct link to first session
+            FirstQuestionId = question1.Id,
+            SecondQuestionId = question2.Id,
+            ActiveQuestionId = question1.Id,
+            Status = "InProgress",
+            StartedAt = DateTime.UtcNow.AddMinutes(-30),
+            CreatedAt = DateTime.UtcNow.AddMinutes(-30),
+            UpdatedAt = DateTime.UtcNow.AddMinutes(-30)
+        };
+        await _context.LiveInterviewSessions.AddAsync(liveSession);
+
+        // Create participants
+        var participant1 = new LiveInterviewParticipant
+        {
+            LiveSessionId = liveSession.Id,
+            UserId = userId1,
+            Role = "Interviewer",
+            IsActive = true,
+            JoinedAt = DateTime.UtcNow.AddMinutes(-30),
+            CreatedAt = DateTime.UtcNow.AddMinutes(-30),
+            UpdatedAt = DateTime.UtcNow.AddMinutes(-30)
+        };
+        var participant2 = new LiveInterviewParticipant
+        {
+            LiveSessionId = liveSession.Id,
+            UserId = userId2,
+            Role = "Interviewee",
+            IsActive = true,
+            JoinedAt = DateTime.UtcNow.AddMinutes(-30),
+            CreatedAt = DateTime.UtcNow.AddMinutes(-30),
+            UpdatedAt = DateTime.UtcNow.AddMinutes(-30)
+        };
+        await _context.LiveInterviewParticipants.AddRangeAsync(participant1, participant2);
+
+        // Create matching requests linking both scheduled sessions to the live session
+        var matchingRequest1 = new InterviewMatchingRequest
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId1,
+            ScheduledSessionId = scheduledSession1.Id,
+            InterviewType = "data-structures-algorithms",
+            PracticeType = "peers",
+            InterviewLevel = "beginner",
+            ScheduledStartAt = scheduledSession1.ScheduledStartAt,
+            Status = "Confirmed",
+            MatchedUserId = userId2,
+            LiveSessionId = liveSession.Id,
+            UserConfirmed = true,
+            MatchedUserConfirmed = true,
+            ExpiresAt = DateTime.UtcNow.AddHours(1),
+            CreatedAt = DateTime.UtcNow.AddMinutes(-30),
+            UpdatedAt = DateTime.UtcNow.AddMinutes(-30)
+        };
+        var matchingRequest2 = new InterviewMatchingRequest
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId2,
+            ScheduledSessionId = scheduledSession2.Id,
+            InterviewType = "data-structures-algorithms",
+            PracticeType = "peers",
+            InterviewLevel = "beginner",
+            ScheduledStartAt = scheduledSession2.ScheduledStartAt,
+            Status = "Confirmed",
+            MatchedUserId = userId1,
+            LiveSessionId = liveSession.Id,
+            UserConfirmed = true,
+            MatchedUserConfirmed = true,
+            ExpiresAt = DateTime.UtcNow.AddHours(1),
+            CreatedAt = DateTime.UtcNow.AddMinutes(-30),
+            UpdatedAt = DateTime.UtcNow.AddMinutes(-30)
+        };
+        await _context.InterviewMatchingRequests.AddRangeAsync(matchingRequest1, matchingRequest2);
+        await _context.SaveChangesAsync();
+
+        // Act: End the interview
+        await _service.EndInterviewAsync(liveSession.Id, userId1);
+
+        // Get past sessions for both users
+        var pastSessionsUser1 = await _service.GetPastSessionsAsync(userId1);
+        var pastSessionsUser2 = await _service.GetPastSessionsAsync(userId2);
+
+        // Assert: Both users should have past sessions
+        var session1 = pastSessionsUser1.FirstOrDefault(s => s.Id == scheduledSession1.Id);
+        var session2 = pastSessionsUser2.FirstOrDefault(s => s.Id == scheduledSession2.Id);
+
+        Assert.NotNull(session1);
+        Assert.NotNull(session2);
+
+        // Verify User 1's session has complete data
+        Assert.NotNull(session1.LiveSession);
+        Assert.NotNull(session1.LiveSession.FirstQuestion);
+        Assert.NotNull(session1.LiveSession.SecondQuestion);
+        Assert.Equal(question1.Id, session1.LiveSession.FirstQuestionId);
+        Assert.Equal(question2.Id, session1.LiveSession.SecondQuestionId);
+        Assert.Equal("Question One", session1.LiveSession.FirstQuestion.Title);
+        Assert.Equal("Question Two", session1.LiveSession.SecondQuestion.Title);
+        Assert.NotNull(session1.LiveSession.Participants);
+        Assert.Equal(2, session1.LiveSession.Participants.Count());
+        var interviewee1 = session1.LiveSession.Participants.FirstOrDefault(p => p.Role == "Interviewee");
+        Assert.NotNull(interviewee1);
+        Assert.NotNull(interviewee1.User);
+        Assert.Equal(userId2, interviewee1.UserId);
+
+        // Verify User 2's session has complete data (this is the critical test - second user should have all data)
+        Assert.NotNull(session2.LiveSession);
+        Assert.NotNull(session2.LiveSession.FirstQuestion);
+        Assert.NotNull(session2.LiveSession.SecondQuestion);
+        Assert.Equal(question1.Id, session2.LiveSession.FirstQuestionId);
+        Assert.Equal(question2.Id, session2.LiveSession.SecondQuestionId);
+        Assert.Equal("Question One", session2.LiveSession.FirstQuestion.Title);
+        Assert.Equal("Question Two", session2.LiveSession.SecondQuestion.Title);
+        Assert.NotNull(session2.LiveSession.Participants);
+        Assert.Equal(2, session2.LiveSession.Participants.Count());
+        var interviewer2 = session2.LiveSession.Participants.FirstOrDefault(p => p.Role == "Interviewer");
+        Assert.NotNull(interviewer2);
+        Assert.NotNull(interviewer2.User);
+        Assert.Equal(userId1, interviewer2.UserId);
+
+        // Verify both scheduled sessions are marked as Completed
+        var scheduled1InDb = await _context.ScheduledInterviewSessions.FindAsync(scheduledSession1.Id);
+        var scheduled2InDb = await _context.ScheduledInterviewSessions.FindAsync(scheduledSession2.Id);
+        Assert.NotNull(scheduled1InDb);
+        Assert.NotNull(scheduled2InDb);
+        Assert.Equal("Completed", scheduled1InDb.Status);
+        Assert.Equal("Completed", scheduled2InDb.Status);
     }
 
     [Fact]

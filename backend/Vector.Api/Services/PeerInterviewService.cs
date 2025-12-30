@@ -539,22 +539,41 @@ public class PeerInterviewService : IPeerInterviewService
             throw new KeyNotFoundException("Question not found.");
         }
 
-        // Update active question
-        // If FirstQuestionId is not set, set it; otherwise set SecondQuestionId
+        // Replace the currently active question with the new question
+        // This ensures role switching continues to work correctly
         if (session.FirstQuestionId == null)
         {
+            // No first question set yet, set it as the active question
             session.FirstQuestionId = newQuestionId.Value;
             session.ActiveQuestionId = newQuestionId.Value;
         }
         else if (session.SecondQuestionId == null)
         {
+            // No second question set yet, set it as the active question
             session.SecondQuestionId = newQuestionId.Value;
             session.ActiveQuestionId = newQuestionId.Value;
         }
         else
         {
-            // Both questions set, just update active
-            session.ActiveQuestionId = newQuestionId.Value;
+            // Both questions are set - replace the currently active one
+            // If ActiveQuestionId matches FirstQuestionId, replace FirstQuestionId
+            // If ActiveQuestionId matches SecondQuestionId, replace SecondQuestionId
+            if (session.ActiveQuestionId == session.FirstQuestionId)
+            {
+                session.FirstQuestionId = newQuestionId.Value;
+                session.ActiveQuestionId = newQuestionId.Value;
+            }
+            else if (session.ActiveQuestionId == session.SecondQuestionId)
+            {
+                session.SecondQuestionId = newQuestionId.Value;
+                session.ActiveQuestionId = newQuestionId.Value;
+            }
+            else
+            {
+                // ActiveQuestionId doesn't match either - default to replacing FirstQuestionId
+                session.FirstQuestionId = newQuestionId.Value;
+                session.ActiveQuestionId = newQuestionId.Value;
+            }
         }
 
         session.UpdatedAt = DateTime.UtcNow;
@@ -1099,11 +1118,36 @@ public class PeerInterviewService : IPeerInterviewService
         await _context.Entry(session).Reference(s => s.User).LoadAsync();
         await _context.Entry(session).Reference(s => s.LiveSession).LoadAsync();
 
-        // Ensure LiveSession includes FirstQuestion and SecondQuestion for display
-        if (session.LiveSession != null)
+        // If LiveSession is not directly linked, find it through matching requests
+        LiveInterviewSession? liveSession = session.LiveSession;
+        if (liveSession == null)
         {
-            await _context.Entry(session.LiveSession).Reference(ls => ls.FirstQuestion).LoadAsync();
-            await _context.Entry(session.LiveSession).Reference(ls => ls.SecondQuestion).LoadAsync();
+            // Find matching request for this scheduled session that has a live session
+            var matchingRequest = await _context.InterviewMatchingRequests
+                .Include(m => m.LiveSession)
+                    .ThenInclude(ls => ls!.FirstQuestion)
+                .Include(m => m.LiveSession)
+                    .ThenInclude(ls => ls!.SecondQuestion)
+                .Include(m => m.LiveSession)
+                    .ThenInclude(ls => ls!.Participants)
+                        .ThenInclude(p => p.User)
+                .FirstOrDefaultAsync(m => m.ScheduledSessionId == session.Id && m.LiveSessionId != null);
+            
+            if (matchingRequest?.LiveSession != null)
+            {
+                liveSession = matchingRequest.LiveSession;
+            }
+        }
+        else
+        {
+            // Ensure LiveSession includes FirstQuestion and SecondQuestion for display
+            await _context.Entry(liveSession).Reference(ls => ls.FirstQuestion).LoadAsync();
+            await _context.Entry(liveSession).Reference(ls => ls.SecondQuestion).LoadAsync();
+            await _context.Entry(liveSession).Collection(ls => ls.Participants).LoadAsync();
+            foreach (var participant in liveSession.Participants)
+            {
+                await _context.Entry(participant).Reference(p => p.User).LoadAsync();
+            }
         }
 
         return new ScheduledInterviewSessionDto
@@ -1115,7 +1159,7 @@ public class PeerInterviewService : IPeerInterviewService
             InterviewLevel = session.InterviewLevel,
             ScheduledStartAt = session.ScheduledStartAt,
             Status = session.Status,
-            LiveSessionId = session.LiveSession?.Id,
+            LiveSessionId = liveSession?.Id,
             CreatedAt = session.CreatedAt,
             UpdatedAt = session.UpdatedAt,
             User = session.User != null ? new UserDto
@@ -1125,8 +1169,8 @@ public class PeerInterviewService : IPeerInterviewService
                 LastName = session.User.LastName,
                 Email = session.User.Email
             } : null,
-            LiveSession = session.LiveSession != null 
-                ? await MapToLiveSessionDtoAsync(session.LiveSession, session.UserId)
+            LiveSession = liveSession != null 
+                ? await MapToLiveSessionDtoAsync(liveSession, session.UserId)
                 : null
         };
     }

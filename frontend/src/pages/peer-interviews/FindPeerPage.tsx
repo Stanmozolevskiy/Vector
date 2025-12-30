@@ -111,6 +111,11 @@ const FindPeerPage: React.FC = () => {
     const interviewer = interviewerParticipant?.user || s.user;
     const interviewee = intervieweeParticipant?.user || undefined;
     
+    // For upcoming sessions, use assignedQuestion if available, otherwise use liveSession activeQuestion
+    // For past sessions, use liveSession questions
+    const questionForUpcoming = s.assignedQuestion || s.liveSession?.activeQuestion;
+    const questionIdForUpcoming = s.assignedQuestionId || s.liveSession?.activeQuestionId;
+    
     return {
       id: s.liveSession?.id || s.id,
       status: (s.liveSession?.status || s.status) as any,
@@ -125,8 +130,8 @@ const FindPeerPage: React.FC = () => {
       interviewerId: interviewerParticipant?.userId || s.userId,
       interviewee: interviewee,
       intervieweeId: intervieweeParticipant?.userId,
-      questionId: s.liveSession?.activeQuestionId,
-      question: s.liveSession?.activeQuestion,
+      questionId: questionIdForUpcoming,
+      question: questionForUpcoming,
       // Add first and second questions for display in Past interviews
       firstQuestionId: s.liveSession?.firstQuestionId,
       secondQuestionId: s.liveSession?.secondQuestionId,

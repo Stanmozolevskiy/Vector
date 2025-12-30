@@ -57,6 +57,13 @@ public class ScheduledInterviewSession
     /// </summary>
     public LiveInterviewSession? LiveSession { get; set; }
     
+    /// <summary>
+    /// Question assigned to this user when scheduling (only for data-structures-algorithms interview type)
+    /// </summary>
+    public Guid? AssignedQuestionId { get; set; }
+    
+    public InterviewQuestion? AssignedQuestion { get; set; }
+    
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

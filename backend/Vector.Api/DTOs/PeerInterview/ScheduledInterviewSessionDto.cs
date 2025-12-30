@@ -13,12 +13,14 @@ public class ScheduledInterviewSessionDto
     public DateTime ScheduledStartAt { get; set; }
     public string Status { get; set; } = "Scheduled";
     public Guid? LiveSessionId { get; set; }
+    public Guid? AssignedQuestionId { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     
     // Navigation properties
     public UserDto? User { get; set; }
     public LiveInterviewSessionDto? LiveSession { get; set; }
+    public QuestionSummaryDto? AssignedQuestion { get; set; }
 }
 
 public class UserDto

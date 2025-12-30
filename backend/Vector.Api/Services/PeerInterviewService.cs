@@ -37,6 +37,18 @@ public class PeerInterviewService : IPeerInterviewService
             UpdatedAt = DateTime.UtcNow
         };
 
+        // Assign a question if interview type is data-structures-algorithms
+        if (dto.InterviewType == "data-structures-algorithms")
+        {
+            var assignedQuestionId = await SelectRandomQuestionAsync(dto.InterviewType);
+            if (assignedQuestionId.HasValue)
+            {
+                session.AssignedQuestionId = assignedQuestionId.Value;
+                _logger.LogInformation("Assigned question {QuestionId} to scheduled session {SessionId} for user {UserId}",
+                    assignedQuestionId.Value, session.Id, userId);
+            }
+        }
+
         _context.ScheduledInterviewSessions.Add(session);
         await _context.SaveChangesAsync();
 
@@ -177,10 +189,20 @@ public class PeerInterviewService : IPeerInterviewService
         // Try to match immediately (might find a match right away)
         var isMatched = await TryMatchAsync(matchingRequest);
 
+        // Refresh the request to get updated LiveSessionId
+        await _context.Entry(matchingRequest).ReloadAsync();
+
+        LiveInterviewSessionDto? sessionDto = null;
+        if (isMatched && matchingRequest.LiveSessionId.HasValue)
+        {
+            sessionDto = await GetLiveSessionByIdAsync(matchingRequest.LiveSessionId.Value, userId);
+        }
+
         return new StartMatchingResponseDto
         {
             MatchingRequest = await MapToMatchingRequestDtoAsync(matchingRequest),
-            Matched = isMatched
+            Matched = isMatched,
+            Session = sessionDto
         };
     }
 
@@ -905,9 +927,44 @@ public class PeerInterviewService : IPeerInterviewService
         _logger.LogInformation("Creating live session - Scheduler (Interviewer): {SchedulerId}, Matched User (Interviewee): {MatchedId}", 
             schedulerUserId, matchedUserId);
 
-        // Select 2 questions based on interview type
-        var firstQuestionId = await SelectRandomQuestionAsync(schedulerRequest.InterviewType);
-        var secondQuestionId = await SelectRandomQuestionAsync(schedulerRequest.InterviewType, firstQuestionId);
+        // Get both scheduled sessions to access assigned questions
+        var schedulerSession = await _context.ScheduledInterviewSessions
+            .Include(s => s.AssignedQuestion)
+            .FirstOrDefaultAsync(s => s.Id == schedulerRequest.ScheduledSessionId);
+        var matchedSession = await _context.ScheduledInterviewSessions
+            .Include(s => s.AssignedQuestion)
+            .FirstOrDefaultAsync(s => s.Id == matchedRequest.ScheduledSessionId);
+
+        Guid? firstQuestionId = null;
+        Guid? secondQuestionId = null;
+
+        // Use assigned questions from both users if available (for data-structures-algorithms)
+        if (schedulerRequest.InterviewType == "data-structures-algorithms" 
+            && schedulerSession?.AssignedQuestionId.HasValue == true 
+            && matchedSession?.AssignedQuestionId.HasValue == true)
+        {
+            firstQuestionId = schedulerSession.AssignedQuestionId;
+            secondQuestionId = matchedSession.AssignedQuestionId;
+
+            // If both users have the same question, select a different one with the same difficulty
+            if (firstQuestionId == secondQuestionId && schedulerSession.AssignedQuestion != null)
+            {
+                var difficulty = schedulerSession.AssignedQuestion.Difficulty;
+                secondQuestionId = await SelectRandomQuestionByDifficultyAsync(
+                    schedulerRequest.InterviewType, 
+                    difficulty, 
+                    firstQuestionId);
+                
+                _logger.LogInformation("Both users had same question {QuestionId}, selected different question {NewQuestionId} with difficulty {Difficulty}",
+                    firstQuestionId, secondQuestionId, difficulty);
+            }
+        }
+        else
+        {
+            // Fallback to random selection if assigned questions not available
+            firstQuestionId = await SelectRandomQuestionAsync(schedulerRequest.InterviewType);
+            secondQuestionId = await SelectRandomQuestionAsync(schedulerRequest.InterviewType, firstQuestionId);
+        }
 
         if (!firstQuestionId.HasValue)
         {
@@ -1073,6 +1130,64 @@ public class PeerInterviewService : IPeerInterviewService
         return randomQuestion.Id;
     }
 
+    /// <summary>
+    /// Select a random question with a specific difficulty, excluding a question ID if provided
+    /// </summary>
+    private async Task<Guid?> SelectRandomQuestionByDifficultyAsync(string interviewType, string difficulty, Guid? excludeQuestionId = null)
+    {
+        // Map interview types to question types
+        var questionTypeMap = new Dictionary<string, string>
+        {
+            { "data-structures-algorithms", "Coding" },
+            { "system-design", "System Design" },
+            { "behavioral", "Behavioral" },
+            { "product-management", "Behavioral" },
+            { "sql", "Coding" },
+            { "data-science-ml", "Coding" }
+        };
+
+        var questionType = questionTypeMap.GetValueOrDefault(interviewType, "Coding");
+
+        // Get random approved question with specific difficulty
+        var query = _context.InterviewQuestions
+            .Where(q => q.IsActive 
+                && q.ApprovalStatus == "Approved"
+                && q.QuestionType == questionType
+                && q.Difficulty == difficulty);
+        
+        // Exclude a question if specified
+        if (excludeQuestionId.HasValue)
+        {
+            query = query.Where(q => q.Id != excludeQuestionId.Value);
+        }
+        
+        var questions = await query.ToListAsync();
+
+        if (!questions.Any())
+        {
+            // Fallback to any approved question with same difficulty (any type)
+            var fallbackQuery = _context.InterviewQuestions
+                .Where(q => q.IsActive 
+                    && q.ApprovalStatus == "Approved"
+                    && q.Difficulty == difficulty);
+            
+            if (excludeQuestionId.HasValue)
+            {
+                fallbackQuery = fallbackQuery.Where(q => q.Id != excludeQuestionId.Value);
+            }
+            
+            questions = await fallbackQuery.ToListAsync();
+        }
+
+        if (!questions.Any())
+        {
+            return null;
+        }
+
+        var randomQuestion = questions[_random.Next(questions.Count)];
+        return randomQuestion.Id;
+    }
+
     private async Task<Guid?> SelectRandomQuestionAsync(LiveInterviewSession session, Guid? excludeQuestionId = null)
     {
         // Get interview type from scheduled session
@@ -1117,6 +1232,7 @@ public class PeerInterviewService : IPeerInterviewService
     {
         await _context.Entry(session).Reference(s => s.User).LoadAsync();
         await _context.Entry(session).Reference(s => s.LiveSession).LoadAsync();
+        await _context.Entry(session).Reference(s => s.AssignedQuestion).LoadAsync();
 
         // If LiveSession is not directly linked, find it through matching requests
         LiveInterviewSession? liveSession = session.LiveSession;
@@ -1160,6 +1276,7 @@ public class PeerInterviewService : IPeerInterviewService
             ScheduledStartAt = session.ScheduledStartAt,
             Status = session.Status,
             LiveSessionId = liveSession?.Id,
+            AssignedQuestionId = session.AssignedQuestionId,
             CreatedAt = session.CreatedAt,
             UpdatedAt = session.UpdatedAt,
             User = session.User != null ? new UserDto
@@ -1171,7 +1288,14 @@ public class PeerInterviewService : IPeerInterviewService
             } : null,
             LiveSession = liveSession != null 
                 ? await MapToLiveSessionDtoAsync(liveSession, session.UserId)
-                : null
+                : null,
+            AssignedQuestion = session.AssignedQuestion != null ? new QuestionSummaryDto
+            {
+                Id = session.AssignedQuestion.Id,
+                Title = session.AssignedQuestion.Title,
+                Difficulty = session.AssignedQuestion.Difficulty,
+                QuestionType = session.AssignedQuestion.QuestionType
+            } : null
         };
     }
 

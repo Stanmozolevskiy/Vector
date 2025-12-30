@@ -80,6 +80,82 @@ public class PeerInterviewServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ScheduleInterviewSessionAsync_ForDataStructuresAlgorithms_AssignsQuestion()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var user = new User { Id = userId, Email = "test@example.com" };
+        await _context.Users.AddAsync(user);
+
+        var question = new InterviewQuestion
+        {
+            Id = Guid.NewGuid(),
+            Title = "Test Question",
+            QuestionType = "Coding",
+            Difficulty = "Easy",
+            IsActive = true,
+            ApprovalStatus = "Approved"
+        };
+        await _context.InterviewQuestions.AddAsync(question);
+        await _context.SaveChangesAsync();
+
+        var dto = new ScheduleInterviewDto
+        {
+            InterviewType = "data-structures-algorithms",
+            PracticeType = "peers",
+            InterviewLevel = "beginner",
+            ScheduledStartAt = DateTime.UtcNow.AddHours(1)
+        };
+
+        // Act
+        var result = await _service.ScheduleInterviewSessionAsync(userId, dto);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.NotNull(result.AssignedQuestionId);
+        Assert.NotNull(result.AssignedQuestion);
+        Assert.Equal(question.Id, result.AssignedQuestionId);
+        Assert.Equal(question.Title, result.AssignedQuestion.Title);
+
+        var sessionInDb = await _context.ScheduledInterviewSessions
+            .Include(s => s.AssignedQuestion)
+            .FirstOrDefaultAsync(s => s.Id == result.Id);
+        Assert.NotNull(sessionInDb);
+        Assert.NotNull(sessionInDb.AssignedQuestionId);
+        Assert.Equal(question.Id, sessionInDb.AssignedQuestionId);
+    }
+
+    [Fact]
+    public async Task ScheduleInterviewSessionAsync_ForNonDataStructuresAlgorithms_DoesNotAssignQuestion()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var user = new User { Id = userId, Email = "test@example.com" };
+        await _context.Users.AddAsync(user);
+        await _context.SaveChangesAsync();
+
+        var dto = new ScheduleInterviewDto
+        {
+            InterviewType = "system-design",
+            PracticeType = "peers",
+            InterviewLevel = "intermediate",
+            ScheduledStartAt = DateTime.UtcNow.AddHours(1)
+        };
+
+        // Act
+        var result = await _service.ScheduleInterviewSessionAsync(userId, dto);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Null(result.AssignedQuestionId);
+        Assert.Null(result.AssignedQuestion);
+
+        var sessionInDb = await _context.ScheduledInterviewSessions.FindAsync(result.Id);
+        Assert.NotNull(sessionInDb);
+        Assert.Null(sessionInDb.AssignedQuestionId);
+    }
+
+    [Fact]
     public async Task ScheduleInterviewSessionAsync_WithPastDate_StillCreatesSession()
     {
         // Arrange
@@ -605,6 +681,192 @@ public class PeerInterviewServiceTests : IDisposable
         // Assert
         Assert.False(result1.Matched);
         Assert.False(result2.Matched);
+    }
+
+    [Fact]
+    public async Task StartMatchingAsync_WithAssignedQuestions_UsesBothUsersQuestions()
+    {
+        // Arrange: Two users with assigned questions
+        var userId1 = Guid.NewGuid();
+        var userId2 = Guid.NewGuid();
+        var user1 = new User { Id = userId1, Email = "user1@example.com" };
+        var user2 = new User { Id = userId2, Email = "user2@example.com" };
+        await _context.Users.AddRangeAsync(user1, user2);
+
+        var question1 = new InterviewQuestion
+        {
+            Id = Guid.NewGuid(),
+            Title = "Question 1",
+            QuestionType = "Coding",
+            Difficulty = "Easy",
+            IsActive = true,
+            ApprovalStatus = "Approved"
+        };
+        var question2 = new InterviewQuestion
+        {
+            Id = Guid.NewGuid(),
+            Title = "Question 2",
+            QuestionType = "Coding",
+            Difficulty = "Medium",
+            IsActive = true,
+            ApprovalStatus = "Approved"
+        };
+        await _context.InterviewQuestions.AddRangeAsync(question1, question2);
+        await _context.SaveChangesAsync();
+
+        var session1 = new ScheduledInterviewSession
+        {
+            UserId = userId1,
+            InterviewType = "data-structures-algorithms",
+            PracticeType = "peers",
+            InterviewLevel = "beginner",
+            ScheduledStartAt = DateTime.UtcNow.AddHours(1),
+            Status = "Scheduled",
+            AssignedQuestionId = question1.Id,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        var session2 = new ScheduledInterviewSession
+        {
+            UserId = userId2,
+            InterviewType = "data-structures-algorithms",
+            PracticeType = "peers",
+            InterviewLevel = "beginner",
+            ScheduledStartAt = DateTime.UtcNow.AddHours(1),
+            Status = "Scheduled",
+            AssignedQuestionId = question2.Id,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _context.ScheduledInterviewSessions.AddRangeAsync(session1, session2);
+        await _context.SaveChangesAsync();
+
+        // Act: Start matching for both users
+        var result1 = await _service.StartMatchingAsync(session1.Id, userId1);
+        // First user won't be matched yet (no other user in queue)
+        Assert.False(result1.Matched);
+        
+        var result2 = await _service.StartMatchingAsync(session2.Id, userId2);
+        // Second user should be matched (matches with first user)
+        Assert.True(result2.Matched);
+        Assert.NotNull(result2.Session);
+
+        // Refresh first user's matching status
+        var status1 = await _service.GetMatchingStatusAsync(session1.Id, userId1);
+        Assert.NotNull(status1);
+        Assert.Equal("Matched", status1.Status);
+
+        // Verify live session uses both assigned questions
+        var liveSession = await _context.LiveInterviewSessions
+            .Include(ls => ls.FirstQuestion)
+            .Include(ls => ls.SecondQuestion)
+            .FirstOrDefaultAsync(ls => ls.Id == result2.Session!.Id);
+        Assert.NotNull(liveSession);
+        Assert.NotNull(liveSession.FirstQuestionId);
+        Assert.NotNull(liveSession.SecondQuestionId);
+        // One question should be question1, the other should be question2
+        Assert.True((liveSession.FirstQuestionId == question1.Id && liveSession.SecondQuestionId == question2.Id) ||
+                    (liveSession.FirstQuestionId == question2.Id && liveSession.SecondQuestionId == question1.Id));
+    }
+
+    [Fact]
+    public async Task StartMatchingAsync_WithSameAssignedQuestions_SelectsDifferentQuestionWithSameDifficulty()
+    {
+        // Arrange: Two users with the same assigned question
+        var userId1 = Guid.NewGuid();
+        var userId2 = Guid.NewGuid();
+        var user1 = new User { Id = userId1, Email = "user1@example.com" };
+        var user2 = new User { Id = userId2, Email = "user2@example.com" };
+        await _context.Users.AddRangeAsync(user1, user2);
+
+        var question1 = new InterviewQuestion
+        {
+            Id = Guid.NewGuid(),
+            Title = "Question 1",
+            QuestionType = "Coding",
+            Difficulty = "Easy",
+            IsActive = true,
+            ApprovalStatus = "Approved"
+        };
+        var question2 = new InterviewQuestion
+        {
+            Id = Guid.NewGuid(),
+            Title = "Question 2",
+            QuestionType = "Coding",
+            Difficulty = "Easy", // Same difficulty
+            IsActive = true,
+            ApprovalStatus = "Approved"
+        };
+        var question3 = new InterviewQuestion
+        {
+            Id = Guid.NewGuid(),
+            Title = "Question 3",
+            QuestionType = "Coding",
+            Difficulty = "Easy", // Same difficulty
+            IsActive = true,
+            ApprovalStatus = "Approved"
+        };
+        await _context.InterviewQuestions.AddRangeAsync(question1, question2, question3);
+        await _context.SaveChangesAsync();
+
+        var session1 = new ScheduledInterviewSession
+        {
+            UserId = userId1,
+            InterviewType = "data-structures-algorithms",
+            PracticeType = "peers",
+            InterviewLevel = "beginner",
+            ScheduledStartAt = DateTime.UtcNow.AddHours(1),
+            Status = "Scheduled",
+            AssignedQuestionId = question1.Id, // Both users have same question
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        var session2 = new ScheduledInterviewSession
+        {
+            UserId = userId2,
+            InterviewType = "data-structures-algorithms",
+            PracticeType = "peers",
+            InterviewLevel = "beginner",
+            ScheduledStartAt = DateTime.UtcNow.AddHours(1),
+            Status = "Scheduled",
+            AssignedQuestionId = question1.Id, // Same question
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _context.ScheduledInterviewSessions.AddRangeAsync(session1, session2);
+        await _context.SaveChangesAsync();
+
+        // Act: Start matching for both users
+        var result1 = await _service.StartMatchingAsync(session1.Id, userId1);
+        // First user won't be matched yet (no other user in queue)
+        Assert.False(result1.Matched);
+        
+        var result2 = await _service.StartMatchingAsync(session2.Id, userId2);
+        // Second user should be matched (matches with first user)
+        Assert.True(result2.Matched);
+        Assert.NotNull(result2.Session);
+
+        // Verify live session has different questions
+        var liveSession = await _context.LiveInterviewSessions
+            .Include(ls => ls.FirstQuestion)
+            .Include(ls => ls.SecondQuestion)
+            .FirstOrDefaultAsync(ls => ls.Id == result2.Session!.Id);
+        Assert.NotNull(liveSession);
+        Assert.NotNull(liveSession.FirstQuestionId);
+        Assert.NotNull(liveSession.SecondQuestionId);
+        Assert.NotEqual(liveSession.FirstQuestionId, liveSession.SecondQuestionId);
+        
+        // Verify one question is the assigned question (question1) and the other is different
+        Assert.True(liveSession.FirstQuestionId == question1.Id || liveSession.SecondQuestionId == question1.Id);
+        // The other question should be question2 or question3 (both Easy difficulty)
+        Assert.True(liveSession.FirstQuestionId == question2.Id || liveSession.FirstQuestionId == question3.Id ||
+                    liveSession.SecondQuestionId == question2.Id || liveSession.SecondQuestionId == question3.Id);
+        
+        // Verify both questions have the same difficulty (Easy)
+        Assert.NotNull(liveSession.FirstQuestion);
+        Assert.NotNull(liveSession.SecondQuestion);
+        Assert.Equal("Easy", liveSession.FirstQuestion.Difficulty);
+        Assert.Equal("Easy", liveSession.SecondQuestion.Difficulty);
     }
 
     [Fact]

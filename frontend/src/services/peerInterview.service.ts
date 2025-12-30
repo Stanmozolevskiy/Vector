@@ -10,10 +10,12 @@ export interface ScheduledInterviewSession {
   scheduledStartAt: string;
   status: 'Scheduled' | 'Cancelled' | 'Completed' | 'InProgress';
   liveSessionId?: string;
+  assignedQuestionId?: string;
   createdAt: string;
   updatedAt: string;
   user?: UserDto;
   liveSession?: LiveInterviewSession;
+  assignedQuestion?: QuestionSummary;
 }
 
 export interface LiveInterviewSession {

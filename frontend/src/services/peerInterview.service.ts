@@ -119,6 +119,12 @@ export interface PeerInterviewSession {
   interviewer?: UserDto;
   interviewee?: UserDto;
   question?: QuestionSummary;
+  // Added for displaying both questions in Past interviews
+  firstQuestionId?: string;
+  secondQuestionId?: string;
+  firstQuestion?: QuestionSummary;
+  secondQuestion?: QuestionSummary;
+  liveSessionId?: string;
 }
 
 // Request DTOs
@@ -200,6 +206,14 @@ export const peerInterviewService = {
    */
   async getUpcomingSessions(): Promise<ScheduledInterviewSession[]> {
     const response = await api.get<ScheduledInterviewSession[]>('/peer-interviews/scheduled/upcoming');
+    return response.data;
+  },
+
+  /**
+   * Get past scheduled sessions for the current user
+   */
+  async getPastSessions(): Promise<ScheduledInterviewSession[]> {
+    const response = await api.get<ScheduledInterviewSession[]>('/peer-interviews/scheduled/past');
     return response.data;
   },
 

@@ -50,8 +50,28 @@ public class PeerInterviewService : IPeerInterviewService
             .Include(s => s.User)
             .Where(s => s.UserId == userId 
                 && s.Status != "Cancelled"
+                && s.Status != "Completed"
                 && s.ScheduledStartAt > now)
             .OrderBy(s => s.ScheduledStartAt)
+            .ToListAsync();
+
+        var dtos = new List<ScheduledInterviewSessionDto>();
+        foreach (var session in sessions)
+        {
+            dtos.Add(await MapToScheduledSessionDtoAsync(session));
+        }
+        return dtos;
+    }
+
+    public async Task<IEnumerable<ScheduledInterviewSessionDto>> GetPastSessionsAsync(Guid userId)
+    {
+        var now = DateTime.UtcNow;
+        var sessions = await _context.ScheduledInterviewSessions
+            .Include(s => s.User)
+            .Where(s => s.UserId == userId 
+                && s.Status != "Cancelled"
+                && (s.Status == "Completed" || s.ScheduledStartAt <= now))
+            .OrderByDescending(s => s.ScheduledStartAt)
             .ToListAsync();
 
         var dtos = new List<ScheduledInterviewSessionDto>();
@@ -499,9 +519,10 @@ public class PeerInterviewService : IPeerInterviewService
         }
 
         // If no question ID provided, select a random question based on interview type
+        // Exclude current active question to ensure we get a different one
         if (!newQuestionId.HasValue)
         {
-            newQuestionId = await SelectRandomQuestionAsync(session);
+            newQuestionId = await SelectRandomQuestionAsync(session, session.ActiveQuestionId);
         }
 
         if (!newQuestionId.HasValue)
@@ -568,6 +589,9 @@ public class PeerInterviewService : IPeerInterviewService
     {
         var session = await _context.LiveInterviewSessions
             .Include(s => s.Participants)
+                .ThenInclude(p => p.User)
+            .Include(s => s.FirstQuestion)
+            .Include(s => s.SecondQuestion)
             .FirstOrDefaultAsync(s => s.Id == sessionId);
 
         if (session == null)
@@ -581,23 +605,8 @@ public class PeerInterviewService : IPeerInterviewService
             throw new UnauthorizedAccessException("User is not a participant in this session.");
         }
 
-        session.Status = "Completed";
-        session.EndedAt = DateTime.UtcNow;
-        session.UpdatedAt = DateTime.UtcNow;
-
-        // Update scheduled session if exists
-        if (session.ScheduledSessionId.HasValue)
-        {
-            var scheduledSession = await _context.ScheduledInterviewSessions
-                .FirstOrDefaultAsync(s => s.Id == session.ScheduledSessionId.Value);
-            if (scheduledSession != null)
-            {
-                scheduledSession.Status = "Completed";
-                scheduledSession.UpdatedAt = DateTime.UtcNow;
-            }
-        }
-
-        await _context.SaveChangesAsync();
+        // Use helper function to update all scheduled sessions for both users
+        await UpdateScheduledSessionsOnEndAsync(session);
 
         // Reload session with all includes
         var updatedSession = await _context.LiveInterviewSessions
@@ -608,6 +617,64 @@ public class PeerInterviewService : IPeerInterviewService
             .FirstOrDefaultAsync(s => s.Id == sessionId);
 
         return await MapToLiveSessionDtoAsync(updatedSession!, userId);
+    }
+
+    /// <summary>
+    /// Helper function to update all scheduled sessions when an interview ends.
+    /// Ensures both users' scheduled sessions are marked as completed and have access to
+    /// both questions and partner information.
+    /// </summary>
+    private async Task UpdateScheduledSessionsOnEndAsync(LiveInterviewSession liveSession)
+    {
+        // Mark live session as completed
+        liveSession.Status = "Completed";
+        liveSession.EndedAt = DateTime.UtcNow;
+        liveSession.UpdatedAt = DateTime.UtcNow;
+
+        // Ensure both questions are set (they should already be set, but verify)
+        if (!liveSession.FirstQuestionId.HasValue || !liveSession.SecondQuestionId.HasValue)
+        {
+            _logger.LogWarning("Live session {SessionId} is missing questions when ending", liveSession.Id);
+        }
+
+        // Find all matching requests that reference this live session
+        var matchingRequests = await _context.InterviewMatchingRequests
+            .Where(m => m.LiveSessionId == liveSession.Id)
+            .Include(m => m.ScheduledSession)
+            .ToListAsync();
+
+        // Get all unique scheduled session IDs from matching requests
+        var scheduledSessionIds = matchingRequests
+            .Select(m => m.ScheduledSessionId)
+            .Distinct()
+            .ToList();
+
+        // Also include the directly linked scheduled session if it exists
+        if (liveSession.ScheduledSessionId.HasValue && !scheduledSessionIds.Contains(liveSession.ScheduledSessionId.Value))
+        {
+            scheduledSessionIds.Add(liveSession.ScheduledSessionId.Value);
+        }
+
+        // Update all scheduled sessions for both users
+        if (scheduledSessionIds.Any())
+        {
+            var scheduledSessions = await _context.ScheduledInterviewSessions
+                .Where(s => scheduledSessionIds.Contains(s.Id))
+                .ToListAsync();
+
+            foreach (var scheduledSession in scheduledSessions)
+            {
+                scheduledSession.Status = "Completed";
+                scheduledSession.UpdatedAt = DateTime.UtcNow;
+                // The LiveSession navigation property will automatically link to the live session
+                // which contains both questions and participant information
+            }
+
+            _logger.LogInformation("Updated {Count} scheduled sessions to Completed for live session {SessionId}",
+                scheduledSessions.Count, liveSession.Id);
+        }
+
+        await _context.SaveChangesAsync();
     }
 
     // Feedback
@@ -987,7 +1054,7 @@ public class PeerInterviewService : IPeerInterviewService
         return randomQuestion.Id;
     }
 
-    private async Task<Guid?> SelectRandomQuestionAsync(LiveInterviewSession session)
+    private async Task<Guid?> SelectRandomQuestionAsync(LiveInterviewSession session, Guid? excludeQuestionId = null)
     {
         // Get interview type from scheduled session
         if (session.ScheduledSessionId.HasValue)
@@ -997,12 +1064,15 @@ public class PeerInterviewService : IPeerInterviewService
             
             if (scheduledSession != null)
             {
-                return await SelectRandomQuestionAsync(scheduledSession.InterviewType);
+                // Exclude the current active question (or provided exclude ID) to ensure we get a different question
+                var excludeId = excludeQuestionId ?? session.ActiveQuestionId;
+                return await SelectRandomQuestionAsync(scheduledSession.InterviewType, excludeId);
             }
         }
 
-        // Fallback to any question
-        return await SelectRandomQuestionAsync("data-structures-algorithms");
+        // Fallback to any question, excluding current active question (or provided exclude ID)
+        var fallbackExcludeId = excludeQuestionId ?? session.ActiveQuestionId;
+        return await SelectRandomQuestionAsync("data-structures-algorithms", fallbackExcludeId);
     }
 
     private async Task CleanupExpiredRequestsAsync()
@@ -1028,6 +1098,13 @@ public class PeerInterviewService : IPeerInterviewService
     {
         await _context.Entry(session).Reference(s => s.User).LoadAsync();
         await _context.Entry(session).Reference(s => s.LiveSession).LoadAsync();
+
+        // Ensure LiveSession includes FirstQuestion and SecondQuestion for display
+        if (session.LiveSession != null)
+        {
+            await _context.Entry(session.LiveSession).Reference(ls => ls.FirstQuestion).LoadAsync();
+            await _context.Entry(session.LiveSession).Reference(ls => ls.SecondQuestion).LoadAsync();
+        }
 
         return new ScheduledInterviewSessionDto
         {

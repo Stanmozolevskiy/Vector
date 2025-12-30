@@ -174,13 +174,13 @@ api.interceptors.response.use(
         
         if (isRefreshTokenExpired) {
           // Refresh token expired - logout user and redirect to login with return URL
-          processQueue(refreshError, null);
-          isRefreshing = false;
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-          const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
-          window.location.href = `/login?returnUrl=${returnUrl}`;
-          return Promise.reject(refreshError);
+        processQueue(refreshError, null);
+        isRefreshing = false;
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+        window.location.href = `/login?returnUrl=${returnUrl}`;
+        return Promise.reject(refreshError);
         } else {
           // Network error or other issue - retry the original request with current token
           // Don't redirect, let the user continue working

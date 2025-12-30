@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { Navbar } from '../../components/layout/Navbar';
 import { peerInterviewService } from '../../services/peerInterview.service';
-import type { PeerInterviewSession } from '../../services/peerInterview.service';
+import type { PeerInterviewSession, ScheduledInterviewSession } from '../../services/peerInterview.service';
 import { FeedbackView, type FeedbackData } from '../../components/FeedbackView';
 import { InterviewSurvey } from '../../components/InterviewSurvey';
 import { ROUTES } from '../../utils/constants';
@@ -100,50 +100,63 @@ const FindPeerPage: React.FC = () => {
     };
   }, []);
 
+  // Helper function to convert ScheduledInterviewSession to PeerInterviewSession
+  const convertToLegacySession = (s: ScheduledInterviewSession): PeerInterviewSession => {
+    // Get both participants from live session
+    const participants = s.liveSession?.participants || [];
+    const interviewerParticipant = participants.find((p: { role: string }) => p.role === 'Interviewer');
+    const intervieweeParticipant = participants.find((p: { role: string }) => p.role === 'Interviewee');
+    
+    // Use participants from live session if available, otherwise fallback to session creator
+    const interviewer = interviewerParticipant?.user || s.user;
+    const interviewee = intervieweeParticipant?.user || undefined;
+    
+    return {
+      id: s.liveSession?.id || s.id,
+      status: (s.liveSession?.status || s.status) as any,
+      scheduledTime: s.scheduledStartAt,
+      duration: 60,
+      interviewType: s.interviewType,
+      practiceType: s.practiceType,
+      interviewLevel: s.interviewLevel,
+      createdAt: s.createdAt,
+      updatedAt: s.updatedAt,
+      interviewer: interviewer,
+      interviewerId: interviewerParticipant?.userId || s.userId,
+      interviewee: interviewee,
+      intervieweeId: intervieweeParticipant?.userId,
+      questionId: s.liveSession?.activeQuestionId,
+      question: s.liveSession?.activeQuestion,
+      // Add first and second questions for display in Past interviews
+      firstQuestionId: s.liveSession?.firstQuestionId,
+      secondQuestionId: s.liveSession?.secondQuestionId,
+      firstQuestion: s.liveSession?.firstQuestion,
+      secondQuestion: s.liveSession?.secondQuestion,
+      liveSessionId: s.liveSession?.id,
+    };
+  };
+
   const loadSessions = async () => {
     try {
-      // Use the new API method directly
-      const sessions = await peerInterviewService.getUpcomingSessions();
-      const now = new Date();
+      // Fetch upcoming and past sessions separately
+      const [upcomingSessions, pastSessions] = await Promise.all([
+        peerInterviewService.getUpcomingSessions(),
+        peerInterviewService.getPastSessions(),
+      ]);
       
-      // Convert to legacy format for compatibility
-      const legacySessions: PeerInterviewSession[] = sessions.map(s => ({
-        id: s.liveSession?.id || s.id,
-        status: (s.liveSession?.status || s.status) as any,
-        scheduledTime: s.scheduledStartAt,
-        duration: 60,
-        interviewType: s.interviewType,
-        practiceType: s.practiceType,
-        interviewLevel: s.interviewLevel,
-        createdAt: s.createdAt,
-        updatedAt: s.updatedAt,
-        interviewer: s.user,
-        interviewerId: s.userId,
-        interviewee: s.liveSession?.participants?.find(p => p.role === 'Interviewee')?.user,
-        intervieweeId: s.liveSession?.participants?.find(p => p.role === 'Interviewee')?.userId,
-        questionId: s.liveSession?.activeQuestionId,
-        question: s.liveSession?.activeQuestion,
-      }));
-      
-      const upcoming = legacySessions.filter(s => {
-        if (s.status === 'Cancelled') return false;
-        const scheduledTime = s.scheduledTime ? new Date(s.scheduledTime) : null;
-        return scheduledTime && scheduledTime > now;
-      }).sort((a, b) => {
+      // Convert to legacy format using helper function
+      const upcoming = upcomingSessions.map(convertToLegacySession).sort((a, b) => {
         const timeA = a.scheduledTime ? new Date(a.scheduledTime).getTime() : 0;
         const timeB = b.scheduledTime ? new Date(b.scheduledTime).getTime() : 0;
         return timeA - timeB;
       });
 
-      const past = legacySessions.filter(s => {
-        if (s.status === 'Cancelled') return false;
-        const scheduledTime = s.scheduledTime ? new Date(s.scheduledTime) : null;
-        return !scheduledTime || scheduledTime <= now || s.status === 'Completed';
-      }).sort((a, b) => {
+      const past = pastSessions.map(convertToLegacySession).sort((a, b) => {
         const timeA = a.scheduledTime ? new Date(a.scheduledTime).getTime() : 0;
         const timeB = b.scheduledTime ? new Date(b.scheduledTime).getTime() : 0;
         return timeB - timeA;
       });
+      console.log("past sessions: " , past);
 
       setUpcomingSessions(upcoming);
       setPastSessions(past);
@@ -904,7 +917,20 @@ const FindPeerPage: React.FC = () => {
 
   const getPartnerLabel = (session: PeerInterviewSession): string => {
     if (!user) return 'Partner';
-    return session.interviewerId === user.id ? 'Interviewee' : 'Interviewer';
+    
+    // If current user is the interviewer, show interviewee's name
+    if (session.interviewerId === user.id) {
+      if (session.interviewee) {
+        return `${session.interviewee.firstName} ${session.interviewee.lastName}`.trim() || session.interviewee.email || 'Interviewee';
+      }
+      return 'Interviewee';
+    }
+    
+    // If current user is the interviewee, show interviewer's name
+    if (session.interviewer) {
+      return `${session.interviewer.firstName} ${session.interviewer.lastName}`.trim() || session.interviewer.email || 'Interviewer';
+    }
+    return 'Interviewer';
   };
 
   const handleScheduleClick = () => {

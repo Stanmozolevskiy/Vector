@@ -84,6 +84,26 @@ public class PeerInterviewController : ControllerBase
     }
 
     /// <summary>
+    /// Get past scheduled sessions for the current user
+    /// </summary>
+    [HttpGet("scheduled/past")]
+    [ProducesResponseType(typeof(IEnumerable<ScheduledInterviewSessionDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPastSessions()
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            var sessions = await _peerInterviewService.GetPastSessionsAsync(userId);
+            return Ok(sessions);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting past sessions");
+            return StatusCode(500, new { message = "Failed to get past sessions", error = ex.Message });
+        }
+    }
+
+    /// <summary>
     /// Get a scheduled session by ID
     /// </summary>
     [HttpGet("scheduled/{sessionId}")]

@@ -851,6 +851,70 @@ public class PeerInterviewService : IPeerInterviewService
         return await MapToFeedbackDtoAsync(feedback);
     }
 
+    public async Task<FeedbackStatusDto> GetFeedbackStatusAsync(Guid sessionId, Guid userId)
+    {
+        // Verify user is a participant
+        var session = await _context.LiveInterviewSessions
+            .Include(s => s.Participants)
+                .ThenInclude(p => p.User)
+            .FirstOrDefaultAsync(s => s.Id == sessionId);
+
+        if (session == null)
+        {
+            throw new KeyNotFoundException("Session not found.");
+        }
+
+        var participant = session.Participants.FirstOrDefault(p => p.UserId == userId);
+        if (participant == null)
+        {
+            throw new UnauthorizedAccessException("User is not a participant in this session.");
+        }
+
+        // Find the opponent (the other participant)
+        var opponent = session.Participants.FirstOrDefault(p => p.UserId != userId);
+        if (opponent == null)
+        {
+            throw new InvalidOperationException("Opponent not found in session.");
+        }
+
+        // Check if current user has submitted feedback for opponent
+        var userFeedbackForOpponent = await _context.InterviewFeedbacks
+            .FirstOrDefaultAsync(f => f.LiveSessionId == sessionId 
+                && f.ReviewerId == userId 
+                && f.RevieweeId == opponent.UserId);
+
+        // Check if opponent has submitted feedback for current user
+        var opponentFeedbackForUser = await _context.InterviewFeedbacks
+            .Include(f => f.Reviewer)
+            .Include(f => f.Reviewee)
+            .FirstOrDefaultAsync(f => f.LiveSessionId == sessionId 
+                && f.ReviewerId == opponent.UserId 
+                && f.RevieweeId == userId);
+
+        var status = new FeedbackStatusDto
+        {
+            HasUserSubmittedFeedback = userFeedbackForOpponent != null,
+            HasOpponentSubmittedFeedback = opponentFeedbackForUser != null,
+            OpponentId = opponent.UserId,
+            LiveSessionId = sessionId,
+            Opponent = opponent.User != null ? new UserDto
+            {
+                Id = opponent.User.Id,
+                FirstName = opponent.User.FirstName,
+                LastName = opponent.User.LastName,
+                Email = opponent.User.Email
+            } : null
+        };
+
+        // If opponent has submitted feedback, include it
+        if (opponentFeedbackForUser != null)
+        {
+            status.OpponentFeedback = await MapToFeedbackDtoAsync(opponentFeedbackForUser);
+        }
+
+        return status;
+    }
+
     // Private helper methods
     // SIMPLIFIED: Match 2 users from queue, IMMEDIATELY create live session with questions and roles
     private async Task<bool> TryMatchAsync(InterviewMatchingRequest request)

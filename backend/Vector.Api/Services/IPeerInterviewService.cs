@@ -30,5 +30,6 @@ public interface IPeerInterviewService
     Task<InterviewFeedbackDto> SubmitFeedbackAsync(Guid userId, SubmitFeedbackDto dto);
     Task<IEnumerable<InterviewFeedbackDto>> GetFeedbackForSessionAsync(Guid sessionId, Guid userId);
     Task<InterviewFeedbackDto?> GetFeedbackAsync(Guid feedbackId, Guid userId);
+    Task<FeedbackStatusDto> GetFeedbackStatusAsync(Guid sessionId, Guid userId);
 }
 

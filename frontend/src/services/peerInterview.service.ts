@@ -177,6 +177,15 @@ export interface InterviewFeedback {
   reviewee?: UserDto;
 }
 
+export interface FeedbackStatus {
+  hasUserSubmittedFeedback: boolean;
+  hasOpponentSubmittedFeedback: boolean;
+  opponent?: UserDto;
+  opponentId?: string;
+  liveSessionId: string;
+  opponentFeedback?: InterviewFeedback;
+}
+
 // Legacy request interfaces (deprecated but kept for compatibility)
 export interface FindMatchRequest {
   preferredDifficulty?: string;
@@ -415,6 +424,14 @@ export const peerInterviewService = {
    */
   async getFeedback(feedbackId: string): Promise<InterviewFeedback> {
     const response = await api.get<InterviewFeedback>(`/peer-interviews/feedback/${feedbackId}`);
+    return response.data;
+  },
+
+  /**
+   * Get feedback status for a session (check if user and opponent have submitted feedback)
+   */
+  async getFeedbackStatus(sessionId: string): Promise<FeedbackStatus> {
+    const response = await api.get<FeedbackStatus>(`/peer-interviews/sessions/${sessionId}/feedback-status`);
     return response.data;
   },
 

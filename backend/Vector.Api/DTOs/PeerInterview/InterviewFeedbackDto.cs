@@ -95,3 +95,39 @@ public class InterviewFeedbackDto
     public UserDto? Reviewee { get; set; }
 }
 
+/// <summary>
+/// DTO for feedback status check
+/// </summary>
+public class FeedbackStatusDto
+{
+    /// <summary>
+    /// Whether the current user has submitted feedback for their opponent
+    /// </summary>
+    public bool HasUserSubmittedFeedback { get; set; }
+    
+    /// <summary>
+    /// Whether the opponent has submitted feedback for the current user
+    /// </summary>
+    public bool HasOpponentSubmittedFeedback { get; set; }
+    
+    /// <summary>
+    /// The opponent's user information
+    /// </summary>
+    public UserDto? Opponent { get; set; }
+    
+    /// <summary>
+    /// The opponent's ID
+    /// </summary>
+    public Guid? OpponentId { get; set; }
+    
+    /// <summary>
+    /// The live session ID
+    /// </summary>
+    public Guid LiveSessionId { get; set; }
+    
+    /// <summary>
+    /// Feedback left by opponent for the current user (if available)
+    /// </summary>
+    public InterviewFeedbackDto? OpponentFeedback { get; set; }
+}
+

@@ -5,6 +5,8 @@ import { Navbar } from '../../components/layout/Navbar';
 import { peerInterviewService } from '../../services/peerInterview.service';
 import type { PeerInterviewSession, ScheduledInterviewSession } from '../../services/peerInterview.service';
 import { FeedbackView, type FeedbackData } from '../../components/FeedbackView';
+import { FeedbackForm } from '../../components/FeedbackForm';
+import { NoFeedbackView } from '../../components/NoFeedbackView';
 import { InterviewSurvey } from '../../components/InterviewSurvey';
 import { ROUTES } from '../../utils/constants';
 import '../../styles/find-peer.css';
@@ -50,9 +52,12 @@ const FindPeerPage: React.FC = () => {
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [scheduledSession, setScheduledSession] = useState<PeerInterviewSession | null>(null);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [showFeedbackForm, setShowFeedbackForm] = useState(false);
+  const [showNoFeedback, setShowNoFeedback] = useState(false);
   const [selectedSessionForFeedback, setSelectedSessionForFeedback] = useState<PeerInterviewSession | null>(null);
   const [feedbackData, setFeedbackData] = useState<FeedbackData | null>(null);
   const [loadingFeedback, setLoadingFeedback] = useState(false);
+  const [feedbackStatus, setFeedbackStatus] = useState<any>(null);
   const [showMatchingModal, setShowMatchingModal] = useState(false);
   const [matchingStatus, setMatchingStatus] = useState<any>(null);
   const [matchingPollInterval, setMatchingPollInterval] = useState<ReturnType<typeof setInterval> | null>(null);
@@ -1364,20 +1369,27 @@ const FindPeerPage: React.FC = () => {
                       <button 
                         className="btn-view-feedback"
                         onClick={async () => {
-                          // Check if survey is completed
-                          const surveyCompleted = localStorage.getItem(`survey_completed_${session.id}`);
-                          if (!surveyCompleted) {
-                            // Show survey instead of feedback
-                            setSurveySessionId(session.id);
-                            setShowSurvey(true);
-                          } else {
-                            // Try to fetch feedback from backend
-                            setLoadingFeedback(true);
-                            try {
-                              const feedbacks = await peerInterviewService.getSessionFeedback(session.id);
-                              if (feedbacks && feedbacks.length > 0) {
-                                // Convert backend feedback to frontend format
-                                const feedback = feedbacks[0]; // Should only be one feedback for this user
+                          if (!session.liveSessionId) {
+                            alert('Session not found');
+                            return;
+                          }
+
+                          setLoadingFeedback(true);
+                          setSelectedSessionForFeedback(session);
+                          
+                          try {
+                            // Get feedback status
+                            const status = await peerInterviewService.getFeedbackStatus(session.liveSessionId);
+                            setFeedbackStatus(status);
+
+                            // If user hasn't submitted feedback for opponent, show feedback form
+                            if (!status.hasUserSubmittedFeedback) {
+                              setShowFeedbackForm(true);
+                            } else {
+                              // User has submitted feedback, check if opponent has left feedback
+                              if (status.hasOpponentSubmittedFeedback && status.opponentFeedback) {
+                                // Show opponent's feedback
+                                const feedback = status.opponentFeedback;
                                 const feedbackFormatted: FeedbackData = {
                                   interviewType: session.interviewType || 'Data Structures & Algorithms',
                                   date: session.scheduledTime 
@@ -1407,30 +1419,22 @@ const FindPeerPage: React.FC = () => {
                                   }
                                 };
                                 setFeedbackData(feedbackFormatted);
-                                setSelectedSessionForFeedback(session);
                                 setShowFeedbackModal(true);
                               } else {
-                                // No feedback yet, show survey
-                                setSurveySessionId(session.id);
-                                setShowSurvey(true);
+                                // Opponent hasn't left feedback yet
+                                setShowNoFeedback(true);
                               }
-                            } catch (error: any) {
-                              // If error (e.g., no feedback), show survey
-                              if (error?.response?.status === 404 || error?.response?.data?.message?.includes('not found')) {
-                                setSurveySessionId(session.id);
-                                setShowSurvey(true);
-                              } else {
-                                console.error('Error loading feedback:', error);
-                                alert('Failed to load feedback. Please try again.');
-                              }
-                            } finally {
-                              setLoadingFeedback(false);
                             }
+                          } catch (error: any) {
+                            console.error('Error loading feedback status:', error);
+                            alert('Failed to load feedback. Please try again.');
+                          } finally {
+                            setLoadingFeedback(false);
                           }
                         }}
                         disabled={loadingFeedback}
                       >
-                        {loadingFeedback ? 'Loading...' : (localStorage.getItem(`survey_completed_${session.id}`) ? 'View feedback' : 'Complete survey')}
+                        {loadingFeedback ? 'Loading...' : 'View feedback'}
                       </button>
                     </td>
                   </tr>
@@ -1706,6 +1710,99 @@ const FindPeerPage: React.FC = () => {
             setShowFeedbackModal(false);
             setSelectedSessionForFeedback(null);
             setFeedbackData(null);
+            setFeedbackStatus(null);
+          }}
+        />
+      )}
+
+      {/* Feedback Form Modal */}
+      {showFeedbackForm && selectedSessionForFeedback && feedbackStatus && (
+        <FeedbackForm
+          liveSessionId={selectedSessionForFeedback.liveSessionId!}
+          opponentId={feedbackStatus.opponentId!}
+          opponentName={feedbackStatus.opponent ? `${feedbackStatus.opponent.firstName} ${feedbackStatus.opponent.lastName}` : undefined}
+          interviewType={selectedSessionForFeedback.interviewType}
+          date={selectedSessionForFeedback.scheduledTime 
+            ? new Date(selectedSessionForFeedback.scheduledTime).toLocaleDateString('en-US', { 
+                month: 'long', 
+                day: 'numeric', 
+                year: 'numeric' 
+              })
+            : undefined}
+          onComplete={async () => {
+            setShowFeedbackForm(false);
+            // After submitting feedback, check if opponent has left feedback
+            if (selectedSessionForFeedback.liveSessionId) {
+              try {
+                const status = await peerInterviewService.getFeedbackStatus(selectedSessionForFeedback.liveSessionId);
+                if (status.hasOpponentSubmittedFeedback && status.opponentFeedback) {
+                  // Show opponent's feedback
+                  const feedback = status.opponentFeedback;
+                  const feedbackFormatted: FeedbackData = {
+                    interviewType: selectedSessionForFeedback.interviewType || 'Data Structures & Algorithms',
+                    date: selectedSessionForFeedback.scheduledTime 
+                      ? new Date(selectedSessionForFeedback.scheduledTime).toLocaleDateString('en-US', { 
+                          month: 'long', 
+                          day: 'numeric', 
+                          year: 'numeric' 
+                        })
+                      : 'Unknown date',
+                    problemSolving: {
+                      rating: feedback.problemSolvingRating || 0,
+                      description: feedback.problemSolvingDescription || ''
+                    },
+                    codingSkills: {
+                      rating: feedback.codingSkillsRating || 0,
+                      description: feedback.codingSkillsDescription || ''
+                    },
+                    communication: {
+                      rating: feedback.communicationRating || 0,
+                      description: feedback.communicationDescription || ''
+                    },
+                    thingsDoneWell: feedback.thingsDidWell || '',
+                    areasForImprovement: feedback.areasForImprovement || '',
+                    interviewerPerformance: {
+                      rating: feedback.interviewerPerformanceRating || 0,
+                      description: feedback.interviewerPerformanceDescription || ''
+                    }
+                  };
+                  setFeedbackData(feedbackFormatted);
+                  setShowFeedbackModal(true);
+                } else {
+                  // Opponent hasn't left feedback yet
+                  setShowNoFeedback(true);
+                }
+              } catch (error) {
+                console.error('Error checking feedback status after submission:', error);
+                setShowNoFeedback(true);
+              }
+            }
+            setSelectedSessionForFeedback(null);
+            setFeedbackStatus(null);
+          }}
+          onCancel={() => {
+            setShowFeedbackForm(false);
+            setSelectedSessionForFeedback(null);
+            setFeedbackStatus(null);
+          }}
+        />
+      )}
+
+      {/* No Feedback View */}
+      {showNoFeedback && selectedSessionForFeedback && (
+        <NoFeedbackView
+          interviewType={selectedSessionForFeedback.interviewType}
+          date={selectedSessionForFeedback.scheduledTime 
+            ? new Date(selectedSessionForFeedback.scheduledTime).toLocaleDateString('en-US', { 
+                month: 'long', 
+                day: 'numeric', 
+                year: 'numeric' 
+              })
+            : undefined}
+          onClose={() => {
+            setShowNoFeedback(false);
+            setSelectedSessionForFeedback(null);
+            setFeedbackStatus(null);
           }}
         />
       )}

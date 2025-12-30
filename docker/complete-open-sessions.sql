@@ -16,3 +16,4 @@ SELECT COUNT(*) as completed_participants FROM "UserSessionParticipants" WHERE "
 
 
 
+

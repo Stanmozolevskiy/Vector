@@ -3376,4 +3376,271 @@ public class PeerInterviewServiceTests : IDisposable
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             _service.GetLiveSessionByIdAsync(liveSession.Id, userId3));
     }
+
+    [Fact]
+    public async Task GetFeedbackStatusAsync_WithNoFeedback_ReturnsStatusWithNoFeedback()
+    {
+        // Arrange
+        var userId1 = Guid.NewGuid();
+        var userId2 = Guid.NewGuid();
+        var user1 = new User { Id = userId1, Email = "user1@example.com", FirstName = "User", LastName = "One" };
+        var user2 = new User { Id = userId2, Email = "user2@example.com", FirstName = "User", LastName = "Two" };
+        await _context.Users.AddRangeAsync(user1, user2);
+
+        var liveSession = new LiveInterviewSession
+        {
+            Id = Guid.NewGuid(),
+            Status = "Completed",
+            StartedAt = DateTime.UtcNow.AddHours(-1),
+            EndedAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _context.LiveInterviewSessions.AddAsync(liveSession);
+
+        var participant1 = new LiveInterviewParticipant
+        {
+            LiveSessionId = liveSession.Id,
+            UserId = userId1,
+            Role = "Interviewer",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        var participant2 = new LiveInterviewParticipant
+        {
+            LiveSessionId = liveSession.Id,
+            UserId = userId2,
+            Role = "Interviewee",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _context.LiveInterviewParticipants.AddRangeAsync(participant1, participant2);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _service.GetFeedbackStatusAsync(liveSession.Id, userId1);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.False(result.HasUserSubmittedFeedback);
+        Assert.False(result.HasOpponentSubmittedFeedback);
+        Assert.NotNull(result.OpponentId);
+        Assert.Equal(userId2, result.OpponentId);
+        Assert.Equal(liveSession.Id, result.LiveSessionId);
+        Assert.NotNull(result.Opponent);
+        Assert.Equal(user2.Id, result.Opponent!.Id);
+        Assert.Null(result.OpponentFeedback);
+    }
+
+    [Fact]
+    public async Task GetFeedbackStatusAsync_WithUserSubmittedFeedback_ReturnsStatusWithUserFeedback()
+    {
+        // Arrange
+        var userId1 = Guid.NewGuid();
+        var userId2 = Guid.NewGuid();
+        var user1 = new User { Id = userId1, Email = "user1@example.com" };
+        var user2 = new User { Id = userId2, Email = "user2@example.com" };
+        await _context.Users.AddRangeAsync(user1, user2);
+
+        var liveSession = new LiveInterviewSession
+        {
+            Id = Guid.NewGuid(),
+            Status = "Completed",
+            StartedAt = DateTime.UtcNow.AddHours(-1),
+            EndedAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _context.LiveInterviewSessions.AddAsync(liveSession);
+
+        var participant1 = new LiveInterviewParticipant
+        {
+            LiveSessionId = liveSession.Id,
+            UserId = userId1,
+            Role = "Interviewer",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        var participant2 = new LiveInterviewParticipant
+        {
+            LiveSessionId = liveSession.Id,
+            UserId = userId2,
+            Role = "Interviewee",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _context.LiveInterviewParticipants.AddRangeAsync(participant1, participant2);
+
+        // User1 submits feedback for User2
+        var feedback = new InterviewFeedback
+        {
+            LiveSessionId = liveSession.Id,
+            ReviewerId = userId1,
+            RevieweeId = userId2,
+            ProblemSolvingRating = 5,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _context.InterviewFeedbacks.AddAsync(feedback);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _service.GetFeedbackStatusAsync(liveSession.Id, userId1);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.True(result.HasUserSubmittedFeedback);
+        Assert.False(result.HasOpponentSubmittedFeedback);
+        Assert.Equal(userId2, result.OpponentId);
+        Assert.Null(result.OpponentFeedback);
+    }
+
+    [Fact]
+    public async Task GetFeedbackStatusAsync_WithBothSubmittedFeedback_ReturnsStatusWithOpponentFeedback()
+    {
+        // Arrange
+        var userId1 = Guid.NewGuid();
+        var userId2 = Guid.NewGuid();
+        var user1 = new User { Id = userId1, Email = "user1@example.com" };
+        var user2 = new User { Id = userId2, Email = "user2@example.com" };
+        await _context.Users.AddRangeAsync(user1, user2);
+
+        var liveSession = new LiveInterviewSession
+        {
+            Id = Guid.NewGuid(),
+            Status = "Completed",
+            StartedAt = DateTime.UtcNow.AddHours(-1),
+            EndedAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _context.LiveInterviewSessions.AddAsync(liveSession);
+
+        var participant1 = new LiveInterviewParticipant
+        {
+            LiveSessionId = liveSession.Id,
+            UserId = userId1,
+            Role = "Interviewer",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        var participant2 = new LiveInterviewParticipant
+        {
+            LiveSessionId = liveSession.Id,
+            UserId = userId2,
+            Role = "Interviewee",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _context.LiveInterviewParticipants.AddRangeAsync(participant1, participant2);
+
+        // User1 submits feedback for User2
+        var feedback1 = new InterviewFeedback
+        {
+            LiveSessionId = liveSession.Id,
+            ReviewerId = userId1,
+            RevieweeId = userId2,
+            ProblemSolvingRating = 5,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        // User2 submits feedback for User1
+        var feedback2 = new InterviewFeedback
+        {
+            LiveSessionId = liveSession.Id,
+            ReviewerId = userId2,
+            RevieweeId = userId1,
+            ProblemSolvingRating = 4,
+            CodingSkillsRating = 5,
+            CommunicationRating = 4,
+            ThingsDidWell = "Great problem-solving approach",
+            AreasForImprovement = "Could improve time management",
+            InterviewerPerformanceRating = 5,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _context.InterviewFeedbacks.AddRangeAsync(feedback1, feedback2);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _service.GetFeedbackStatusAsync(liveSession.Id, userId1);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.True(result.HasUserSubmittedFeedback);
+        Assert.True(result.HasOpponentSubmittedFeedback);
+        Assert.NotNull(result.OpponentFeedback);
+        Assert.Equal(feedback2.Id, result.OpponentFeedback!.Id);
+        Assert.Equal(userId2, result.OpponentFeedback.ReviewerId);
+        Assert.Equal(userId1, result.OpponentFeedback.RevieweeId);
+        Assert.Equal(4, result.OpponentFeedback.ProblemSolvingRating);
+        Assert.Equal("Great problem-solving approach", result.OpponentFeedback.ThingsDidWell);
+    }
+
+    [Fact]
+    public async Task GetFeedbackStatusAsync_WithInvalidSession_ThrowsKeyNotFoundException()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var invalidSessionId = Guid.NewGuid();
+
+        // Act & Assert
+        await Assert.ThrowsAsync<KeyNotFoundException>(() =>
+            _service.GetFeedbackStatusAsync(invalidSessionId, userId));
+    }
+
+    [Fact]
+    public async Task GetFeedbackStatusAsync_WithUserNotInSession_ThrowsUnauthorizedAccessException()
+    {
+        // Arrange
+        var userId1 = Guid.NewGuid();
+        var userId2 = Guid.NewGuid();
+        var userId3 = Guid.NewGuid();
+        var user1 = new User { Id = userId1, Email = "user1@example.com" };
+        var user2 = new User { Id = userId2, Email = "user2@example.com" };
+        var user3 = new User { Id = userId3, Email = "user3@example.com" };
+        await _context.Users.AddRangeAsync(user1, user2, user3);
+
+        var liveSession = new LiveInterviewSession
+        {
+            Id = Guid.NewGuid(),
+            Status = "Completed",
+            StartedAt = DateTime.UtcNow.AddHours(-1),
+            EndedAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _context.LiveInterviewSessions.AddAsync(liveSession);
+
+        var participant1 = new LiveInterviewParticipant
+        {
+            LiveSessionId = liveSession.Id,
+            UserId = userId1,
+            Role = "Interviewer",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        var participant2 = new LiveInterviewParticipant
+        {
+            LiveSessionId = liveSession.Id,
+            UserId = userId2,
+            Role = "Interviewee",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _context.LiveInterviewParticipants.AddRangeAsync(participant1, participant2);
+        await _context.SaveChangesAsync();
+
+        // Act & Assert
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            _service.GetFeedbackStatusAsync(liveSession.Id, userId3));
+    }
 }

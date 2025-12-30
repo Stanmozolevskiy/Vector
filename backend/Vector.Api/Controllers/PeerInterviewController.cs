@@ -533,5 +533,34 @@ public class PeerInterviewController : ControllerBase
             return StatusCode(500, new { message = "Failed to get feedback", error = ex.Message });
         }
     }
+
+    /// <summary>
+    /// Get feedback status for a session (check if user and opponent have submitted feedback)
+    /// </summary>
+    [HttpGet("sessions/{sessionId}/feedback-status")]
+    [ProducesResponseType(typeof(FeedbackStatusDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetFeedbackStatus(Guid sessionId)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            var status = await _peerInterviewService.GetFeedbackStatusAsync(sessionId, userId);
+            return Ok(status);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting feedback status");
+            return StatusCode(500, new { message = "Failed to get feedback status", error = ex.Message });
+        }
+    }
 }
 

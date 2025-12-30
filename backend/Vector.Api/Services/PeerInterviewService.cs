@@ -443,6 +443,20 @@ public class PeerInterviewService : IPeerInterviewService
         participant.Role = otherParticipant.Role;
         otherParticipant.Role = tempRole;
 
+        // Switch active question when roles are swapped
+        // If currently on FirstQuestionId, switch to SecondQuestionId and vice versa
+        if (session.FirstQuestionId.HasValue && session.SecondQuestionId.HasValue)
+        {
+            if (session.ActiveQuestionId == session.FirstQuestionId)
+            {
+                session.ActiveQuestionId = session.SecondQuestionId.Value;
+            }
+            else if (session.ActiveQuestionId == session.SecondQuestionId)
+            {
+                session.ActiveQuestionId = session.FirstQuestionId.Value;
+            }
+        }
+
         participant.UpdatedAt = DateTime.UtcNow;
         otherParticipant.UpdatedAt = DateTime.UtcNow;
         session.UpdatedAt = DateTime.UtcNow;
@@ -692,10 +706,12 @@ public class PeerInterviewService : IPeerInterviewService
             throw new UnauthorizedAccessException("User is not a participant in this session.");
         }
 
+        // Return only feedback ABOUT this user (where they are the reviewee)
+        // Each user should only see feedback left for them, not feedback they left for others
         var feedbacks = await _context.InterviewFeedbacks
             .Include(f => f.Reviewer)
             .Include(f => f.Reviewee)
-            .Where(f => f.LiveSessionId == sessionId)
+            .Where(f => f.LiveSessionId == sessionId && f.RevieweeId == userId)
             .ToListAsync();
 
         var dtos = new List<InterviewFeedbackDto>();

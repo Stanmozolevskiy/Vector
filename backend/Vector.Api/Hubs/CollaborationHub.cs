@@ -11,6 +11,8 @@ public class CollaborationHub : Hub
 {
     public async Task JoinSession(string sessionId)
     {
+        // Use sessionId directly as group name (no "session-" prefix)
+        // This matches the format used in the controller
         await Groups.AddToGroupAsync(Context.ConnectionId, sessionId);
     }
 

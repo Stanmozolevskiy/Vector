@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
 using Vector.Api.DTOs.PeerInterview;
+using Vector.Api.Hubs;
 using Vector.Api.Services;
 
 namespace Vector.Api.Controllers;
@@ -13,13 +15,16 @@ public class PeerInterviewController : ControllerBase
 {
     private readonly IPeerInterviewService _peerInterviewService;
     private readonly ILogger<PeerInterviewController> _logger;
+    private readonly IHubContext<CollaborationHub> _hubContext;
 
     public PeerInterviewController(
         IPeerInterviewService peerInterviewService,
-        ILogger<PeerInterviewController> logger)
+        ILogger<PeerInterviewController> logger,
+        IHubContext<CollaborationHub> hubContext)
     {
         _peerInterviewService = peerInterviewService;
         _logger = logger;
+        _hubContext = hubContext;
     }
 
     private Guid GetCurrentUserId()
@@ -298,6 +303,17 @@ public class PeerInterviewController : ControllerBase
         {
             var userId = GetCurrentUserId();
             var response = await _peerInterviewService.SwitchRolesAsync(sessionId, userId);
+            
+            // Send SignalR notification to other participants
+            // Note: We can't use Context.ConnectionId in a controller, so we send to all in the group
+            // The frontend will handle ignoring its own updates
+            var groupName = sessionId.ToString();
+            await _hubContext.Clients.Group(groupName).SendAsync("RoleSwitched", new
+            {
+                sessionId = sessionId.ToString(),
+                newActiveQuestionId = response.Session.ActiveQuestionId?.ToString()
+            });
+            
             return Ok(response);
         }
         catch (KeyNotFoundException ex)
@@ -334,6 +350,17 @@ public class PeerInterviewController : ControllerBase
             var userId = GetCurrentUserId();
             var newQuestionId = dto?.QuestionId;
             var response = await _peerInterviewService.ChangeQuestionAsync(sessionId, userId, newQuestionId);
+            
+            // Send SignalR notification to other participants
+            // Note: We can't use Context.ConnectionId in a controller, so we send to all in the group
+            // The frontend will handle ignoring its own updates
+            var groupName = sessionId.ToString();
+            await _hubContext.Clients.Group(groupName).SendAsync("QuestionChanged", new
+            {
+                sessionId = sessionId.ToString(),
+                questionId = response.Session.ActiveQuestionId?.ToString() ?? response.NewActiveQuestion?.Id.ToString()
+            });
+            
             return Ok(response);
         }
         catch (KeyNotFoundException ex)
@@ -367,6 +394,14 @@ public class PeerInterviewController : ControllerBase
         {
             var userId = GetCurrentUserId();
             var session = await _peerInterviewService.EndInterviewAsync(sessionId, userId);
+            
+            // Send SignalR notification to other participants
+            var groupName = sessionId.ToString();
+            await _hubContext.Clients.Group(groupName).SendAsync("InterviewEnded", new
+            {
+                sessionId = sessionId.ToString()
+            });
+            
             return Ok(session);
         }
         catch (KeyNotFoundException ex)

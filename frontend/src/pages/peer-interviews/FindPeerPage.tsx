@@ -51,6 +51,8 @@ const FindPeerPage: React.FC = () => {
   const [scheduledSession, setScheduledSession] = useState<PeerInterviewSession | null>(null);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [selectedSessionForFeedback, setSelectedSessionForFeedback] = useState<PeerInterviewSession | null>(null);
+  const [feedbackData, setFeedbackData] = useState<FeedbackData | null>(null);
+  const [loadingFeedback, setLoadingFeedback] = useState(false);
   const [showMatchingModal, setShowMatchingModal] = useState(false);
   const [matchingStatus, setMatchingStatus] = useState<any>(null);
   const [matchingPollInterval, setMatchingPollInterval] = useState<ReturnType<typeof setInterval> | null>(null);
@@ -1311,7 +1313,7 @@ const FindPeerPage: React.FC = () => {
                     <td>
                       <button 
                         className="btn-view-feedback"
-                        onClick={() => {
+                        onClick={async () => {
                           // Check if survey is completed
                           const surveyCompleted = localStorage.getItem(`survey_completed_${session.id}`);
                           if (!surveyCompleted) {
@@ -1319,13 +1321,66 @@ const FindPeerPage: React.FC = () => {
                             setSurveySessionId(session.id);
                             setShowSurvey(true);
                           } else {
-                            // Show feedback
-                            setSelectedSessionForFeedback(session);
-                            setShowFeedbackModal(true);
+                            // Try to fetch feedback from backend
+                            setLoadingFeedback(true);
+                            try {
+                              const feedbacks = await peerInterviewService.getSessionFeedback(session.id);
+                              if (feedbacks && feedbacks.length > 0) {
+                                // Convert backend feedback to frontend format
+                                const feedback = feedbacks[0]; // Should only be one feedback for this user
+                                const feedbackFormatted: FeedbackData = {
+                                  interviewType: session.interviewType || 'Data Structures & Algorithms',
+                                  date: session.scheduledTime 
+                                    ? new Date(session.scheduledTime).toLocaleDateString('en-US', { 
+                                        month: 'long', 
+                                        day: 'numeric', 
+                                        year: 'numeric' 
+                                      })
+                                    : 'Unknown date',
+                                  problemSolving: {
+                                    rating: feedback.problemSolvingRating || 0,
+                                    description: feedback.problemSolvingDescription || ''
+                                  },
+                                  codingSkills: {
+                                    rating: feedback.codingSkillsRating || 0,
+                                    description: feedback.codingSkillsDescription || ''
+                                  },
+                                  communication: {
+                                    rating: feedback.communicationRating || 0,
+                                    description: feedback.communicationDescription || ''
+                                  },
+                                  thingsDoneWell: feedback.thingsDidWell || '',
+                                  areasForImprovement: feedback.areasForImprovement || '',
+                                  interviewerPerformance: {
+                                    rating: feedback.interviewerPerformanceRating || 0,
+                                    description: feedback.interviewerPerformanceDescription || ''
+                                  }
+                                };
+                                setFeedbackData(feedbackFormatted);
+                                setSelectedSessionForFeedback(session);
+                                setShowFeedbackModal(true);
+                              } else {
+                                // No feedback yet, show survey
+                                setSurveySessionId(session.id);
+                                setShowSurvey(true);
+                              }
+                            } catch (error: any) {
+                              // If error (e.g., no feedback), show survey
+                              if (error?.response?.status === 404 || error?.response?.data?.message?.includes('not found')) {
+                                setSurveySessionId(session.id);
+                                setShowSurvey(true);
+                              } else {
+                                console.error('Error loading feedback:', error);
+                                alert('Failed to load feedback. Please try again.');
+                              }
+                            } finally {
+                              setLoadingFeedback(false);
+                            }
                           }
                         }}
+                        disabled={loadingFeedback}
                       >
-                        {localStorage.getItem(`survey_completed_${session.id}`) ? 'View feedback' : 'Complete survey'}
+                        {loadingFeedback ? 'Loading...' : (localStorage.getItem(`survey_completed_${session.id}`) ? 'View feedback' : 'Complete survey')}
                       </button>
                     </td>
                   </tr>
@@ -1594,12 +1649,13 @@ const FindPeerPage: React.FC = () => {
       )}
 
       {/* Feedback Modal */}
-      {showFeedbackModal && selectedSessionForFeedback && (
+      {showFeedbackModal && selectedSessionForFeedback && feedbackData && (
         <FeedbackView
-          feedback={generateFeedbackData(selectedSessionForFeedback)}
+          feedback={feedbackData}
           onClose={() => {
             setShowFeedbackModal(false);
             setSelectedSessionForFeedback(null);
+            setFeedbackData(null);
           }}
         />
       )}
@@ -1619,38 +1675,5 @@ const FindPeerPage: React.FC = () => {
   );
 };
 
-// Generate feedback data from session (template for all interviews)
-const generateFeedbackData = (session: PeerInterviewSession): FeedbackData => {
-  const date = session.scheduledTime 
-    ? new Date(session.scheduledTime).toLocaleDateString('en-US', { 
-        month: 'long', 
-        day: 'numeric', 
-        year: 'numeric' 
-      })
-    : 'Unknown date';
-
-  return {
-    interviewType: session.interviewType || 'Data Structures & Algorithms',
-    date: date,
-    problemSolving: {
-      rating: 4,
-      description: 'Demonstrated good problem-solving approach. Thought through the problem systematically and asked clarifying questions before jumping into code.'
-    },
-    codingSkills: {
-      rating: 4,
-      description: 'Solid coding skills with clean implementation. Code was well-structured and followed best practices. Minor improvements could be made in edge case handling.'
-    },
-    communication: {
-      rating: 5,
-      description: 'Excellent communication throughout the interview. Clearly explained thought process and reasoning. Engaged well with the problem and asked thoughtful questions.'
-    },
-    thingsDoneWell: 'Strong problem-solving approach, clear communication, and good code structure. Demonstrated understanding of data structures and algorithms.',
-    areasForImprovement: 'Consider practicing more edge cases and optimizing solutions further. Work on time complexity analysis and space optimization techniques.',
-    interviewerPerformance: {
-      rating: 5,
-      description: 'Great interview experience. The interviewer provided helpful hints when needed and created a supportive environment.'
-    }
-  };
-};
 
 export default FindPeerPage;

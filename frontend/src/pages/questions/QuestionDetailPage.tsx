@@ -177,13 +177,32 @@ export const QuestionDetailPage = () => {
         });
 
         // Listen for role switching
-        connection.on('RoleSwitched', async (data: { sessionId: string }) => {
+        connection.on('RoleSwitched', async (data: { sessionId: string; newActiveQuestionId?: string }) => {
           try {
             const updatedSession = await peerInterviewService.getSession(data.sessionId);
             setActiveSession(updatedSession);
-            if (updatedSession.questionId && updatedSession.questionId !== id) {
-              navigate(`${ROUTES.QUESTIONS}/${updatedSession.questionId}?session=${updatedSession.id}`, { replace: false });
+            
+            // If question changed (switched to second question), navigate to it and reload test cases
+            const newQuestionId = data.newActiveQuestionId || updatedSession.questionId || (updatedSession as any).activeQuestionId;
+            if (newQuestionId && newQuestionId !== id) {
+              // Reload question data and test cases for the new question
+              const [questionData, testCasesData] = await Promise.all([
+                questionService.getQuestionById(newQuestionId),
+                questionService.getTestCases(newQuestionId, false),
+              ]);
+              setQuestion(questionData);
+              setTestCases(testCasesData);
+              setTestCaseText('');
+              setTestResults([]);
+              setRunResult(null);
+              navigate(`${ROUTES.QUESTIONS}/${newQuestionId}?session=${data.sessionId}`, { replace: false });
             } else {
+              // Question didn't change, just reload test cases for current question
+              if (id) {
+                const testCasesData = await questionService.getTestCases(id, false);
+                setTestCases(testCasesData);
+              }
+              // Reload page to update role indicators
               window.location.reload();
             }
           } catch (error) {
@@ -196,9 +215,43 @@ export const QuestionDetailPage = () => {
           try {
             const updatedSession = await peerInterviewService.getSession(data.sessionId);
             setActiveSession(updatedSession);
+            
+            // Reload question data and test cases for the new question
+            const [questionData, testCasesData] = await Promise.all([
+              questionService.getQuestionById(data.questionId),
+              questionService.getTestCases(data.questionId, false),
+            ]);
+            setQuestion(questionData);
+            setTestCases(testCasesData);
+            setTestCaseText('');
+            setTestResults([]);
+            setRunResult(null);
+            
             navigate(`${ROUTES.QUESTIONS}/${data.questionId}?session=${data.sessionId}`, { replace: false });
           } catch (error) {
             console.error('Error navigating to new question:', error);
+          }
+        });
+
+        // Listen for interview ended event
+        connection.on('InterviewEnded', async (data: { sessionId: string }) => {
+          try {
+            // Clear timer
+            if (data.sessionId) {
+              localStorage.removeItem(`session_start_${data.sessionId}`);
+            }
+            setSessionStartTime(null);
+            setElapsedTime(0);
+            
+            // Show survey and navigate to feedback
+            setShowSurvey(true);
+            setActiveSession(null);
+            setShowPartnerVideo(false);
+            
+            // Navigate to peer interviews page to show feedback
+            navigate(ROUTES.FIND_PEER);
+          } catch (error) {
+            console.error('Error handling interview ended event:', error);
           }
         });
 

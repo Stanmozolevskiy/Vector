@@ -546,9 +546,10 @@ const FindPeerPage: React.FC = () => {
         const previousStatus = matchingStatus?.status;
         setMatchingStatus(status);
 
-        // Check if status changed from Pending/NoRequest to Matched (with live session)
+        // Check if status changed from Pending/NoRequest to Matched
         // Only play sound once per match
-        if (status?.status === 'Matched' && status?.liveSessionId && previousStatus !== 'Matched' && !matchSoundPlayedRef.current) {
+        // Note: liveSessionId will be null until both users confirm
+        if (status?.status === 'Matched' && previousStatus !== 'Matched' && !matchSoundPlayedRef.current) {
           // Match found with live session! Play sound effect (only once)
           playMatchSound();
           matchSoundPlayedRef.current = true;
@@ -569,13 +570,13 @@ const FindPeerPage: React.FC = () => {
         const remaining = Math.max(0, 600 - elapsed); // 10 minutes - elapsed
         setEstimatedTimeRemaining(remaining);
 
-        // SIMPLIFIED: Check if match is ready (both confirmed)
-        // In the new flow, LiveSessionId is set IMMEDIATELY when match is found (before confirmation)
-        // Status is 'Confirmed' when both users have confirmed
-        const hasLiveSession = status?.liveSessionId != null;
+        // Check if match is ready (both confirmed)
+        // In the new flow, LiveSessionId is set ONLY after both users confirm
+        // Status is 'Confirmed' when both users have confirmed and live session is created
         const isConfirmed = status?.status === 'Confirmed';
+        const hasLiveSession = status?.liveSessionId != null;
         
-        // Both confirmed if status is 'Confirmed' (backend sets this when both confirm)
+        // Both confirmed if status is 'Confirmed' and liveSessionId exists (backend creates session when both confirm)
         const bothConfirmed = isConfirmed && hasLiveSession;
         
         // Add logging to debug polling

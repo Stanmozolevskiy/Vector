@@ -749,18 +749,34 @@ public class PeerInterviewServiceTests : IDisposable
         var result2 = await _service.StartMatchingAsync(session2.Id, userId2);
         // Second user should be matched (matches with first user)
         Assert.True(result2.Matched);
-        Assert.NotNull(result2.Session);
+        // Session is not created until both users confirm
+        Assert.Null(result2.Session);
 
         // Refresh first user's matching status
         var status1 = await _service.GetMatchingStatusAsync(session1.Id, userId1);
         Assert.NotNull(status1);
         Assert.Equal("Matched", status1.Status);
 
+        // Get matching requests to confirm
+        var request1 = await _context.InterviewMatchingRequests
+            .FirstOrDefaultAsync(r => r.UserId == userId1 && r.Status == "Matched");
+        var request2 = await _context.InterviewMatchingRequests
+            .FirstOrDefaultAsync(r => r.UserId == userId2 && r.Status == "Matched");
+        
+        Assert.NotNull(request1);
+        Assert.NotNull(request2);
+
+        // Both users confirm to create live session
+        await _service.ConfirmMatchAsync(request1!.Id, userId1);
+        var confirm2 = await _service.ConfirmMatchAsync(request2!.Id, userId2);
+        Assert.True(confirm2.Completed);
+        Assert.NotNull(confirm2.Session);
+
         // Verify live session uses both assigned questions
         var liveSession = await _context.LiveInterviewSessions
             .Include(ls => ls.FirstQuestion)
             .Include(ls => ls.SecondQuestion)
-            .FirstOrDefaultAsync(ls => ls.Id == result2.Session!.Id);
+            .FirstOrDefaultAsync(ls => ls.Id == confirm2.Session!.Id);
         Assert.NotNull(liveSession);
         Assert.NotNull(liveSession.FirstQuestionId);
         Assert.NotNull(liveSession.SecondQuestionId);
@@ -844,13 +860,29 @@ public class PeerInterviewServiceTests : IDisposable
         var result2 = await _service.StartMatchingAsync(session2.Id, userId2);
         // Second user should be matched (matches with first user)
         Assert.True(result2.Matched);
-        Assert.NotNull(result2.Session);
+        // Session is not created until both users confirm
+        Assert.Null(result2.Session);
+
+        // Get matching requests to confirm
+        var request1 = await _context.InterviewMatchingRequests
+            .FirstOrDefaultAsync(r => r.UserId == userId1 && r.Status == "Matched");
+        var request2 = await _context.InterviewMatchingRequests
+            .FirstOrDefaultAsync(r => r.UserId == userId2 && r.Status == "Matched");
+        
+        Assert.NotNull(request1);
+        Assert.NotNull(request2);
+
+        // Both users confirm to create live session
+        await _service.ConfirmMatchAsync(request1!.Id, userId1);
+        var confirm2 = await _service.ConfirmMatchAsync(request2!.Id, userId2);
+        Assert.True(confirm2.Completed);
+        Assert.NotNull(confirm2.Session);
 
         // Verify live session has different questions
         var liveSession = await _context.LiveInterviewSessions
             .Include(ls => ls.FirstQuestion)
             .Include(ls => ls.SecondQuestion)
-            .FirstOrDefaultAsync(ls => ls.Id == result2.Session!.Id);
+            .FirstOrDefaultAsync(ls => ls.Id == confirm2.Session!.Id);
         Assert.NotNull(liveSession);
         Assert.NotNull(liveSession.FirstQuestionId);
         Assert.NotNull(liveSession.SecondQuestionId);
@@ -1130,39 +1162,21 @@ public class PeerInterviewServiceTests : IDisposable
         await _context.InterviewQuestions.AddRangeAsync(question1, question2);
         await _context.SaveChangesAsync();
 
-        var liveSession = new LiveInterviewSession
+        var session2 = new ScheduledInterviewSession
         {
-            Id = Guid.NewGuid(),
-            ScheduledSessionId = session1.Id,
-            FirstQuestionId = question1.Id,
-            SecondQuestionId = question2.Id,
-            ActiveQuestionId = question1.Id,
-            Status = "Pending",
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
-        await _context.LiveInterviewSessions.AddAsync(liveSession);
-
-        var participant1 = new LiveInterviewParticipant
-        {
-            LiveSessionId = liveSession.Id,
-            UserId = userId1,
-            Role = "Interviewer",
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
-        var participant2 = new LiveInterviewParticipant
-        {
-            LiveSessionId = liveSession.Id,
             UserId = userId2,
-            Role = "Interviewee",
-            IsActive = true,
+            InterviewType = "data-structures-algorithms",
+            PracticeType = "peers",
+            InterviewLevel = "beginner",
+            ScheduledStartAt = DateTime.UtcNow.AddHours(1),
+            Status = "Scheduled",
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
-        await _context.LiveInterviewParticipants.AddRangeAsync(participant1, participant2);
+        await _context.ScheduledInterviewSessions.AddAsync(session2);
+        await _context.SaveChangesAsync();
 
+        // Note: LiveSession is NOT created until both users confirm
         var matchingRequest1 = new InterviewMatchingRequest
         {
             UserId = userId1,
@@ -1173,7 +1187,7 @@ public class PeerInterviewServiceTests : IDisposable
             ScheduledStartAt = session1.ScheduledStartAt,
             Status = "Matched",
             MatchedUserId = userId2,
-            LiveSessionId = liveSession.Id,
+            LiveSessionId = null, // Will be set when both confirm
             UserConfirmed = false,
             ExpiresAt = DateTime.UtcNow.AddMinutes(10),
             CreatedAt = DateTime.UtcNow,
@@ -1182,14 +1196,14 @@ public class PeerInterviewServiceTests : IDisposable
         var matchingRequest2 = new InterviewMatchingRequest
         {
             UserId = userId2,
-            ScheduledSessionId = session1.Id,
+            ScheduledSessionId = session2.Id,
             InterviewType = "data-structures-algorithms",
             PracticeType = "peers",
             InterviewLevel = "beginner",
-            ScheduledStartAt = session1.ScheduledStartAt,
+            ScheduledStartAt = session2.ScheduledStartAt,
             Status = "Matched",
             MatchedUserId = userId1,
-            LiveSessionId = liveSession.Id,
+            LiveSessionId = null, // Will be set when both confirm
             UserConfirmed = false,
             ExpiresAt = DateTime.UtcNow.AddMinutes(10),
             CreatedAt = DateTime.UtcNow,
@@ -1208,10 +1222,22 @@ public class PeerInterviewServiceTests : IDisposable
         // Assert
         Assert.True(result2.Completed);
         Assert.NotNull(result2.Session);
-        var sessionInDb = await _context.LiveInterviewSessions.FindAsync(liveSession.Id);
+        
+        // Verify live session was created with InProgress status
+        var request1InDb = await _context.InterviewMatchingRequests.FindAsync(matchingRequest1.Id);
+        var request2InDb = await _context.InterviewMatchingRequests.FindAsync(matchingRequest2.Id);
+        Assert.NotNull(request1InDb?.LiveSessionId);
+        Assert.NotNull(request2InDb?.LiveSessionId);
+        Assert.Equal(request1InDb.LiveSessionId, request2InDb.LiveSessionId);
+        
+        var sessionInDb = await _context.LiveInterviewSessions.FindAsync(request1InDb.LiveSessionId);
         Assert.NotNull(sessionInDb);
-        Assert.Equal("InProgress", sessionInDb.Status);
+        Assert.Equal("InProgress", sessionInDb.Status); // Should be InProgress immediately
         Assert.NotNull(sessionInDb.StartedAt);
+        
+        // Verify both requests are confirmed
+        Assert.Equal("Confirmed", request1InDb.Status);
+        Assert.Equal("Confirmed", request2InDb.Status);
     }
 
     [Fact]
@@ -1375,6 +1401,26 @@ public class PeerInterviewServiceTests : IDisposable
         await _context.ScheduledInterviewSessions.AddAsync(session);
         await _context.SaveChangesAsync();
 
+        // Create a matched pair (need both users for expiration logic)
+        var userId2 = Guid.NewGuid();
+        var user2 = new User { Id = userId2, Email = "user2@example.com" };
+        await _context.Users.AddAsync(user2);
+        await _context.SaveChangesAsync();
+
+        var session2 = new ScheduledInterviewSession
+        {
+            UserId = userId2,
+            InterviewType = "data-structures-algorithms",
+            PracticeType = "peers",
+            InterviewLevel = "beginner",
+            ScheduledStartAt = DateTime.UtcNow.AddHours(1),
+            Status = "Scheduled",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        await _context.ScheduledInterviewSessions.AddAsync(session2);
+        await _context.SaveChangesAsync();
+
         var matchingRequest = new InterviewMatchingRequest
         {
             UserId = userId,
@@ -1384,21 +1430,49 @@ public class PeerInterviewServiceTests : IDisposable
             InterviewLevel = "beginner",
             ScheduledStartAt = session.ScheduledStartAt,
             Status = "Matched",
+            MatchedUserId = userId2,
+            UserConfirmed = false,
             ExpiresAt = DateTime.UtcNow.AddMinutes(-1), // Expired
             CreatedAt = DateTime.UtcNow.AddMinutes(-20),
             UpdatedAt = DateTime.UtcNow.AddSeconds(-20) // Updated more than 15 seconds ago
         };
-        await _context.InterviewMatchingRequests.AddAsync(matchingRequest);
+        var matchingRequest2 = new InterviewMatchingRequest
+        {
+            UserId = userId2,
+            ScheduledSessionId = session2.Id,
+            InterviewType = "data-structures-algorithms",
+            PracticeType = "peers",
+            InterviewLevel = "beginner",
+            ScheduledStartAt = session2.ScheduledStartAt,
+            Status = "Matched",
+            MatchedUserId = userId,
+            UserConfirmed = false,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(-1),
+            CreatedAt = DateTime.UtcNow.AddMinutes(-20),
+            UpdatedAt = DateTime.UtcNow.AddSeconds(-20)
+        };
+        await _context.InterviewMatchingRequests.AddRangeAsync(matchingRequest, matchingRequest2);
         await _context.SaveChangesAsync();
 
         // Act
         var result = await _service.ExpireMatchIfNotConfirmedAsync(matchingRequest.Id, userId);
 
-        // Assert
+        // Assert - Neither user confirmed, so both should be Expired and new requests created
         Assert.True(result);
-        var requestInDb = await _context.InterviewMatchingRequests.FindAsync(matchingRequest.Id);
-        Assert.NotNull(requestInDb);
-        Assert.Equal("Pending", requestInDb.Status); // Status is set back to Pending, not Expired
+        await _context.Entry(matchingRequest).ReloadAsync();
+        await _context.Entry(matchingRequest2).ReloadAsync();
+        
+        Assert.Equal("Expired", matchingRequest.Status);
+        Assert.Equal("Expired", matchingRequest2.Status);
+        
+        // Verify new requests were created
+        var newRequest1 = await _context.InterviewMatchingRequests
+            .FirstOrDefaultAsync(r => r.UserId == userId && r.Status == "Pending" && r.Id != matchingRequest.Id);
+        var newRequest2 = await _context.InterviewMatchingRequests
+            .FirstOrDefaultAsync(r => r.UserId == userId2 && r.Status == "Pending" && r.Id != matchingRequest2.Id);
+        
+        Assert.NotNull(newRequest1);
+        Assert.NotNull(newRequest2);
     }
 
     [Fact]

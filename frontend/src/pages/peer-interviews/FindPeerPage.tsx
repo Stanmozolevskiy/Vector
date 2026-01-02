@@ -709,7 +709,14 @@ const FindPeerPage: React.FC = () => {
           }
         } else if (!status || status.status === 'Pending' || status.status === 'Expired') {
           // Still waiting, continue polling
+          // Log queue status for debugging
+          if (!status) {
+            console.log('POLLING: No matching request found (may be creating new request after expiration, waiting for match...)');
+          } else {
+            console.log(`POLLING: Status=${status.status}, Waiting for match... RequestId=${status.id}, UserId=${status.userId}`);
+          }
           // No action needed - just continue the poll interval
+          // GetMatchingStatusAsync will trigger TryMatchAsync for pending requests
         }
       } catch (error) {
         // Ignore errors, continue polling

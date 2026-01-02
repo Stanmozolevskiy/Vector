@@ -211,6 +211,35 @@ public class PeerInterviewService : IPeerInterviewService
 
     public async Task<MatchingRequestDto?> GetMatchingStatusAsync(Guid scheduledSessionId, Guid userId)
     {
+        // Log all requests in queue for debugging
+        var allRequests = await _context.InterviewMatchingRequests
+            .Where(r => r.ScheduledSessionId == scheduledSessionId && r.UserId == userId)
+            .OrderByDescending(r => r.CreatedAt)
+            .ToListAsync();
+        
+        _logger.LogInformation("GET_MATCHING_STATUS: UserId={UserId}, SessionId={SessionId}, Total requests={Count}", 
+            userId, scheduledSessionId, allRequests.Count);
+        foreach (var req in allRequests)
+        {
+            _logger.LogInformation("GET_MATCHING_STATUS REQUEST: RequestId={RequestId}, Status={Status}, CreatedAt={CreatedAt}, ExpiresAt={ExpiresAt}", 
+                req.Id, req.Status, req.CreatedAt, req.ExpiresAt);
+        }
+        
+        // Log all pending requests in the entire queue for this scheduled session
+        var allPendingInQueue = await _context.InterviewMatchingRequests
+            .Where(r => r.ScheduledSessionId == scheduledSessionId 
+                && r.Status == "Pending" 
+                && r.ExpiresAt > DateTime.UtcNow)
+            .OrderBy(r => r.CreatedAt)
+            .ToListAsync();
+        _logger.LogInformation("GET_MATCHING_STATUS: Total pending requests in queue for SessionId={SessionId}: {Count}", 
+            scheduledSessionId, allPendingInQueue.Count);
+        foreach (var req in allPendingInQueue)
+        {
+            _logger.LogInformation("GET_MATCHING_STATUS QUEUE: RequestId={RequestId}, UserId={UserId}, CreatedAt={CreatedAt}, InterviewType={InterviewType}, Level={Level}", 
+                req.Id, req.UserId, req.CreatedAt, req.InterviewType, req.InterviewLevel);
+        }
+        
         var matchingRequest = await _context.InterviewMatchingRequests
             .Include(m => m.User)
             .Include(m => m.MatchedUser)
@@ -220,16 +249,51 @@ public class PeerInterviewService : IPeerInterviewService
                 && m.Status != "Expired"
                 && m.Status != "Cancelled");
 
-        if (matchingRequest == null) return null;
+        if (matchingRequest == null)
+        {
+            _logger.LogInformation("GET_MATCHING_STATUS: No active matching request found for UserId={UserId}, SessionId={SessionId}", 
+                userId, scheduledSessionId);
+            return null;
+        }
+        
+            // If the request is Pending, try to match it
+            if (matchingRequest.Status == "Pending" && matchingRequest.ExpiresAt > DateTime.UtcNow)
+            {
+                var requestId = matchingRequest.Id;
+                _logger.LogInformation("GET_MATCHING_STATUS: Found pending request, attempting to match. RequestId={RequestId}, UserId={UserId}", 
+                    requestId, userId);
+                // Try to match this pending request
+                await TryMatchAsync(matchingRequest);
+                
+                // Reload with includes to get updated status (may now be Matched)
+                matchingRequest = await _context.InterviewMatchingRequests
+                    .Include(m => m.User)
+                    .Include(m => m.MatchedUser)
+                    .Include(m => m.ScheduledSession)
+                    .FirstOrDefaultAsync(m => m.Id == requestId);
+                
+                if (matchingRequest == null)
+                {
+                    _logger.LogWarning("GET_MATCHING_STATUS: Request disappeared after matching attempt. RequestId={RequestId}", requestId);
+                    return null;
+                }
+                
+                _logger.LogInformation("GET_MATCHING_STATUS: After matching attempt, status is {Status}. RequestId={RequestId}", 
+                    matchingRequest.Status, matchingRequest.Id);
+            }
 
         // Check if expired
         if (matchingRequest.ExpiresAt < DateTime.UtcNow && matchingRequest.Status == "Pending")
         {
+            _logger.LogInformation("GET_MATCHING_STATUS: Request expired, marking as Expired. RequestId={RequestId}", 
+                matchingRequest.Id);
             matchingRequest.Status = "Expired";
             await _context.SaveChangesAsync();
             return null;
         }
 
+        _logger.LogInformation("GET_MATCHING_STATUS: Returning request. RequestId={RequestId}, Status={Status}", 
+            matchingRequest.Id, matchingRequest.Status);
         return await MapToMatchingRequestDtoAsync(matchingRequest);
     }
 
@@ -383,218 +447,87 @@ public class PeerInterviewService : IPeerInterviewService
         // No live session exists yet (it's only created after both confirm)
         // So no need to delete anything
 
-        // Determine who confirmed and who didn't
-        bool user1Confirmed = matchingRequest.UserConfirmed;
-        bool user2Confirmed = otherUserRequest?.UserConfirmed ?? false;
-
-        if (user1Confirmed && !user2Confirmed)
+        // ALWAYS expire both users and create new requests for both, regardless of who confirmed
+        matchingRequest.Status = "Expired";
+        matchingRequest.UpdatedAt = DateTime.UtcNow;
+        
+        if (otherUserRequest != null)
         {
-            // User 1 confirmed, User 2 didn't
-            // User 1: Reset to Pending, clear match info, restart timer, requeue at front
-            matchingRequest.Status = "Pending";
-            matchingRequest.MatchedUserId = null;
-            matchingRequest.LiveSessionId = null;
-            matchingRequest.UserConfirmed = false;
-            matchingRequest.MatchedUserConfirmed = false;
-            matchingRequest.ExpiresAt = DateTime.UtcNow.AddMinutes(10); // Restart 10-minute timer
-            matchingRequest.UpdatedAt = DateTime.UtcNow;
-            
-            InterviewMatchingRequest? newRequest2 = null;
-            // User 2: Mark as Expired, create new request
-            if (otherUserRequest != null)
-            {
-                otherUserRequest.Status = "Expired";
-                otherUserRequest.UpdatedAt = DateTime.UtcNow;
-                
-                // Create new matching request for User 2
-                newRequest2 = new InterviewMatchingRequest
-                {
-                    UserId = otherUserRequest.UserId,
-                    ScheduledSessionId = otherUserRequest.ScheduledSessionId,
-                    InterviewType = otherUserRequest.InterviewType,
-                    PracticeType = otherUserRequest.PracticeType,
-                    InterviewLevel = otherUserRequest.InterviewLevel,
-                    ScheduledStartAt = otherUserRequest.ScheduledStartAt,
-                    Status = "Pending",
-                    ExpiresAt = DateTime.UtcNow.AddMinutes(10),
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
-                _context.InterviewMatchingRequests.Add(newRequest2);
-            }
-            
-            // Save all changes (matchingRequest status change + otherUserRequest status change + newRequest2)
-            await _context.SaveChangesAsync();
-            
-            if (newRequest2 != null)
-            {
-                var newRequest2Id = newRequest2.Id;
-                // Try to match User 2's new request
-                _ = Task.Run(async () =>
-                {
-                    await Task.Delay(200);
-                    var newRequest2Reloaded = await _context.InterviewMatchingRequests.FindAsync(newRequest2Id);
-                    if (newRequest2Reloaded != null && newRequest2Reloaded.Status == "Pending")
-                    {
-                        await TryMatchAsync(newRequest2Reloaded);
-                    }
-                });
-            }
-            
-            // Requeue User 1 at front (match immediately)
-            _ = Task.Run(async () =>
-            {
-                await Task.Delay(100);
-                await TryMatchAsync(matchingRequest);
-            });
-            
-            _logger.LogInformation("User {UserId1} confirmed but User {UserId2} didn't. User 1 requeued at front, User 2 expired and new request created.", 
-                matchingRequest.UserId, matchingRequest.MatchedUserId);
+            otherUserRequest.Status = "Expired";
+            otherUserRequest.UpdatedAt = DateTime.UtcNow;
         }
-        else if (!user1Confirmed && user2Confirmed)
+        
+        // Create new matching request for User 1
+        var newRequest1 = new InterviewMatchingRequest
         {
-            // User 2 confirmed, User 1 didn't
-            // User 2: Reset to Pending, clear match info, restart timer, requeue at front
-            if (otherUserRequest != null)
+            UserId = matchingRequest.UserId,
+            ScheduledSessionId = matchingRequest.ScheduledSessionId,
+            InterviewType = matchingRequest.InterviewType,
+            PracticeType = matchingRequest.PracticeType,
+            InterviewLevel = matchingRequest.InterviewLevel,
+            ScheduledStartAt = matchingRequest.ScheduledStartAt,
+            Status = "Pending",
+            ExpiresAt = DateTime.UtcNow.AddMinutes(10),
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        _context.InterviewMatchingRequests.Add(newRequest1);
+        
+        Guid? newRequest2Id = null;
+        // Create new matching request for User 2
+        if (otherUserRequest != null)
+        {
+            var newRequest2 = new InterviewMatchingRequest
             {
-                otherUserRequest.Status = "Pending";
-                otherUserRequest.MatchedUserId = null;
-                otherUserRequest.LiveSessionId = null;
-                otherUserRequest.UserConfirmed = false;
-                otherUserRequest.MatchedUserConfirmed = false;
-                otherUserRequest.ExpiresAt = DateTime.UtcNow.AddMinutes(10); // Restart 10-minute timer
-                otherUserRequest.UpdatedAt = DateTime.UtcNow;
-            }
-            
-            // User 1: Mark as Expired, create new request
-            matchingRequest.Status = "Expired";
-            matchingRequest.UpdatedAt = DateTime.UtcNow;
-            
-            // Create new matching request for User 1
-            var newRequest1 = new InterviewMatchingRequest
-            {
-                UserId = matchingRequest.UserId,
-                ScheduledSessionId = matchingRequest.ScheduledSessionId,
-                InterviewType = matchingRequest.InterviewType,
-                PracticeType = matchingRequest.PracticeType,
-                InterviewLevel = matchingRequest.InterviewLevel,
-                ScheduledStartAt = matchingRequest.ScheduledStartAt,
+                UserId = otherUserRequest.UserId,
+                ScheduledSessionId = otherUserRequest.ScheduledSessionId,
+                InterviewType = otherUserRequest.InterviewType,
+                PracticeType = otherUserRequest.PracticeType,
+                InterviewLevel = otherUserRequest.InterviewLevel,
+                ScheduledStartAt = otherUserRequest.ScheduledStartAt,
                 Status = "Pending",
                 ExpiresAt = DateTime.UtcNow.AddMinutes(10),
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
-            _context.InterviewMatchingRequests.Add(newRequest1);
-            
-            // Save all changes (otherUserRequest status change + matchingRequest status change + newRequest1)
-            await _context.SaveChangesAsync();
-            
-            var newRequest1Id = newRequest1.Id;
-            
-            // Requeue User 2 at front (match immediately)
-            if (otherUserRequest != null)
-            {
-                _ = Task.Run(async () =>
-                {
-                    await Task.Delay(100);
-                    await TryMatchAsync(otherUserRequest);
-                });
-            }
-            
-            // Try to match User 1's new request
-            _ = Task.Run(async () =>
-            {
-                await Task.Delay(200);
-                var newRequest1Reloaded = await _context.InterviewMatchingRequests.FindAsync(newRequest1Id);
-                if (newRequest1Reloaded != null && newRequest1Reloaded.Status == "Pending")
-                {
-                    await TryMatchAsync(newRequest1Reloaded);
-                }
-            });
-            
-            _logger.LogInformation("User {UserId2} confirmed but User {UserId1} didn't. User 2 requeued at front, User 1 expired and new request created.", 
-                matchingRequest.MatchedUserId, matchingRequest.UserId);
+            _context.InterviewMatchingRequests.Add(newRequest2);
+            newRequest2Id = newRequest2.Id;
         }
-        else
+        
+        // Save all changes (both expired requests + both new requests)
+        await _context.SaveChangesAsync();
+        
+        // Log all pending requests in the queue after expiration
+        var allPendingRequests = await _context.InterviewMatchingRequests
+            .Where(r => r.Status == "Pending" && r.ExpiresAt > DateTime.UtcNow)
+            .OrderBy(r => r.CreatedAt)
+            .ToListAsync();
+        
+        _logger.LogInformation("QUEUE STATUS AFTER EXPIRATION: Total pending requests: {Count}", allPendingRequests.Count);
+        foreach (var req in allPendingRequests)
         {
-            // Neither user confirmed - both expired, create new requests for both
-            matchingRequest.Status = "Expired";
-            matchingRequest.UpdatedAt = DateTime.UtcNow;
-            
-            if (otherUserRequest != null)
-            {
-                otherUserRequest.Status = "Expired";
-                otherUserRequest.UpdatedAt = DateTime.UtcNow;
-            }
-            
-            // Create new matching request for User 1
-            var newRequest1 = new InterviewMatchingRequest
-            {
-                UserId = matchingRequest.UserId,
-                ScheduledSessionId = matchingRequest.ScheduledSessionId,
-                InterviewType = matchingRequest.InterviewType,
-                PracticeType = matchingRequest.PracticeType,
-                InterviewLevel = matchingRequest.InterviewLevel,
-                ScheduledStartAt = matchingRequest.ScheduledStartAt,
-                Status = "Pending",
-                ExpiresAt = DateTime.UtcNow.AddMinutes(10),
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-            _context.InterviewMatchingRequests.Add(newRequest1);
-            
-            Guid? newRequest2Id = null;
-            // Create new matching request for User 2
-            if (otherUserRequest != null)
-            {
-                var newRequest2 = new InterviewMatchingRequest
-                {
-                    UserId = otherUserRequest.UserId,
-                    ScheduledSessionId = otherUserRequest.ScheduledSessionId,
-                    InterviewType = otherUserRequest.InterviewType,
-                    PracticeType = otherUserRequest.PracticeType,
-                    InterviewLevel = otherUserRequest.InterviewLevel,
-                    ScheduledStartAt = otherUserRequest.ScheduledStartAt,
-                    Status = "Pending",
-                    ExpiresAt = DateTime.UtcNow.AddMinutes(10),
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
-                _context.InterviewMatchingRequests.Add(newRequest2);
-                newRequest2Id = newRequest2.Id;
-            }
-            
-            // Save all changes (both expired requests + both new requests)
-            await _context.SaveChangesAsync();
-            
-            var newRequest1Id = newRequest1.Id;
-            
-            // Try to match both new requests
-            _ = Task.Run(async () =>
-            {
-                await Task.Delay(100);
-                var newRequest1Reloaded = await _context.InterviewMatchingRequests.FindAsync(newRequest1Id);
-                if (newRequest1Reloaded != null && newRequest1Reloaded.Status == "Pending")
-                {
-                    await TryMatchAsync(newRequest1Reloaded);
-                }
-            });
-            
-            if (newRequest2Id.HasValue)
-            {
-                _ = Task.Run(async () =>
-                {
-                    await Task.Delay(200);
-                    var newRequest2Reloaded = await _context.InterviewMatchingRequests.FindAsync(newRequest2Id.Value);
-                    if (newRequest2Reloaded != null && newRequest2Reloaded.Status == "Pending")
-                    {
-                        await TryMatchAsync(newRequest2Reloaded);
-                    }
-                });
-            }
-            
-            _logger.LogInformation("Neither user confirmed. Both expired and new requests created for rematching.");
+            _logger.LogInformation("QUEUE REQUEST: UserId={UserId}, RequestId={RequestId}, CreatedAt={CreatedAt}, InterviewType={InterviewType}, Level={Level}", 
+                req.UserId, req.Id, req.CreatedAt, req.InterviewType, req.InterviewLevel);
         }
+        
+        // Don't try to match immediately - let them be matched through the normal matching flow
+        // This ensures they don't match with each other immediately, allowing other users to match with them
+        _logger.LogInformation("New requests created for rematching. User1 RequestId={RequestId1}, User2 RequestId={RequestId2}. They will be matched through normal matching flow.", 
+            newRequest1.Id, newRequest2Id);
+        
+        // Log queue status after matching attempts
+        var allPendingRequestsAfter = await _context.InterviewMatchingRequests
+            .Where(r => r.Status == "Pending" && r.ExpiresAt > DateTime.UtcNow)
+            .OrderBy(r => r.CreatedAt)
+            .ToListAsync();
+        var allMatchedRequestsAfter = await _context.InterviewMatchingRequests
+            .Where(r => r.Status == "Matched")
+            .ToListAsync();
+        
+        _logger.LogInformation("QUEUE STATUS AFTER MATCHING ATTEMPTS: Pending={PendingCount}, Matched={MatchedCount}", 
+            allPendingRequestsAfter.Count, allMatchedRequestsAfter.Count);
+        
+        _logger.LogInformation("Both users expired and new requests created for rematching (regardless of confirmation status).");
 
         return true;
     }

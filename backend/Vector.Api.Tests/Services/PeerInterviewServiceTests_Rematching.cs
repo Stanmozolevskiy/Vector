@@ -183,33 +183,34 @@ public class PeerInterviewServiceRematchingTests : IDisposable
         // Wait for rematching to complete
         await Task.Delay(2000);
 
-        // Assert: User 3 should be requeued (may be matched again immediately since at front)
-        // User 4 should be Expired with new request created
+        // Assert: Both users should be expired with new requests created
         await _context.Entry(request3).ReloadAsync();
         await _context.Entry(request4).ReloadAsync();
 
-        // User 3: Either still Pending (waiting) or Matched again (matched immediately at front)
-        Assert.True(request3.Status == "Pending" || request3.Status == "Matched");
-        if (request3.Status == "Pending")
-        {
-            Assert.Null(request3.MatchedUserId);
-            Assert.True(request3.ExpiresAt > DateTime.UtcNow.AddMinutes(9)); // Should have 10 minutes
-        }
+        // Both users should be expired
+        Assert.Equal("Expired", request3.Status);
+        Assert.Equal("Expired", request4.Status);
 
-        Assert.Equal("Expired", request4.Status); // User 4 expired
-
-        // Verify new request was created for User 4
+        // Verify new requests were created for both users
         // Wait a bit for async operations to complete (SaveChangesAsync should have completed, but wait for context to sync)
         await Task.Delay(2000);
+        var allRequestsForUser3 = await _context.InterviewMatchingRequests
+            .Where(r => r.UserId == user3.Id)
+            .ToListAsync();
         var allRequestsForUser4 = await _context.InterviewMatchingRequests
             .Where(r => r.UserId == user4.Id)
             .ToListAsync();
-        // New request may be Pending (waiting) or Matched (matched immediately)
+        // New requests may be Pending (waiting) or Matched (matched immediately)
+        var newRequest3 = allRequestsForUser3
+            .Where(r => (r.Status == "Pending" || r.Status == "Matched") && r.Id != request3.Id)
+            .OrderByDescending(r => r.CreatedAt)
+            .FirstOrDefault();
         var newRequest4 = allRequestsForUser4
             .Where(r => (r.Status == "Pending" || r.Status == "Matched") && r.Id != request4.Id)
             .OrderByDescending(r => r.CreatedAt)
             .FirstOrDefault();
-        Assert.NotNull(newRequest4);
+        Assert.NotNull(newRequest3); // User 3 gets new request
+        Assert.NotNull(newRequest4); // User 4 gets new request
 
         // Act 4: Users 5-8 start matching
         var result5 = await _service.StartMatchingAsync(session5.Id, user5.Id);
@@ -219,10 +220,11 @@ public class PeerInterviewServiceRematchingTests : IDisposable
 
         await Task.Delay(500);
 
-        // Assert: User 3 (requeued) should match with User 5 or 6 (beginner level)
-        // User 7-8 should match (advanced level)
+        // Assert: Users 3-4, 5-6, and 7-8 should be matched (users 3-4 with new requests)
         var request3After = await _context.InterviewMatchingRequests
-            .FirstOrDefaultAsync(r => r.UserId == user3.Id && r.Status == "Matched");
+            .FirstOrDefaultAsync(r => r.UserId == user3.Id && r.Status == "Matched" && r.Id != request3.Id);
+        var request4After = await _context.InterviewMatchingRequests
+            .FirstOrDefaultAsync(r => r.UserId == user4.Id && r.Status == "Matched" && r.Id != request4.Id);
         var request5 = await _context.InterviewMatchingRequests
             .FirstOrDefaultAsync(r => r.UserId == user5.Id && r.Status == "Matched");
         var request6 = await _context.InterviewMatchingRequests
@@ -232,10 +234,13 @@ public class PeerInterviewServiceRematchingTests : IDisposable
         var request8 = await _context.InterviewMatchingRequests
             .FirstOrDefaultAsync(r => r.UserId == user8.Id && r.Status == "Matched");
 
-        // User 3 should be matched (requeued at front)
+        // Users 3-4 should be matched (with new requests created after expiration)
         Assert.NotNull(request3After);
+        Assert.NotNull(request4After);
         Assert.NotNull(request3After.MatchedUserId);
+        Assert.NotNull(request4After.MatchedUserId);
         Assert.True(request3After.ExpiresAt > DateTime.UtcNow.AddMinutes(9)); // Should have 10 minutes timer
+        Assert.True(request4After.ExpiresAt > DateTime.UtcNow.AddMinutes(9)); // Should have 10 minutes timer
 
         // Users 7-8 should be matched
         Assert.NotNull(request7);
@@ -385,31 +390,45 @@ public class PeerInterviewServiceRematchingTests : IDisposable
         // Wait for rematching to complete
         await Task.Delay(2000);
 
-        // Assert: User 1 should be requeued (may be matched again immediately since at front)
-        // User 2 should be Expired
+        // Assert: Both users should be expired with new requests created
         await _context.Entry(request1).ReloadAsync();
         await _context.Entry(request2).ReloadAsync();
 
-        // User 1: Either still Pending (waiting) or Matched again (matched immediately at front)
-        Assert.True(request1.Status == "Pending" || request1.Status == "Matched");
-        if (request1.Status == "Pending")
-        {
-            Assert.Null(request1.MatchedUserId);
-            Assert.True(request1.ExpiresAt > DateTime.UtcNow.AddMinutes(9)); // 10 minutes timer restarted
-        }
-
+        // Both users should be expired
+        Assert.Equal("Expired", request1.Status);
         Assert.Equal("Expired", request2.Status);
+
+        // Verify new requests were created for both users
+        await Task.Delay(2000);
+        var allRequestsForUser1 = await _context.InterviewMatchingRequests
+            .Where(r => r.UserId == user1.Id)
+            .ToListAsync();
+        var allRequestsForUser2 = await _context.InterviewMatchingRequests
+            .Where(r => r.UserId == user2.Id)
+            .ToListAsync();
+        var newRequest1 = allRequestsForUser1
+            .Where(r => (r.Status == "Pending" || r.Status == "Matched") && r.Id != request1.Id)
+            .OrderByDescending(r => r.CreatedAt)
+            .FirstOrDefault();
+        var newRequest2 = allRequestsForUser2
+            .Where(r => (r.Status == "Pending" || r.Status == "Matched") && r.Id != request2.Id)
+            .OrderByDescending(r => r.CreatedAt)
+            .FirstOrDefault();
+        Assert.NotNull(newRequest1); // User 1 gets new request
+        Assert.NotNull(newRequest2); // User 2 gets new request
 
         // Act 3: Users 3-4 start matching
         await _service.StartMatchingAsync(session3.Id, user3.Id);
         await _service.StartMatchingAsync(session4.Id, user4.Id);
         await Task.Delay(500);
 
-        // Assert: User 1 (requeued at front) should match immediately
+        // Assert: New requests for users 1-2 should be able to match
         var request1After = await _context.InterviewMatchingRequests
-            .FirstOrDefaultAsync(r => r.UserId == user1.Id && r.Status == "Matched");
-        Assert.NotNull(request1After);
-        Assert.NotNull(request1After.MatchedUserId);
+            .FirstOrDefaultAsync(r => r.UserId == user1.Id && r.Status == "Matched" && r.Id != request1.Id);
+        var request2After = await _context.InterviewMatchingRequests
+            .FirstOrDefaultAsync(r => r.UserId == user2.Id && r.Status == "Matched" && r.Id != request2.Id);
+        // At least one of them should be matched (they might match with each other or with users 3-4)
+        Assert.True(request1After != null || request2After != null);
     }
 
     [Fact]
@@ -488,23 +507,18 @@ public class PeerInterviewServiceRematchingTests : IDisposable
         await _context.Entry(request5).ReloadAsync();
         await _context.Entry(request6).ReloadAsync();
 
-        // User 3 should be requeued (may be matched again immediately since at front)
-        Assert.True(request3.Status == "Pending" || request3.Status == "Matched");
-        if (request3.Status == "Pending")
-        {
-            Assert.Null(request3.MatchedUserId);
-        }
-
-        // User 4 should be Expired
+        // All users should be expired (both from pair 3-4, and both from pair 5-6)
+        Assert.Equal("Expired", request3.Status);
         Assert.Equal("Expired", request4.Status);
-
-        // Users 5-6 should both be Expired
         Assert.Equal("Expired", request5.Status);
         Assert.Equal("Expired", request6.Status);
 
         // Verify new requests were created for expired users (may be Pending or Matched)
         // Wait a bit for async operations to complete (SaveChangesAsync should have completed, but wait for context to sync)
         await Task.Delay(2000);
+        var allRequestsForUser3 = await _context.InterviewMatchingRequests
+            .Where(r => r.UserId == users[2].user.Id)
+            .ToListAsync();
         var allRequestsForUser4 = await _context.InterviewMatchingRequests
             .Where(r => r.UserId == users[3].user.Id)
             .ToListAsync();
@@ -514,6 +528,10 @@ public class PeerInterviewServiceRematchingTests : IDisposable
         var allRequestsForUser6 = await _context.InterviewMatchingRequests
             .Where(r => r.UserId == users[5].user.Id)
             .ToListAsync();
+        var newRequest3 = allRequestsForUser3
+            .Where(r => (r.Status == "Pending" || r.Status == "Matched") && r.Id != request3.Id)
+            .OrderByDescending(r => r.CreatedAt)
+            .FirstOrDefault();
         var newRequest4 = allRequestsForUser4
             .Where(r => (r.Status == "Pending" || r.Status == "Matched") && r.Id != request4.Id)
             .OrderByDescending(r => r.CreatedAt)
@@ -527,9 +545,10 @@ public class PeerInterviewServiceRematchingTests : IDisposable
             .OrderByDescending(r => r.CreatedAt)
             .FirstOrDefault();
 
-        Assert.NotNull(newRequest4);
-        Assert.NotNull(newRequest5);
-        Assert.NotNull(newRequest6);
+        Assert.NotNull(newRequest3); // User 3 gets new request
+        Assert.NotNull(newRequest4); // User 4 gets new request
+        Assert.NotNull(newRequest5); // User 5 gets new request
+        Assert.NotNull(newRequest6); // User 6 gets new request
 
         // Verify live session count (should be 1 - only for users 1-2)
         var liveSessions = await _context.LiveInterviewSessions

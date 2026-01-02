@@ -60,7 +60,18 @@ export const authService = {
     if (!refreshToken) {
       throw new Error('No refresh token available');
     }
-    const response = await api.post<{ accessToken: string; refreshToken: string }>('/auth/refresh', { refreshToken });
+    // Use axios directly to bypass interceptors and avoid infinite loops
+    // The refresh endpoint doesn't require authentication
+    const axios = (await import('axios')).default;
+    const response = await axios.post<{ accessToken: string; refreshToken: string }>(
+      `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/auth/refresh`,
+      { refreshToken },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
     localStorage.setItem('accessToken', response.data.accessToken);
     if (response.data.refreshToken) {
       localStorage.setItem('refreshToken', response.data.refreshToken);

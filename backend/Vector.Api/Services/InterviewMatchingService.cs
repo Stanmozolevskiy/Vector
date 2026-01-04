@@ -362,7 +362,7 @@ public class InterviewMatchingService : IInterviewMatchingService
         _logger.LogInformation("Match expired - User {UserId1} and User {UserId2} did not both confirm within 15 seconds", 
             matchingRequest.UserId, matchingRequest.MatchedUserId);
 
-        // Expire both users and create new requests for both
+        // Expire both users' requests
         matchingRequest.Status = "Expired";
         matchingRequest.UpdatedAt = DateTime.UtcNow;
         
@@ -372,45 +372,82 @@ public class InterviewMatchingService : IInterviewMatchingService
             otherUserRequest.UpdatedAt = DateTime.UtcNow;
         }
         
-        // Create new matching request for User 1
-        var newRequest1 = new InterviewMatchingRequest
-        {
-            UserId = matchingRequest.UserId,
-            ScheduledSessionId = matchingRequest.ScheduledSessionId,
-            InterviewType = matchingRequest.InterviewType,
-            PracticeType = matchingRequest.PracticeType,
-            InterviewLevel = matchingRequest.InterviewLevel,
-            ScheduledStartAt = matchingRequest.ScheduledStartAt,
-            Status = "Pending",
-            ExpiresAt = DateTime.UtcNow.AddMinutes(10),
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
-        _context.InterviewMatchingRequests.Add(newRequest1);
+        // Save expiration changes first
+        await _context.SaveChangesAsync();
         
-        Guid? newRequest2Id = null;
-        // Create new matching request for User 2
-        if (otherUserRequest != null)
+        // Check if users are still active and re-queue them if they are
+        var user1IsActive = _presenceService.IsUserActive(matchingRequest.UserId, matchingRequest.ScheduledSessionId);
+        
+        Guid? newRequest1Id = null;
+        if (user1IsActive)
         {
-            var newRequest2 = new InterviewMatchingRequest
+            // User 1 is still active - create new request and try to match
+            var newRequest1 = new InterviewMatchingRequest
             {
-                UserId = otherUserRequest.UserId,
-                ScheduledSessionId = otherUserRequest.ScheduledSessionId,
-                InterviewType = otherUserRequest.InterviewType,
-                PracticeType = otherUserRequest.PracticeType,
-                InterviewLevel = otherUserRequest.InterviewLevel,
-                ScheduledStartAt = otherUserRequest.ScheduledStartAt,
+                UserId = matchingRequest.UserId,
+                ScheduledSessionId = matchingRequest.ScheduledSessionId,
+                InterviewType = matchingRequest.InterviewType,
+                PracticeType = matchingRequest.PracticeType,
+                InterviewLevel = matchingRequest.InterviewLevel,
+                ScheduledStartAt = matchingRequest.ScheduledStartAt,
                 Status = "Pending",
                 ExpiresAt = DateTime.UtcNow.AddMinutes(10),
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
-            _context.InterviewMatchingRequests.Add(newRequest2);
-            newRequest2Id = newRequest2.Id;
+            _context.InterviewMatchingRequests.Add(newRequest1);
+            await _context.SaveChangesAsync();
+            newRequest1Id = newRequest1.Id;
+            
+            // Try to match immediately
+            await TryMatchAsync(newRequest1);
+            await _context.Entry(newRequest1).ReloadAsync();
+            
+            _logger.LogInformation("REQUEUE_USER1: User {UserId} re-queued after expiration. New RequestId={RequestId}, Status={Status}", 
+                matchingRequest.UserId, newRequest1.Id, newRequest1.Status);
+        }
+        else
+        {
+            _logger.LogInformation("NO_REQUEUE_USER1: User {UserId} not active, not re-queued after expiration.", matchingRequest.UserId);
         }
         
-        // Save all changes (both expired requests + both new requests)
-        await _context.SaveChangesAsync();
+        Guid? newRequest2Id = null;
+        if (otherUserRequest != null)
+        {
+            var user2IsActive = _presenceService.IsUserActive(otherUserRequest.UserId, otherUserRequest.ScheduledSessionId);
+            
+            if (user2IsActive)
+            {
+                // User 2 is still active - create new request and try to match
+                var newRequest2 = new InterviewMatchingRequest
+                {
+                    UserId = otherUserRequest.UserId,
+                    ScheduledSessionId = otherUserRequest.ScheduledSessionId,
+                    InterviewType = otherUserRequest.InterviewType,
+                    PracticeType = otherUserRequest.PracticeType,
+                    InterviewLevel = otherUserRequest.InterviewLevel,
+                    ScheduledStartAt = otherUserRequest.ScheduledStartAt,
+                    Status = "Pending",
+                    ExpiresAt = DateTime.UtcNow.AddMinutes(10),
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                _context.InterviewMatchingRequests.Add(newRequest2);
+                await _context.SaveChangesAsync();
+                newRequest2Id = newRequest2.Id;
+                
+                // Try to match immediately
+                await TryMatchAsync(newRequest2);
+                await _context.Entry(newRequest2).ReloadAsync();
+                
+                _logger.LogInformation("REQUEUE_USER2: User {UserId} re-queued after expiration. New RequestId={RequestId}, Status={Status}", 
+                    otherUserRequest.UserId, newRequest2.Id, newRequest2.Status);
+            }
+            else
+            {
+                _logger.LogInformation("NO_REQUEUE_USER2: User {UserId} not active, not re-queued after expiration.", otherUserRequest.UserId);
+            }
+        }
         
         // Log all pending requests in the queue after expiration
         var allPendingRequests = await _context.InterviewMatchingRequests
@@ -425,10 +462,8 @@ public class InterviewMatchingService : IInterviewMatchingService
                 req.UserId, req.Id, req.CreatedAt, req.InterviewType, req.InterviewLevel);
         }
         
-        _logger.LogInformation("New requests created for rematching. User1 RequestId={RequestId1}, User2 RequestId={RequestId2}. They will be matched through normal matching flow.", 
-            newRequest1.Id, newRequest2Id);
-        
-        _logger.LogInformation("Both users expired and new requests created for rematching (regardless of confirmation status).");
+        _logger.LogInformation("Expiration complete. User1 re-queued: {User1Requeued} (RequestId={RequestId1}), User2 re-queued: {User2Requeued} (RequestId={RequestId2})", 
+            newRequest1Id.HasValue, newRequest1Id, newRequest2Id.HasValue, newRequest2Id);
 
         return true;
     }

@@ -48,9 +48,14 @@ const startProactiveTokenRefresh = () => {
         localStorage.setItem('refreshToken', response.refreshToken);
       }
       console.log('Token refreshed proactively');
-    } catch (error) {
-      // If refresh fails, clear tokens and stop interval
-      console.error('Proactive token refresh failed:', error);
+    } catch (error: any) {
+      // If refresh fails (401 is expected when refresh token expires), clear tokens and stop interval
+      // Log as warning instead of error since expired refresh tokens are expected behavior
+      if (error?.response?.status === 401) {
+        console.debug('Proactive token refresh failed (refresh token expired):', error);
+      } else {
+        console.warn('Proactive token refresh failed:', error);
+      }
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       if (tokenRefreshInterval) {

@@ -670,11 +670,15 @@ const FindPeerPage: React.FC = () => {
           const matchTime = Date.now();
           setMatchStartTime(matchTime);
           setConfirmationCountdown(15);
-          const timeout = setTimeout(() => {
-            // 15 seconds elapsed, expire match and re-queue
-            handleMatchTimeout(sessionId);
-          }, 15000);
-          setConfirmationTimeout(timeout);
+          // Store the matching request ID for the timeout handler
+          const matchingRequestId = status.id;
+          if (matchingRequestId) {
+            const timeout = setTimeout(() => {
+              // 15 seconds elapsed, expire match and re-queue
+              handleMatchTimeout(matchingRequestId);
+            }, 15000);
+            setConfirmationTimeout(timeout);
+          }
         }
 
         // Update countdown timer
@@ -813,10 +817,10 @@ const FindPeerPage: React.FC = () => {
             setConfirmationCountdown(confirmationRemaining);
             
             // If countdown reaches 0, handle timeout
-            if (confirmationRemaining === 0 && confirmationTimeout) {
+            if (confirmationRemaining === 0 && confirmationTimeout && matchingStatus?.id) {
               clearTimeout(confirmationTimeout);
               setConfirmationTimeout(null);
-              handleMatchTimeout(sessionId);
+              handleMatchTimeout(matchingStatus.id);
             }
           }
         } else if (!status || status.status === 'Pending' || status.status === 'Expired') {
@@ -861,29 +865,15 @@ const FindPeerPage: React.FC = () => {
   }, [confirmationCountdown]);
 
   // SIMPLIFIED: Expire match and re-queue users if timeout occurs
-  const handleMatchTimeout = async (sessionId: string) => {
+  const handleMatchTimeout = async (matchingRequestId: string) => {
     console.log('TIMEOUT: Match confirmation timeout (15 seconds expired), expiring match and re-queuing...');
     
-    // Check if both users have confirmed before timing out
-    // If they have, don't timeout - let the polling handle the redirect
+    // Expire the match on the backend using the matching request ID
     try {
-      const currentStatus = await peerInterviewService.getMatchingStatus(sessionId);
-      if (currentStatus && currentStatus.status === 'Confirmed') {
-        console.log('TIMEOUT: Both users confirmed, skipping timeout - polling will handle redirect');
-        return; // Don't timeout if both confirmed
-      }
-      
-      // If we have a matching request ID, expire it on the backend
-      if (currentStatus?.id) {
-        try {
-          await peerInterviewService.expireMatch(currentStatus.id);
-          console.log('TIMEOUT: Match expired on backend, users re-queued');
-        } catch (error) {
-          console.error('TIMEOUT: Error expiring match on backend:', error);
-        }
-      }
+      await peerInterviewService.expireMatch(matchingRequestId);
+      console.log('TIMEOUT: Match expired on backend, users re-queued');
     } catch (error) {
-      console.warn('TIMEOUT: Error checking match status before timeout:', error);
+      console.error('TIMEOUT: Error expiring match on backend:', error);
     }
     
     // Clear countdown and reset confirmation state
@@ -909,11 +899,9 @@ const FindPeerPage: React.FC = () => {
       return;
     }
 
-    // Clear countdown timeout since user is confirming
-    if (confirmationTimeout) {
-      clearTimeout(confirmationTimeout);
-      setConfirmationTimeout(null);
-    }
+    // Don't clear the timeout here - let it run until both users confirm or 15 seconds expire
+    // The timeout will check if both confirmed and skip expiration if needed
+    // This ensures the match expires if the partner doesn't confirm within 15 seconds
     setConfirmationCountdown(null);
     setMatchStartTime(null);
 
@@ -939,6 +927,11 @@ const FindPeerPage: React.FC = () => {
         if (countdownInterval) {
           clearInterval(countdownInterval);
           setCountdownInterval(null);
+        }
+        // Clear confirmation timeout since both users confirmed
+        if (confirmationTimeout) {
+          clearTimeout(confirmationTimeout);
+          setConfirmationTimeout(null);
         }
         setShowMatchingModal(false);
         setIsConfirmingMatch(false);

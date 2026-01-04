@@ -18,7 +18,10 @@ public class PeerInterviewServiceComprehensiveMatchingTests : IDisposable
     private readonly ApplicationDbContext _context;
     private readonly Mock<IQuestionService> _questionServiceMock;
     private readonly Mock<ILogger<PeerInterviewService>> _loggerMock;
+    private readonly Mock<ILogger<InterviewMatchingService>> _matchingLoggerMock;
+    private readonly Mock<IMatchingPresenceService> _presenceServiceMock;
     private readonly PeerInterviewService _service;
+    private readonly InterviewMatchingService _matchingService;
 
     public PeerInterviewServiceComprehensiveMatchingTests()
     {
@@ -29,11 +32,23 @@ public class PeerInterviewServiceComprehensiveMatchingTests : IDisposable
 
         _questionServiceMock = new Mock<IQuestionService>();
         _loggerMock = new Mock<ILogger<PeerInterviewService>>();
+        _matchingLoggerMock = new Mock<ILogger<InterviewMatchingService>>();
+        _presenceServiceMock = new Mock<IMatchingPresenceService>();
+        
+        // Setup presence service to return true by default (user is active)
+        _presenceServiceMock.Setup(p => p.IsUserActive(It.IsAny<Guid>(), It.IsAny<Guid>())).Returns(true);
 
         _service = new PeerInterviewService(
             _context,
             _questionServiceMock.Object,
             _loggerMock.Object
+        );
+
+        _matchingService = new InterviewMatchingService(
+            _context,
+            _service, // Use real PeerInterviewService since InterviewMatchingService depends on it
+            _presenceServiceMock.Object,
+            _matchingLoggerMock.Object
         );
     }
 
@@ -104,8 +119,8 @@ public class PeerInterviewServiceComprehensiveMatchingTests : IDisposable
         await _context.SaveChangesAsync();
 
         // Act 1: Users 1-2 start matching and get matched
-        await _service.StartMatchingAsync(session1.Id, user1.Id);
-        await _service.StartMatchingAsync(session2.Id, user2.Id);
+        await _matchingService.StartMatchingAsync(session1.Id, user1.Id);
+        await _matchingService.StartMatchingAsync(session2.Id, user2.Id);
         await Task.Delay(500);
 
         var request1 = await _context.InterviewMatchingRequests
@@ -118,10 +133,10 @@ public class PeerInterviewServiceComprehensiveMatchingTests : IDisposable
         Assert.Null(request1!.LiveSessionId); // No live session until both confirm
 
         // Act 2: Both users confirm - LiveInterviewSession should be created with InProgress status
-        var confirm1 = await _service.ConfirmMatchAsync(request1.Id, user1.Id);
+        var confirm1 = await _matchingService.ConfirmMatchAsync(request1.Id, user1.Id);
         Assert.False(confirm1.Completed); // Not completed yet
 
-        var confirm2 = await _service.ConfirmMatchAsync(request2!.Id, user2.Id);
+        var confirm2 = await _matchingService.ConfirmMatchAsync(request2!.Id, user2.Id);
         Assert.True(confirm2.Completed); // Both confirmed
         Assert.NotNull(confirm2.Session);
 
@@ -141,8 +156,8 @@ public class PeerInterviewServiceComprehensiveMatchingTests : IDisposable
         Assert.NotNull(request2.LiveSessionId);
 
         // Act 3: Users 3-4 start matching and get matched
-        await _service.StartMatchingAsync(session3.Id, user3.Id);
-        await _service.StartMatchingAsync(session4.Id, user4.Id);
+        await _matchingService.StartMatchingAsync(session3.Id, user3.Id);
+        await _matchingService.StartMatchingAsync(session4.Id, user4.Id);
         await Task.Delay(500);
 
         var request3 = await _context.InterviewMatchingRequests
@@ -159,7 +174,7 @@ public class PeerInterviewServiceComprehensiveMatchingTests : IDisposable
         request4!.UpdatedAt = DateTime.UtcNow.AddSeconds(-16);
         await _context.SaveChangesAsync();
 
-        var expired = await _service.ExpireMatchIfNotConfirmedAsync(request3.Id, user3.Id);
+        var expired = await _matchingService.ExpireMatchIfNotConfirmedAsync(request3.Id, user3.Id);
         Assert.True(expired);
 
         // Wait for rematching to complete
@@ -193,7 +208,7 @@ public class PeerInterviewServiceComprehensiveMatchingTests : IDisposable
         Assert.NotNull(newRequest4);
 
         // Act 5: User 5 starts matching - should match with one of the new requests
-        await _service.StartMatchingAsync(session5.Id, user5.Id);
+        await _matchingService.StartMatchingAsync(session5.Id, user5.Id);
         await Task.Delay(500);
 
         // Assert: User 5 should be matched
@@ -222,7 +237,7 @@ public class PeerInterviewServiceComprehensiveMatchingTests : IDisposable
         await _context.SaveChangesAsync();
 
         // Act 1: All 8 users start matching (should form 4 pairs)
-        var tasks = users.Select(u => _service.StartMatchingAsync(u.session.Id, u.user.Id)).ToArray();
+        var tasks = users.Select(u => _matchingService.StartMatchingAsync(u.session.Id, u.user.Id)).ToArray();
         await Task.WhenAll(tasks);
         await Task.Delay(1000);
 
@@ -235,8 +250,8 @@ public class PeerInterviewServiceComprehensiveMatchingTests : IDisposable
         var request1 = matchedRequests.First(r => r.UserId == users[0].user.Id);
         var request2 = matchedRequests.First(r => r.UserId == users[1].user.Id);
 
-        await _service.ConfirmMatchAsync(request1.Id, users[0].user.Id);
-        var confirm2 = await _service.ConfirmMatchAsync(request2.Id, users[1].user.Id);
+        await _matchingService.ConfirmMatchAsync(request1.Id, users[0].user.Id);
+        var confirm2 = await _matchingService.ConfirmMatchAsync(request2.Id, users[1].user.Id);
 
         Assert.True(confirm2.Completed);
         Assert.NotNull(confirm2.Session);
@@ -250,14 +265,14 @@ public class PeerInterviewServiceComprehensiveMatchingTests : IDisposable
         var request3 = matchedRequests.First(r => r.UserId == users[2].user.Id);
         var request4 = matchedRequests.First(r => r.UserId == users[3].user.Id);
 
-        await _service.ConfirmMatchAsync(request3.Id, users[2].user.Id);
+        await _matchingService.ConfirmMatchAsync(request3.Id, users[2].user.Id);
 
         // Simulate 15 seconds passing
         request3.UpdatedAt = DateTime.UtcNow.AddSeconds(-16);
         request4.UpdatedAt = DateTime.UtcNow.AddSeconds(-16);
         await _context.SaveChangesAsync();
 
-        await _service.ExpireMatchIfNotConfirmedAsync(request3.Id, users[2].user.Id);
+        await _matchingService.ExpireMatchIfNotConfirmedAsync(request3.Id, users[2].user.Id);
         await Task.Delay(2000);
 
         // Assert: Both should be expired
@@ -287,7 +302,7 @@ public class PeerInterviewServiceComprehensiveMatchingTests : IDisposable
         request6.UpdatedAt = DateTime.UtcNow.AddSeconds(-16);
         await _context.SaveChangesAsync();
 
-        await _service.ExpireMatchIfNotConfirmedAsync(request5.Id, users[4].user.Id);
+        await _matchingService.ExpireMatchIfNotConfirmedAsync(request5.Id, users[4].user.Id);
         await Task.Delay(2000);
 
         // Assert: Both should be expired
@@ -313,8 +328,8 @@ public class PeerInterviewServiceComprehensiveMatchingTests : IDisposable
         var request7 = matchedRequests.First(r => r.UserId == users[6].user.Id);
         var request8 = matchedRequests.First(r => r.UserId == users[7].user.Id);
 
-        await _service.ConfirmMatchAsync(request7.Id, users[6].user.Id);
-        var confirm8 = await _service.ConfirmMatchAsync(request8.Id, users[7].user.Id);
+        await _matchingService.ConfirmMatchAsync(request7.Id, users[6].user.Id);
+        var confirm8 = await _matchingService.ConfirmMatchAsync(request8.Id, users[7].user.Id);
 
         Assert.True(confirm8.Completed);
         Assert.NotNull(confirm8.Session);
@@ -352,7 +367,7 @@ public class PeerInterviewServiceComprehensiveMatchingTests : IDisposable
         await _context.SaveChangesAsync();
 
         // Act 1: All 10 users start matching (should form 5 pairs)
-        var tasks = users.Select(u => _service.StartMatchingAsync(u.session.Id, u.user.Id)).ToArray();
+        var tasks = users.Select(u => _matchingService.StartMatchingAsync(u.session.Id, u.user.Id)).ToArray();
         await Task.WhenAll(tasks);
         await Task.Delay(1000);
 
@@ -367,8 +382,8 @@ public class PeerInterviewServiceComprehensiveMatchingTests : IDisposable
             var request1 = matchedRequests.First(r => r.UserId == users[i].user.Id);
             var request2 = matchedRequests.First(r => r.UserId == users[i + 1].user.Id);
 
-            await _service.ConfirmMatchAsync(request1.Id, users[i].user.Id);
-            var confirm2 = await _service.ConfirmMatchAsync(request2.Id, users[i + 1].user.Id);
+            await _matchingService.ConfirmMatchAsync(request1.Id, users[i].user.Id);
+            var confirm2 = await _matchingService.ConfirmMatchAsync(request2.Id, users[i + 1].user.Id);
 
             Assert.True(confirm2.Completed);
             Assert.NotNull(confirm2.Session);
@@ -383,13 +398,13 @@ public class PeerInterviewServiceComprehensiveMatchingTests : IDisposable
         var request5 = matchedRequests.First(r => r.UserId == users[4].user.Id);
         var request6 = matchedRequests.First(r => r.UserId == users[5].user.Id);
 
-        await _service.ConfirmMatchAsync(request5.Id, users[4].user.Id);
+        await _matchingService.ConfirmMatchAsync(request5.Id, users[4].user.Id);
 
         request5.UpdatedAt = DateTime.UtcNow.AddSeconds(-16);
         request6.UpdatedAt = DateTime.UtcNow.AddSeconds(-16);
         await _context.SaveChangesAsync();
 
-        await _service.ExpireMatchIfNotConfirmedAsync(request5.Id, users[4].user.Id);
+        await _matchingService.ExpireMatchIfNotConfirmedAsync(request5.Id, users[4].user.Id);
         await Task.Delay(2000);
 
         Assert.Equal("Expired", request5.Status);
@@ -403,7 +418,7 @@ public class PeerInterviewServiceComprehensiveMatchingTests : IDisposable
         request8.UpdatedAt = DateTime.UtcNow.AddSeconds(-16);
         await _context.SaveChangesAsync();
 
-        await _service.ExpireMatchIfNotConfirmedAsync(request7.Id, users[6].user.Id);
+        await _matchingService.ExpireMatchIfNotConfirmedAsync(request7.Id, users[6].user.Id);
         await Task.Delay(2000);
 
         Assert.Equal("Expired", request7.Status);
@@ -413,8 +428,8 @@ public class PeerInterviewServiceComprehensiveMatchingTests : IDisposable
         var request9 = matchedRequests.First(r => r.UserId == users[8].user.Id);
         var request10 = matchedRequests.First(r => r.UserId == users[9].user.Id);
 
-        await _service.ConfirmMatchAsync(request9.Id, users[8].user.Id);
-        var confirm10 = await _service.ConfirmMatchAsync(request10.Id, users[9].user.Id);
+        await _matchingService.ConfirmMatchAsync(request9.Id, users[8].user.Id);
+        var confirm10 = await _matchingService.ConfirmMatchAsync(request10.Id, users[9].user.Id);
 
         Assert.True(confirm10.Completed);
         Assert.NotNull(confirm10.Session);
@@ -426,3 +441,4 @@ public class PeerInterviewServiceComprehensiveMatchingTests : IDisposable
         Assert.Equal(3, allLiveSessions.Count);
     }
 }
+

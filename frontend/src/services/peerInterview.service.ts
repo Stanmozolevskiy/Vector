@@ -253,7 +253,7 @@ export const peerInterviewService = {
    */
   async startMatching(scheduledSessionId: string): Promise<StartMatchingResponse> {
     const response = await api.post<StartMatchingResponse>(
-      `/peer-interviews/sessions/${scheduledSessionId}/start-matching`
+      `/interview-matching/sessions/${scheduledSessionId}/start`
     );
     return response.data;
   },
@@ -264,7 +264,7 @@ export const peerInterviewService = {
   async getMatchingStatus(scheduledSessionId: string): Promise<MatchingRequest | null> {
     try {
       const response = await api.get<MatchingRequest>(
-        `/peer-interviews/sessions/${scheduledSessionId}/matching-status`
+        `/interview-matching/sessions/${scheduledSessionId}/status`
       );
       return response.data;
     } catch (error: any) {
@@ -282,7 +282,7 @@ export const peerInterviewService = {
    */
   async confirmMatch(matchingRequestId: string): Promise<ConfirmMatchResponse> {
     const response = await api.post<ConfirmMatchResponse>(
-      `/peer-interviews/matching-requests/${matchingRequestId}/confirm`
+      `/interview-matching/matching-requests/${matchingRequestId}/confirm`
     );
     return response.data;
   },
@@ -291,7 +291,15 @@ export const peerInterviewService = {
    * Expire a match if not both confirmed within 15 seconds (re-queue users)
    */
   async expireMatch(matchingRequestId: string): Promise<void> {
-    await api.post(`/peer-interviews/matching-requests/${matchingRequestId}/expire`);
+    await api.post(`/interview-matching/matching-requests/${matchingRequestId}/expire`);
+  },
+
+  /**
+   * Expire all matching requests for a session (used on page refresh/close)
+   * Does not create new requests
+   */
+  async expireAllRequestsForSession(scheduledSessionId: string): Promise<void> {
+    await api.post(`/interview-matching/sessions/${scheduledSessionId}/expire-all`);
   },
 
   /**

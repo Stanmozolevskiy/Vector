@@ -8,6 +8,8 @@ import { FeedbackView, type FeedbackData } from '../../components/FeedbackView';
 import { FeedbackForm } from '../../components/FeedbackForm';
 import { NoFeedbackView } from '../../components/NoFeedbackView';
 import { ROUTES } from '../../utils/constants';
+import * as signalR from '@microsoft/signalr';
+import api from '../../services/api';
 import '../../styles/find-peer.css';
 
 interface ScheduleModalData {
@@ -66,9 +68,117 @@ const FindPeerPage: React.FC = () => {
   const [confirmationCountdown, setConfirmationCountdown] = useState<number | null>(null);
   const [confirmationTimeout, setConfirmationTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [matchStartTime, setMatchStartTime] = useState<number | null>(null);
+  const signalRConnectionRef = useRef<signalR.HubConnection | null>(null);
+  const currentSessionIdRef = useRef<string | null>(null);
   
   // Dev mode: always show "Start interview" button
   const DEV_MODE = true;
+
+  // Initialize SignalR connection
+  useEffect(() => {
+    const initializeSignalR = async () => {
+      try {
+        const accessToken = localStorage.getItem('accessToken');
+        if (!accessToken) {
+          return;
+        }
+
+        const baseUrl = (api.defaults.baseURL && typeof api.defaults.baseURL === 'string') 
+          ? api.defaults.baseURL.replace('/api', '') 
+          : 'http://localhost:5000';
+        
+        const connection = new signalR.HubConnectionBuilder()
+          .withUrl(`${baseUrl}/api/collaboration?access_token=${accessToken}`, {
+            transport: signalR.HttpTransportType.WebSockets,
+          })
+          .withAutomaticReconnect()
+          .build();
+
+        await connection.start();
+        signalRConnectionRef.current = connection;
+      } catch (error) {
+        console.error('Failed to initialize SignalR:', error);
+      }
+    };
+
+    initializeSignalR();
+
+    return () => {
+      if (signalRConnectionRef.current) {
+        signalRConnectionRef.current.stop().catch(() => {});
+        signalRConnectionRef.current = null;
+      }
+    };
+  }, []);
+
+  // On page load, expire any existing matching requests (user refreshed/closed page)
+  useEffect(() => {
+    const expireExistingRequests = async () => {
+      try {
+        const sessions = await peerInterviewService.getUpcomingSessions();
+        for (const session of sessions) {
+          try {
+            const status = await peerInterviewService.getMatchingStatus(session.id);
+            if (status && status.status !== 'Expired' && status.status !== 'Confirmed') {
+              // User has an active request but page was refreshed/closed - expire it
+              await peerInterviewService.expireAllRequestsForSession(session.id);
+            }
+          } catch (error: any) {
+            // 204/404 means no request exists - this is fine
+            if (error?.response?.status !== 204 && error?.response?.status !== 404) {
+              console.error('Error checking matching status on page load:', error);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error expiring existing requests on page load:', error);
+      }
+    };
+
+    expireExistingRequests();
+
+    // Handle page unload/close
+    const handleBeforeUnload = () => {
+      if (currentSessionIdRef.current) {
+        // SignalR disconnect will be handled by OnDisconnectedAsync
+        // The backend OnDisconnectedAsync will clear presence
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('pagehide', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('pagehide', handleBeforeUnload);
+    };
+  }, []);
+
+  // Set/clear presence when matching modal opens/closes
+  useEffect(() => {
+    const updatePresence = async () => {
+      if (!signalRConnectionRef.current || signalRConnectionRef.current.state !== signalR.HubConnectionState.Connected) {
+        return;
+      }
+
+      const sessionId = currentSessionIdRef.current;
+      if (!sessionId) {
+        return;
+      }
+
+      try {
+        if (showMatchingModal) {
+          await signalRConnectionRef.current.invoke('SetMatchingModalOpen', sessionId);
+        } else {
+          await signalRConnectionRef.current.invoke('SetMatchingModalClosed', sessionId);
+        }
+      } catch (error) {
+        console.error('Error updating presence:', error);
+      }
+    };
+
+    updatePresence();
+  }, [showMatchingModal]);
 
   useEffect(() => {
     loadSessions();
@@ -264,6 +374,7 @@ const FindPeerPage: React.FC = () => {
       // Check if session was cancelled or reset - if so, allow re-matching
       if (session.status === 'Cancelled' || (session.status === 'Scheduled' && !session.intervieweeId)) {
         // Session was cancelled or reset, start matching process
+        currentSessionIdRef.current = sessionId;
         setShowMatchingModal(true);
         
         // Check if there's already a matching request
@@ -343,6 +454,7 @@ const FindPeerPage: React.FC = () => {
       }
 
       // No interviewee yet, start matching process
+      currentSessionIdRef.current = sessionId;
       setShowMatchingModal(true);
       
       // Check if there's already a matching request

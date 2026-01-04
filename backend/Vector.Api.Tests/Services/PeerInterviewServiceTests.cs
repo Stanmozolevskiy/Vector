@@ -14,7 +14,10 @@ public class PeerInterviewServiceTests : IDisposable
     private readonly ApplicationDbContext _context;
     private readonly Mock<IQuestionService> _questionServiceMock;
     private readonly Mock<ILogger<PeerInterviewService>> _loggerMock;
+    private readonly Mock<ILogger<InterviewMatchingService>> _matchingLoggerMock;
+    private readonly Mock<IMatchingPresenceService> _presenceServiceMock;
     private readonly PeerInterviewService _service;
+    private readonly InterviewMatchingService _matchingService;
 
     public PeerInterviewServiceTests()
     {
@@ -25,11 +28,23 @@ public class PeerInterviewServiceTests : IDisposable
 
         _questionServiceMock = new Mock<IQuestionService>();
         _loggerMock = new Mock<ILogger<PeerInterviewService>>();
+        _matchingLoggerMock = new Mock<ILogger<InterviewMatchingService>>();
+        _presenceServiceMock = new Mock<IMatchingPresenceService>();
+        
+        // Setup presence service to return true by default (user is active)
+        _presenceServiceMock.Setup(p => p.IsUserActive(It.IsAny<Guid>(), It.IsAny<Guid>())).Returns(true);
 
         _service = new PeerInterviewService(
             _context,
             _questionServiceMock.Object,
             _loggerMock.Object
+        );
+
+        _matchingService = new InterviewMatchingService(
+            _context,
+            _service, // Use real PeerInterviewService since InterviewMatchingService depends on it
+            _presenceServiceMock.Object,
+            _matchingLoggerMock.Object
         );
     }
 
@@ -489,7 +504,7 @@ public class PeerInterviewServiceTests : IDisposable
         await _context.SaveChangesAsync();
 
         // Act
-        var result = await _service.StartMatchingAsync(session.Id, userId);
+        var result = await _matchingService.StartMatchingAsync(session.Id, userId);
 
         // Assert
         Assert.NotNull(result);
@@ -511,7 +526,7 @@ public class PeerInterviewServiceTests : IDisposable
 
         // Act & Assert
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>
-            _service.StartMatchingAsync(invalidSessionId, userId));
+            _matchingService.StartMatchingAsync(invalidSessionId, userId));
     }
 
     [Fact]
@@ -538,7 +553,7 @@ public class PeerInterviewServiceTests : IDisposable
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            _service.StartMatchingAsync(session.Id, userId));
+            _matchingService.StartMatchingAsync(session.Id, userId));
     }
 
     [Fact]
@@ -580,7 +595,7 @@ public class PeerInterviewServiceTests : IDisposable
         await _context.SaveChangesAsync();
 
         // Act
-        var result = await _service.StartMatchingAsync(session.Id, userId);
+        var result = await _matchingService.StartMatchingAsync(session.Id, userId);
 
         // Assert
         Assert.NotNull(result);
@@ -629,8 +644,8 @@ public class PeerInterviewServiceTests : IDisposable
         await _context.SaveChangesAsync();
 
         // Act
-        var result1 = await _service.StartMatchingAsync(session1.Id, userId1);
-        var result2 = await _service.StartMatchingAsync(session2.Id, userId2);
+        var result1 = await _matchingService.StartMatchingAsync(session1.Id, userId1);
+        var result2 = await _matchingService.StartMatchingAsync(session2.Id, userId2);
 
         // Assert
         Assert.False(result1.Matched);
@@ -675,8 +690,8 @@ public class PeerInterviewServiceTests : IDisposable
         await _context.SaveChangesAsync();
 
         // Act
-        var result1 = await _service.StartMatchingAsync(session1.Id, userId1);
-        var result2 = await _service.StartMatchingAsync(session2.Id, userId2);
+        var result1 = await _matchingService.StartMatchingAsync(session1.Id, userId1);
+        var result2 = await _matchingService.StartMatchingAsync(session2.Id, userId2);
 
         // Assert
         Assert.False(result1.Matched);
@@ -742,18 +757,18 @@ public class PeerInterviewServiceTests : IDisposable
         await _context.SaveChangesAsync();
 
         // Act: Start matching for both users
-        var result1 = await _service.StartMatchingAsync(session1.Id, userId1);
+        var result1 = await _matchingService.StartMatchingAsync(session1.Id, userId1);
         // First user won't be matched yet (no other user in queue)
         Assert.False(result1.Matched);
         
-        var result2 = await _service.StartMatchingAsync(session2.Id, userId2);
+        var result2 = await _matchingService.StartMatchingAsync(session2.Id, userId2);
         // Second user should be matched (matches with first user)
         Assert.True(result2.Matched);
         // Session is not created until both users confirm
         Assert.Null(result2.Session);
 
         // Refresh first user's matching status
-        var status1 = await _service.GetMatchingStatusAsync(session1.Id, userId1);
+        var status1 = await _matchingService.GetMatchingStatusAsync(session1.Id, userId1);
         Assert.NotNull(status1);
         Assert.Equal("Matched", status1.Status);
 
@@ -767,8 +782,8 @@ public class PeerInterviewServiceTests : IDisposable
         Assert.NotNull(request2);
 
         // Both users confirm to create live session
-        await _service.ConfirmMatchAsync(request1!.Id, userId1);
-        var confirm2 = await _service.ConfirmMatchAsync(request2!.Id, userId2);
+        await _matchingService.ConfirmMatchAsync(request1!.Id, userId1);
+        var confirm2 = await _matchingService.ConfirmMatchAsync(request2!.Id, userId2);
         Assert.True(confirm2.Completed);
         Assert.NotNull(confirm2.Session);
 
@@ -853,11 +868,11 @@ public class PeerInterviewServiceTests : IDisposable
         await _context.SaveChangesAsync();
 
         // Act: Start matching for both users
-        var result1 = await _service.StartMatchingAsync(session1.Id, userId1);
+        var result1 = await _matchingService.StartMatchingAsync(session1.Id, userId1);
         // First user won't be matched yet (no other user in queue)
         Assert.False(result1.Matched);
         
-        var result2 = await _service.StartMatchingAsync(session2.Id, userId2);
+        var result2 = await _matchingService.StartMatchingAsync(session2.Id, userId2);
         // Second user should be matched (matches with first user)
         Assert.True(result2.Matched);
         // Session is not created until both users confirm
@@ -873,8 +888,8 @@ public class PeerInterviewServiceTests : IDisposable
         Assert.NotNull(request2);
 
         // Both users confirm to create live session
-        await _service.ConfirmMatchAsync(request1!.Id, userId1);
-        var confirm2 = await _service.ConfirmMatchAsync(request2!.Id, userId2);
+        await _matchingService.ConfirmMatchAsync(request1!.Id, userId1);
+        var confirm2 = await _matchingService.ConfirmMatchAsync(request2!.Id, userId2);
         Assert.True(confirm2.Completed);
         Assert.NotNull(confirm2.Session);
 
@@ -909,7 +924,7 @@ public class PeerInterviewServiceTests : IDisposable
         var sessionId = Guid.NewGuid();
 
         // Act
-        var result = await _service.GetMatchingStatusAsync(sessionId, userId);
+        var result = await _matchingService.GetMatchingStatusAsync(sessionId, userId);
 
         // Assert
         Assert.Null(result);
@@ -954,7 +969,7 @@ public class PeerInterviewServiceTests : IDisposable
         await _context.SaveChangesAsync();
 
         // Act
-        var result = await _service.GetMatchingStatusAsync(session.Id, userId);
+        var result = await _matchingService.GetMatchingStatusAsync(session.Id, userId);
 
         // Assert
         Assert.NotNull(result);
@@ -1000,7 +1015,7 @@ public class PeerInterviewServiceTests : IDisposable
         await _context.SaveChangesAsync();
 
         // Act
-        var result = await _service.GetMatchingStatusAsync(session.Id, userId);
+        var result = await _matchingService.GetMatchingStatusAsync(session.Id, userId);
 
         // Assert
         Assert.Null(result);
@@ -1107,7 +1122,7 @@ public class PeerInterviewServiceTests : IDisposable
         await _context.SaveChangesAsync();
 
         // Act
-        var result = await _service.ConfirmMatchAsync(matchingRequest1.Id, userId1);
+        var result = await _matchingService.ConfirmMatchAsync(matchingRequest1.Id, userId1);
 
         // Assert
         Assert.NotNull(result);
@@ -1213,11 +1228,11 @@ public class PeerInterviewServiceTests : IDisposable
         await _context.SaveChangesAsync();
 
         // Act - First user confirms
-        var result1 = await _service.ConfirmMatchAsync(matchingRequest1.Id, userId1);
+        var result1 = await _matchingService.ConfirmMatchAsync(matchingRequest1.Id, userId1);
         Assert.False(result1.Completed); // Not completed yet
 
         // Second user confirms
-        var result2 = await _service.ConfirmMatchAsync(matchingRequest2.Id, userId2);
+        var result2 = await _matchingService.ConfirmMatchAsync(matchingRequest2.Id, userId2);
 
         // Assert
         Assert.True(result2.Completed);
@@ -1317,7 +1332,7 @@ public class PeerInterviewServiceTests : IDisposable
         await _context.SaveChangesAsync();
 
         // Act
-        var result = await _service.ConfirmMatchAsync(matchingRequest1.Id, userId1);
+        var result = await _matchingService.ConfirmMatchAsync(matchingRequest1.Id, userId1);
 
         // Assert
         Assert.NotNull(result);
@@ -1333,7 +1348,7 @@ public class PeerInterviewServiceTests : IDisposable
 
         // Act & Assert
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>
-            _service.ConfirmMatchAsync(invalidRequestId, userId));
+            _matchingService.ConfirmMatchAsync(invalidRequestId, userId));
     }
 
     [Fact]
@@ -1376,7 +1391,7 @@ public class PeerInterviewServiceTests : IDisposable
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            _service.ConfirmMatchAsync(matchingRequest.Id, userId));
+            _matchingService.ConfirmMatchAsync(matchingRequest.Id, userId));
     }
 
     [Fact]
@@ -1455,7 +1470,7 @@ public class PeerInterviewServiceTests : IDisposable
         await _context.SaveChangesAsync();
 
         // Act
-        var result = await _service.ExpireMatchIfNotConfirmedAsync(matchingRequest.Id, userId);
+        var result = await _matchingService.ExpireMatchIfNotConfirmedAsync(matchingRequest.Id, userId);
 
         // Assert - Neither user confirmed, so both should be Expired and new requests created
         Assert.True(result);
@@ -1515,7 +1530,7 @@ public class PeerInterviewServiceTests : IDisposable
         await _context.SaveChangesAsync();
 
         // Act
-        var result = await _service.ExpireMatchIfNotConfirmedAsync(matchingRequest.Id, userId);
+        var result = await _matchingService.ExpireMatchIfNotConfirmedAsync(matchingRequest.Id, userId);
 
         // Assert
         Assert.False(result);

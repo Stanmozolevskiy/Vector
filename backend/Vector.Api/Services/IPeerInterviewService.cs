@@ -14,12 +14,6 @@ public interface IPeerInterviewService
     Task<ScheduledInterviewSessionDto?> GetScheduledSessionByIdAsync(Guid sessionId, Guid userId);
     Task<bool> CancelScheduledSessionAsync(Guid sessionId, Guid userId);
     
-    // Matching
-    Task<StartMatchingResponseDto> StartMatchingAsync(Guid scheduledSessionId, Guid userId);
-    Task<MatchingRequestDto?> GetMatchingStatusAsync(Guid scheduledSessionId, Guid userId);
-    Task<ConfirmMatchResponseDto> ConfirmMatchAsync(Guid matchingRequestId, Guid userId);
-    Task<bool> ExpireMatchIfNotConfirmedAsync(Guid matchingRequestId, Guid userId);
-    
     // Live Sessions
     Task<LiveInterviewSessionDto?> GetLiveSessionByIdAsync(Guid sessionId, Guid userId);
     Task<SwitchRolesResponseDto> SwitchRolesAsync(Guid sessionId, Guid userId);

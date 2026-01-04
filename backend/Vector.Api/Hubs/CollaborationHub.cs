@@ -12,11 +12,16 @@ namespace Vector.Api.Hubs;
 public class CollaborationHub : Hub
 {
     private readonly IMatchingPresenceService _presenceService;
+    private readonly IInterviewMatchingService _matchingService;
     private readonly ILogger<CollaborationHub> _logger;
 
-    public CollaborationHub(IMatchingPresenceService presenceService, ILogger<CollaborationHub> logger)
+    public CollaborationHub(
+        IMatchingPresenceService presenceService, 
+        IInterviewMatchingService matchingService,
+        ILogger<CollaborationHub> logger)
     {
         _presenceService = presenceService;
+        _matchingService = matchingService;
         _logger = logger;
     }
 
@@ -75,8 +80,18 @@ public class CollaborationHub : Hub
         var userId = GetUserId();
         if (userId.HasValue)
         {
+            // Expire any matched requests (user is in confirmation window) immediately
+            try
+            {
+                await _matchingService.ExpireMatchOnUserDisconnectAsync(userId.Value);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error expiring match on disconnect for user {UserId}", userId.Value);
+            }
+
             _presenceService.ClearUserPresence(userId.Value);
-            _logger.LogDebug("User {UserId} disconnected, cleared all presence", userId.Value);
+            _logger.LogDebug("User {UserId} disconnected, cleared all presence and expired matches", userId.Value);
         }
         await base.OnDisconnectedAsync(exception);
     }

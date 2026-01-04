@@ -831,5 +831,88 @@ public class InterviewMatchingService : IInterviewMatchingService
         }
     }
 
+    public async Task<bool> ExpireMatchOnUserDisconnectAsync(Guid userId)
+    {
+        // Find all "Matched" requests for this user (they're in confirmation window)
+        var matchedRequests = await _context.InterviewMatchingRequests
+            .Where(r => r.UserId == userId && r.Status == "Matched")
+            .ToListAsync();
+
+        if (!matchedRequests.Any())
+        {
+            return false; // No matched requests to expire
+        }
+
+        foreach (var matchedRequest in matchedRequests)
+        {
+            // Find the partner's request
+            InterviewMatchingRequest? partnerRequest = null;
+            if (matchedRequest.MatchedUserId.HasValue)
+            {
+                partnerRequest = await _context.InterviewMatchingRequests
+                    .FirstOrDefaultAsync(r => r.UserId == matchedRequest.MatchedUserId.Value 
+                        && r.MatchedUserId == matchedRequest.UserId 
+                        && r.Status == "Matched");
+            }
+
+            // Expire this user's request
+            matchedRequest.Status = "Expired";
+            matchedRequest.UpdatedAt = DateTime.UtcNow;
+
+            // Expire partner's request if it exists
+            if (partnerRequest != null)
+            {
+                partnerRequest.Status = "Expired";
+                partnerRequest.UpdatedAt = DateTime.UtcNow;
+            }
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("DISCONNECT_EXPIRE: User {UserId} disconnected during confirmation. Expired match with User {PartnerId}. RequestId={RequestId}", 
+                userId, matchedRequest.MatchedUserId, matchedRequest.Id);
+
+            // Re-queue the partner if they're still active
+            if (partnerRequest != null && matchedRequest.MatchedUserId.HasValue)
+            {
+                var partnerId = matchedRequest.MatchedUserId.Value;
+                var partnerSessionId = partnerRequest.ScheduledSessionId;
+                var partnerIsActive = _presenceService.IsUserActive(partnerId, partnerSessionId);
+
+                if (partnerIsActive)
+                {
+                    // Partner is still active - create new request and try to match
+                    var newRequest = new InterviewMatchingRequest
+                    {
+                        UserId = partnerId,
+                        ScheduledSessionId = partnerSessionId,
+                        InterviewType = partnerRequest.InterviewType,
+                        PracticeType = partnerRequest.PracticeType,
+                        InterviewLevel = partnerRequest.InterviewLevel,
+                        ScheduledStartAt = partnerRequest.ScheduledStartAt,
+                        Status = "Pending",
+                        ExpiresAt = DateTime.UtcNow.AddMinutes(10),
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+                    _context.InterviewMatchingRequests.Add(newRequest);
+                    await _context.SaveChangesAsync();
+
+                    // Try to match immediately
+                    await TryMatchAsync(newRequest);
+                    await _context.Entry(newRequest).ReloadAsync();
+
+                    _logger.LogInformation("DISCONNECT_REQUEUE: Partner User {PartnerId} re-queued after disconnect expiration. New RequestId={RequestId}, Status={Status}", 
+                        partnerId, newRequest.Id, newRequest.Status);
+                }
+                else
+                {
+                    _logger.LogInformation("DISCONNECT_NO_REQUEUE: Partner User {PartnerId} not active, not re-queued after disconnect expiration.", partnerId);
+                }
+            }
+        }
+
+        return true;
+    }
+
     #endregion
 }

@@ -33,4 +33,10 @@ public interface IInterviewMatchingService
     /// Does not create new requests
     /// </summary>
     Task ExpireAllRequestsForSessionAsync(Guid scheduledSessionId, Guid userId);
+
+    /// <summary>
+    /// Immediately expire a match when a user disconnects during confirmation.
+    /// Re-queues the remaining active user if they're still on the matching modal.
+    /// </summary>
+    Task<bool> ExpireMatchOnUserDisconnectAsync(Guid userId);
 }

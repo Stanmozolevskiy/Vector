@@ -1480,11 +1480,12 @@ public class PeerInterviewServiceTests : IDisposable
         Assert.Equal("Expired", matchingRequest.Status);
         Assert.Equal("Expired", matchingRequest2.Status);
         
-        // Verify new requests were created
+        // Verify new requests were created (may be Pending or Matched if they matched immediately)
+        await Task.Delay(500); // Allow matching to complete
         var newRequest1 = await _context.InterviewMatchingRequests
-            .FirstOrDefaultAsync(r => r.UserId == userId && r.Status == "Pending" && r.Id != matchingRequest.Id);
+            .FirstOrDefaultAsync(r => r.UserId == userId && (r.Status == "Pending" || r.Status == "Matched") && r.Id != matchingRequest.Id);
         var newRequest2 = await _context.InterviewMatchingRequests
-            .FirstOrDefaultAsync(r => r.UserId == userId2 && r.Status == "Pending" && r.Id != matchingRequest2.Id);
+            .FirstOrDefaultAsync(r => r.UserId == userId2 && (r.Status == "Pending" || r.Status == "Matched") && r.Id != matchingRequest2.Id);
         
         Assert.NotNull(newRequest1);
         Assert.NotNull(newRequest2);

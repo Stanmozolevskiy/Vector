@@ -377,11 +377,15 @@ public class InterviewMatchingService : IInterviewMatchingService
         
         // Check if users are still active and re-queue them if they are
         var user1IsActive = _presenceService.IsUserActive(matchingRequest.UserId, matchingRequest.ScheduledSessionId);
+        var user1Confirmed = matchingRequest.UserConfirmed; // User 1 confirmed status
         
         Guid? newRequest1Id = null;
         if (user1IsActive)
         {
             // User 1 is still active - create new request and try to match
+            // If user confirmed but match expired, prioritize them by using original CreatedAt timestamp
+            var user1CreatedAt = user1Confirmed ? matchingRequest.CreatedAt : DateTime.UtcNow;
+            
             var newRequest1 = new InterviewMatchingRequest
             {
                 UserId = matchingRequest.UserId,
@@ -392,7 +396,7 @@ public class InterviewMatchingService : IInterviewMatchingService
                 ScheduledStartAt = matchingRequest.ScheduledStartAt,
                 Status = "Pending",
                 ExpiresAt = DateTime.UtcNow.AddMinutes(10),
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = user1CreatedAt, // Use original CreatedAt if user confirmed (priority queue)
                 UpdatedAt = DateTime.UtcNow
             };
             _context.InterviewMatchingRequests.Add(newRequest1);
@@ -403,8 +407,16 @@ public class InterviewMatchingService : IInterviewMatchingService
             await TryMatchAsync(newRequest1);
             await _context.Entry(newRequest1).ReloadAsync();
             
-            _logger.LogInformation("REQUEUE_USER1: User {UserId} re-queued after expiration. New RequestId={RequestId}, Status={Status}", 
-                matchingRequest.UserId, newRequest1.Id, newRequest1.Status);
+            if (user1Confirmed)
+            {
+                _logger.LogInformation("REQUEUE_USER1_PRIORITY: User {UserId} who confirmed re-queued with priority after expiration. New RequestId={RequestId}, Status={Status}, CreatedAt={CreatedAt}", 
+                    matchingRequest.UserId, newRequest1.Id, newRequest1.Status, user1CreatedAt);
+            }
+            else
+            {
+                _logger.LogInformation("REQUEUE_USER1: User {UserId} re-queued after expiration. New RequestId={RequestId}, Status={Status}", 
+                    matchingRequest.UserId, newRequest1.Id, newRequest1.Status);
+            }
         }
         else
         {
@@ -415,10 +427,14 @@ public class InterviewMatchingService : IInterviewMatchingService
         if (otherUserRequest != null)
         {
             var user2IsActive = _presenceService.IsUserActive(otherUserRequest.UserId, otherUserRequest.ScheduledSessionId);
+            var user2Confirmed = otherUserRequest.UserConfirmed; // User 2 confirmed status
             
             if (user2IsActive)
             {
                 // User 2 is still active - create new request and try to match
+                // If user confirmed but match expired, prioritize them by using original CreatedAt timestamp
+                var user2CreatedAt = user2Confirmed ? otherUserRequest.CreatedAt : DateTime.UtcNow;
+                
                 var newRequest2 = new InterviewMatchingRequest
                 {
                     UserId = otherUserRequest.UserId,
@@ -429,7 +445,7 @@ public class InterviewMatchingService : IInterviewMatchingService
                     ScheduledStartAt = otherUserRequest.ScheduledStartAt,
                     Status = "Pending",
                     ExpiresAt = DateTime.UtcNow.AddMinutes(10),
-                    CreatedAt = DateTime.UtcNow,
+                    CreatedAt = user2CreatedAt, // Use original CreatedAt if user confirmed (priority queue)
                     UpdatedAt = DateTime.UtcNow
                 };
                 _context.InterviewMatchingRequests.Add(newRequest2);
@@ -440,8 +456,16 @@ public class InterviewMatchingService : IInterviewMatchingService
                 await TryMatchAsync(newRequest2);
                 await _context.Entry(newRequest2).ReloadAsync();
                 
-                _logger.LogInformation("REQUEUE_USER2: User {UserId} re-queued after expiration. New RequestId={RequestId}, Status={Status}", 
-                    otherUserRequest.UserId, newRequest2.Id, newRequest2.Status);
+                if (user2Confirmed)
+                {
+                    _logger.LogInformation("REQUEUE_USER2_PRIORITY: User {UserId} who confirmed re-queued with priority after expiration. New RequestId={RequestId}, Status={Status}, CreatedAt={CreatedAt}", 
+                        otherUserRequest.UserId, newRequest2.Id, newRequest2.Status, user2CreatedAt);
+                }
+                else
+                {
+                    _logger.LogInformation("REQUEUE_USER2: User {UserId} re-queued after expiration. New RequestId={RequestId}, Status={Status}", 
+                        otherUserRequest.UserId, newRequest2.Id, newRequest2.Status);
+                }
             }
             else
             {
@@ -881,6 +905,10 @@ public class InterviewMatchingService : IInterviewMatchingService
                 if (partnerIsActive)
                 {
                     // Partner is still active - create new request and try to match
+                    // If partner confirmed but match expired due to disconnect, prioritize them
+                    var partnerConfirmed = partnerRequest.UserConfirmed;
+                    var partnerCreatedAt = partnerConfirmed ? partnerRequest.CreatedAt : DateTime.UtcNow;
+                    
                     var newRequest = new InterviewMatchingRequest
                     {
                         UserId = partnerId,
@@ -891,7 +919,7 @@ public class InterviewMatchingService : IInterviewMatchingService
                         ScheduledStartAt = partnerRequest.ScheduledStartAt,
                         Status = "Pending",
                         ExpiresAt = DateTime.UtcNow.AddMinutes(10),
-                        CreatedAt = DateTime.UtcNow,
+                        CreatedAt = partnerCreatedAt, // Use original CreatedAt if partner confirmed (priority queue)
                         UpdatedAt = DateTime.UtcNow
                     };
                     _context.InterviewMatchingRequests.Add(newRequest);
@@ -901,8 +929,16 @@ public class InterviewMatchingService : IInterviewMatchingService
                     await TryMatchAsync(newRequest);
                     await _context.Entry(newRequest).ReloadAsync();
 
-                    _logger.LogInformation("DISCONNECT_REQUEUE: Partner User {PartnerId} re-queued after disconnect expiration. New RequestId={RequestId}, Status={Status}", 
-                        partnerId, newRequest.Id, newRequest.Status);
+                    if (partnerConfirmed)
+                    {
+                        _logger.LogInformation("DISCONNECT_REQUEUE_PRIORITY: Partner User {PartnerId} who confirmed re-queued with priority after disconnect expiration. New RequestId={RequestId}, Status={Status}, CreatedAt={CreatedAt}", 
+                            partnerId, newRequest.Id, newRequest.Status, partnerCreatedAt);
+                    }
+                    else
+                    {
+                        _logger.LogInformation("DISCONNECT_REQUEUE: Partner User {PartnerId} re-queued after disconnect expiration. New RequestId={RequestId}, Status={Status}", 
+                            partnerId, newRequest.Id, newRequest.Status);
+                    }
                 }
                 else
                 {

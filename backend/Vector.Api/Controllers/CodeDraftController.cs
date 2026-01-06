@@ -26,8 +26,9 @@ public class CodeDraftController : ControllerBase
     /// Get code draft for a question and language
     /// </summary>
     [HttpGet("{questionId}/{language}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(CodeDraftDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetCodeDraft(Guid questionId, string language)
     {
         try
@@ -41,14 +42,15 @@ public class CodeDraftController : ControllerBase
             var draft = await _codeDraftService.GetCodeDraftAsync(userId.Value, questionId, language);
             if (draft == null)
             {
-                return NotFound(new { error = "Code draft not found." });
+                // Return 204 No Content when draft doesn't exist (not 404)
+                return NoContent();
             }
 
             return Ok(draft);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting code draft");
+            _logger.LogError(ex, "Error getting code draft for question {QuestionId} and language {Language}", questionId, language);
             return StatusCode(500, new { error = "An error occurred while retrieving the code draft." });
         }
     }

@@ -33,6 +33,8 @@ public class AuthControllerTests : IDisposable
         _authServiceMock = new Mock<IAuthService>();
         _redisServiceMock = new Mock<IRedisService>();
         _loggerMock = new Mock<ILogger<AuthController>>();
+        var environmentMock = new Mock<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>();
+        environmentMock.Setup(e => e.EnvironmentName).Returns("Test");
         
         // Setup Redis mocks
         _redisServiceMock.Setup(r => r.CheckRateLimitAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<TimeSpan>()))
@@ -40,7 +42,7 @@ public class AuthControllerTests : IDisposable
         _redisServiceMock.Setup(r => r.ResetRateLimitAsync(It.IsAny<string>()))
             .ReturnsAsync(true);
         
-        _controller = new AuthController(_authServiceMock.Object, _redisServiceMock.Object, _loggerMock.Object);
+        _controller = new AuthController(_authServiceMock.Object, _redisServiceMock.Object, _loggerMock.Object, environmentMock.Object);
     }
 
     [Fact]

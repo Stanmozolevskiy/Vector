@@ -207,12 +207,19 @@ public class QuestionService : IQuestionService
         }
     }
 
-    public async Task<InterviewQuestion> UpdateQuestionAsync(Guid questionId, UpdateQuestionDto dto, Guid updatedBy)
+    public async Task<InterviewQuestion?> UpdateQuestionAsync(Guid questionId, UpdateQuestionDto dto, Guid updatedBy)
     {
         var question = await _context.InterviewQuestions.FindAsync(questionId);
         if (question == null)
         {
-            throw new KeyNotFoundException($"Question with ID {questionId} not found");
+            return null;
+        }
+
+        // Check if user is authorized to update (must be the creator or admin)
+        // Note: Admin check would typically be done at controller level, but we check creator here
+        if (question.CreatedBy != updatedBy)
+        {
+            return null;
         }
 
         if (!string.IsNullOrEmpty(dto.Title))

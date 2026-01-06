@@ -8,7 +8,7 @@ namespace Vector.Api.Services;
 public interface IPeerInterviewService
 {
     // Scheduling
-    Task<ScheduledInterviewSessionDto> ScheduleInterviewSessionAsync(Guid userId, ScheduleInterviewDto dto);
+    Task<ScheduledInterviewSessionDto?> ScheduleInterviewSessionAsync(Guid userId, ScheduleInterviewDto dto);
     Task<IEnumerable<ScheduledInterviewSessionDto>> GetUpcomingSessionsAsync(Guid userId);
     Task<IEnumerable<ScheduledInterviewSessionDto>> GetPastSessionsAsync(Guid userId);
     Task<ScheduledInterviewSessionDto?> GetScheduledSessionByIdAsync(Guid sessionId, Guid userId);

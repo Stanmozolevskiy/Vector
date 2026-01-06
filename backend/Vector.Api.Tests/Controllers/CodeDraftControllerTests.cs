@@ -76,7 +76,7 @@ public class CodeDraftControllerTests
     }
 
     [Fact]
-    public async Task GetCodeDraft_WhenDraftDoesNotExist_ReturnsNotFound()
+    public async Task GetCodeDraft_WhenDraftDoesNotExist_ReturnsNoContent()
     {
         // Arrange
         var userId = Guid.NewGuid();
@@ -91,8 +91,8 @@ public class CodeDraftControllerTests
         var result = await _controller.GetCodeDraft(questionId, language);
 
         // Assert
-        var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
-        Assert.Equal(404, notFoundResult.StatusCode);
+        var noContentResult = Assert.IsType<NoContentResult>(result);
+        Assert.Equal(204, noContentResult.StatusCode);
     }
 
     [Fact]

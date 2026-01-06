@@ -16,7 +16,6 @@ public class AuthController : ControllerBase
     private readonly IAuthService _authService;
     private readonly IRedisService _redisService;
     private readonly ILogger<AuthController> _logger;
-    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IWebHostEnvironment _environment;
 
     public AuthController(IAuthService authService, IRedisService redisService, ILogger<AuthController> logger, IWebHostEnvironment environment)

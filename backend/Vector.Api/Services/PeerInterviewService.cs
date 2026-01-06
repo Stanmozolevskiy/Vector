@@ -23,8 +23,21 @@ public class PeerInterviewService : IPeerInterviewService
     }
 
     // Scheduling
-    public async Task<ScheduledInterviewSessionDto> ScheduleInterviewSessionAsync(Guid userId, ScheduleInterviewDto dto)
+    public async Task<ScheduledInterviewSessionDto?> ScheduleInterviewSessionAsync(Guid userId, ScheduleInterviewDto dto)
     {
+        // Validate user exists
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
+        {
+            throw new InvalidOperationException($"User with ID {userId} not found");
+        }
+
+        // Validate scheduled time is in the future
+        if (dto.ScheduledStartAt <= DateTime.UtcNow)
+        {
+            return null;
+        }
+
         var session = new ScheduledInterviewSession
         {
             UserId = userId,
@@ -78,13 +91,40 @@ public class PeerInterviewService : IPeerInterviewService
     public async Task<IEnumerable<ScheduledInterviewSessionDto>> GetPastSessionsAsync(Guid userId)
     {
         var now = DateTime.UtcNow;
-        var sessions = await _context.ScheduledInterviewSessions
+        
+        // Find all completed scheduled sessions for this user
+        var completedSessions = await _context.ScheduledInterviewSessions
             .Include(s => s.User)
             .Where(s => s.UserId == userId 
                 && s.Status != "Cancelled"
-                && (s.Status == "Completed" || s.ScheduledStartAt <= now))
+                && s.Status == "Completed") // Only show completed sessions (sessions that actually happened)
             .OrderByDescending(s => s.ScheduledStartAt)
             .ToListAsync();
+
+        // Find all matching requests that link these sessions to live sessions
+        var sessionIds = completedSessions.Select(s => s.Id).ToList();
+        var matchingRequests = await _context.InterviewMatchingRequests
+            .Where(m => sessionIds.Contains(m.ScheduledSessionId) && m.LiveSessionId != null)
+            .Select(m => m.ScheduledSessionId)
+            .Distinct()
+            .ToListAsync();
+
+        // Also check for sessions directly linked via LiveInterviewSession.ScheduledSessionId
+        var directlyLinkedSessionIds = await _context.LiveInterviewSessions
+            .Where(ls => sessionIds.Contains(ls.ScheduledSessionId ?? Guid.Empty) && ls.Status == "Completed")
+            .Select(ls => ls.ScheduledSessionId!.Value)
+            .ToListAsync();
+
+        // Combine both sets of session IDs that have live sessions
+        var sessionsWithLiveSession = matchingRequests
+            .Union(directlyLinkedSessionIds)
+            .Distinct()
+            .ToList();
+
+        // Filter to only sessions that have a live session
+        var sessions = completedSessions
+            .Where(s => sessionsWithLiveSession.Contains(s.Id))
+            .ToList();
 
         var dtos = new List<ScheduledInterviewSessionDto>();
         foreach (var session in sessions)
@@ -111,6 +151,12 @@ public class PeerInterviewService : IPeerInterviewService
             .FirstOrDefaultAsync(s => s.Id == sessionId && s.UserId == userId);
 
         if (session == null) return false;
+
+        // Cannot cancel already completed sessions
+        if (session.Status == "Completed")
+        {
+            return false;
+        }
 
         session.Status = "Cancelled";
         session.UpdatedAt = DateTime.UtcNow;
@@ -388,14 +434,18 @@ public class PeerInterviewService : IPeerInterviewService
         {
             var scheduledSessions = await _context.ScheduledInterviewSessions
                 .Where(s => scheduledSessionIds.Contains(s.Id))
+                .Include(s => s.LiveSession) // Include existing LiveSession if any
                 .ToListAsync();
 
             foreach (var scheduledSession in scheduledSessions)
             {
                 scheduledSession.Status = "Completed";
                 scheduledSession.UpdatedAt = DateTime.UtcNow;
-                // The LiveSession navigation property will automatically link to the live session
-                // which contains both questions and participant information
+                // Explicitly link LiveSession navigation property so GetPastSessionsAsync can find it
+                scheduledSession.LiveSession = liveSession;
+                // Also ensure the foreign key relationship is set if there's a foreign key column
+                // Note: The relationship is managed via navigation property, but we need to ensure it's tracked
+                _context.Entry(scheduledSession).Reference(s => s.LiveSession).IsLoaded = true;
             }
 
             _logger.LogInformation("Updated {Count} scheduled sessions to Completed for live session {SessionId}",

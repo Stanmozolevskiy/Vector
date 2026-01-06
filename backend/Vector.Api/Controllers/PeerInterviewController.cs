@@ -54,6 +54,10 @@ public class PeerInterviewController : ControllerBase
         {
             var userId = GetCurrentUserId();
             var session = await _peerInterviewService.ScheduleInterviewSessionAsync(userId, dto);
+            if (session == null)
+            {
+                return BadRequest(new { error = "Cannot schedule interview session in the past." });
+            }
             return StatusCode(201, session);
         }
         catch (Exception ex)

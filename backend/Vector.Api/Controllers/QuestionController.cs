@@ -192,6 +192,11 @@ public class QuestionController : ControllerBase
             }
 
             var question = await _questionService.UpdateQuestionAsync(id, dto, userId.Value);
+            if (question == null)
+            {
+                return NotFound(new { error = "Question not found or you don't have permission to update it." });
+            }
+
             var questionDto = MapToQuestionDto(question);
 
             return Ok(questionDto);

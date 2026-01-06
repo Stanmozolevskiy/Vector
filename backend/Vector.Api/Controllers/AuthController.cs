@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Hosting;
 using System.Security.Claims;
 using Vector.Api.DTOs.Auth;
 using Vector.Api.Models;
@@ -14,12 +16,15 @@ public class AuthController : ControllerBase
     private readonly IAuthService _authService;
     private readonly IRedisService _redisService;
     private readonly ILogger<AuthController> _logger;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IWebHostEnvironment _environment;
 
-    public AuthController(IAuthService authService, IRedisService redisService, ILogger<AuthController> logger)
+    public AuthController(IAuthService authService, IRedisService redisService, ILogger<AuthController> logger, IWebHostEnvironment environment)
     {
         _authService = authService;
         _redisService = redisService;
         _logger = logger;
+        _environment = environment;
     }
 
     /// <summary>
@@ -155,17 +160,25 @@ public class AuthController : ControllerBase
         }
 
         // Rate limiting: Max 5 login attempts per 15 minutes per email
+        // Skip rate limiting for test account (admin@vector.com) in development environment
+        var testAccountEmail = "admin@vector.com";
+        var isTestAccount = dto.Email.Equals(testAccountEmail, StringComparison.OrdinalIgnoreCase);
+        var skipRateLimit = _environment.IsDevelopment() && isTestAccount;
         var rateLimitKey = $"login:{dto.Email.ToLower()}";
-        var isAllowed = await _redisService.CheckRateLimitAsync(rateLimitKey, 5, TimeSpan.FromMinutes(15));
         
-        if (!isAllowed)
+        if (!skipRateLimit)
         {
-            var attempts = await _redisService.GetRateLimitAttemptsAsync(rateLimitKey);
-            _logger.LogWarning("Rate limit exceeded for login attempt: {Email}, Attempts: {Attempts}", dto.Email, attempts);
-            return StatusCode(429, new 
-            { 
-                error = "Too many login attempts. Please try again in 15 minutes." 
-            });
+            var isAllowed = await _redisService.CheckRateLimitAsync(rateLimitKey, 5, TimeSpan.FromMinutes(15));
+            
+            if (!isAllowed)
+            {
+                var attempts = await _redisService.GetRateLimitAttemptsAsync(rateLimitKey);
+                _logger.LogWarning("Rate limit exceeded for login attempt: {Email}, Attempts: {Attempts}", dto.Email, attempts);
+                return StatusCode(429, new 
+                { 
+                    error = "Too many login attempts. Please try again in 15 minutes." 
+                });
+            }
         }
 
         try

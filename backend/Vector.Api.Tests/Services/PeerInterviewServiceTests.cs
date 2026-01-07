@@ -3787,4 +3787,283 @@ public class PeerInterviewServiceTests : IDisposable
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             _service.GetFeedbackStatusAsync(liveSession.Id, userId3));
     }
+
+    // ==================== SQL INTERVIEW TESTS ====================
+
+    [Fact]
+    public async Task ScheduleInterviewSessionAsync_ForSql_AssignsSqlQuestion()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var user = new User { Id = userId, Email = "test@example.com" };
+        await _context.Users.AddAsync(user);
+
+        var sqlQuestion = new InterviewQuestion
+        {
+            Id = Guid.NewGuid(),
+            Title = "Second Highest Salary",
+            QuestionType = "SQL",
+            Difficulty = "Easy",
+            Category = "Database",
+            IsActive = true,
+            ApprovalStatus = "Approved"
+        };
+        await _context.InterviewQuestions.AddAsync(sqlQuestion);
+        await _context.SaveChangesAsync();
+
+        var dto = new ScheduleInterviewDto
+        {
+            InterviewType = "sql",
+            PracticeType = "peers",
+            InterviewLevel = "beginner",
+            ScheduledStartAt = DateTime.UtcNow.AddHours(1)
+        };
+
+        // Act
+        var result = await _service.ScheduleInterviewSessionAsync(userId, dto);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.NotNull(result.AssignedQuestionId);
+        Assert.NotNull(result.AssignedQuestion);
+        Assert.Equal(sqlQuestion.Id, result.AssignedQuestionId);
+        Assert.Equal(sqlQuestion.Title, result.AssignedQuestion.Title);
+        Assert.Equal("SQL", result.AssignedQuestion.QuestionType);
+
+        var sessionInDb = await _context.ScheduledInterviewSessions
+            .Include(s => s.AssignedQuestion)
+            .FirstOrDefaultAsync(s => s.Id == result.Id);
+        Assert.NotNull(sessionInDb);
+        Assert.NotNull(sessionInDb.AssignedQuestionId);
+        Assert.Equal(sqlQuestion.Id, sessionInDb.AssignedQuestionId);
+        Assert.Equal("SQL", sessionInDb.AssignedQuestion!.QuestionType);
+    }
+
+    [Fact]
+    public async Task ScheduleInterviewSessionAsync_ForSql_OnlyAssignsSqlQuestions()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var user = new User { Id = userId, Email = "test@example.com" };
+        await _context.Users.AddAsync(user);
+
+        // Add both SQL and Coding questions
+        var sqlQuestion = new InterviewQuestion
+        {
+            Id = Guid.NewGuid(),
+            Title = "Second Highest Salary",
+            QuestionType = "SQL",
+            Difficulty = "Easy",
+            Category = "Database",
+            IsActive = true,
+            ApprovalStatus = "Approved"
+        };
+        var codingQuestion = new InterviewQuestion
+        {
+            Id = Guid.NewGuid(),
+            Title = "Two Sum",
+            QuestionType = "Coding",
+            Difficulty = "Easy",
+            Category = "Arrays",
+            IsActive = true,
+            ApprovalStatus = "Approved"
+        };
+        await _context.InterviewQuestions.AddRangeAsync(sqlQuestion, codingQuestion);
+        await _context.SaveChangesAsync();
+
+        var dto = new ScheduleInterviewDto
+        {
+            InterviewType = "sql",
+            PracticeType = "peers",
+            InterviewLevel = "beginner",
+            ScheduledStartAt = DateTime.UtcNow.AddHours(1)
+        };
+
+        // Act
+        var result = await _service.ScheduleInterviewSessionAsync(userId, dto);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.NotNull(result.AssignedQuestionId);
+        Assert.NotNull(result.AssignedQuestion);
+        Assert.Equal("SQL", result.AssignedQuestion.QuestionType);
+        Assert.NotEqual(codingQuestion.Id, result.AssignedQuestionId); // Should not assign Coding question
+    }
+
+    [Fact]
+    public async Task StartMatchingAsync_SqlAndDataStructuresAlgorithms_DoNotMatch()
+    {
+        // Arrange
+        var userId1 = Guid.NewGuid();
+        var userId2 = Guid.NewGuid();
+        var user1 = new User { Id = userId1, Email = "user1@example.com" };
+        var user2 = new User { Id = userId2, Email = "user2@example.com" };
+        await _context.Users.AddRangeAsync(user1, user2);
+
+        // Add SQL question
+        var sqlQuestion = new InterviewQuestion
+        {
+            Id = Guid.NewGuid(),
+            Title = "Second Highest Salary",
+            QuestionType = "SQL",
+            Difficulty = "Easy",
+            Category = "Database",
+            IsActive = true,
+            ApprovalStatus = "Approved"
+        };
+        // Add Coding question
+        var codingQuestion = new InterviewQuestion
+        {
+            Id = Guid.NewGuid(),
+            Title = "Two Sum",
+            QuestionType = "Coding",
+            Difficulty = "Easy",
+            Category = "Arrays",
+            IsActive = true,
+            ApprovalStatus = "Approved"
+        };
+        await _context.InterviewQuestions.AddRangeAsync(sqlQuestion, codingQuestion);
+        await _context.SaveChangesAsync();
+
+        var sqlSession = new ScheduledInterviewSession
+        {
+            UserId = userId1,
+            InterviewType = "sql",
+            PracticeType = "peers",
+            InterviewLevel = "beginner",
+            ScheduledStartAt = DateTime.UtcNow.AddHours(1),
+            Status = "Scheduled",
+            AssignedQuestionId = sqlQuestion.Id,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        var dsaSession = new ScheduledInterviewSession
+        {
+            UserId = userId2,
+            InterviewType = "data-structures-algorithms",
+            PracticeType = "peers",
+            InterviewLevel = "beginner",
+            ScheduledStartAt = DateTime.UtcNow.AddHours(1),
+            Status = "Scheduled",
+            AssignedQuestionId = codingQuestion.Id,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        await _context.ScheduledInterviewSessions.AddRangeAsync(sqlSession, dsaSession);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result1 = await _matchingService.StartMatchingAsync(sqlSession.Id, userId1);
+        var result2 = await _matchingService.StartMatchingAsync(dsaSession.Id, userId2);
+
+        // Assert
+        Assert.False(result1.Matched, "SQL interview should not match with DSA interview");
+        Assert.False(result2.Matched, "DSA interview should not match with SQL interview");
+
+        // Verify both requests are in separate queues
+        var sqlRequest = await _context.InterviewMatchingRequests
+            .FirstOrDefaultAsync(r => r.ScheduledSessionId == sqlSession.Id);
+        var dsaRequest = await _context.InterviewMatchingRequests
+            .FirstOrDefaultAsync(r => r.ScheduledSessionId == dsaSession.Id);
+
+        Assert.NotNull(sqlRequest);
+        Assert.NotNull(dsaRequest);
+        Assert.Equal("sql", sqlRequest.InterviewType);
+        Assert.Equal("data-structures-algorithms", dsaRequest.InterviewType);
+        Assert.Equal("Pending", sqlRequest.Status);
+        Assert.Equal("Pending", dsaRequest.Status);
+    }
+
+    [Fact]
+    public async Task StartMatchingAsync_SqlInterviews_OnlyMatchWithOtherSqlInterviews()
+    {
+        // Arrange
+        var userId1 = Guid.NewGuid();
+        var userId2 = Guid.NewGuid();
+        var user1 = new User { Id = userId1, Email = "user1@example.com" };
+        var user2 = new User { Id = userId2, Email = "user2@example.com" };
+        await _context.Users.AddRangeAsync(user1, user2);
+
+        // Add SQL questions
+        var sqlQuestion1 = new InterviewQuestion
+        {
+            Id = Guid.NewGuid(),
+            Title = "Second Highest Salary",
+            QuestionType = "SQL",
+            Difficulty = "Easy",
+            Category = "Database",
+            IsActive = true,
+            ApprovalStatus = "Approved"
+        };
+        var sqlQuestion2 = new InterviewQuestion
+        {
+            Id = Guid.NewGuid(),
+            Title = "Rank Scores",
+            QuestionType = "SQL",
+            Difficulty = "Medium",
+            Category = "Database",
+            IsActive = true,
+            ApprovalStatus = "Approved"
+        };
+        await _context.InterviewQuestions.AddRangeAsync(sqlQuestion1, sqlQuestion2);
+        await _context.SaveChangesAsync();
+
+        var session1 = new ScheduledInterviewSession
+        {
+            UserId = userId1,
+            InterviewType = "sql",
+            PracticeType = "peers",
+            InterviewLevel = "beginner",
+            ScheduledStartAt = DateTime.UtcNow.AddHours(1),
+            Status = "Scheduled",
+            AssignedQuestionId = sqlQuestion1.Id,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        var session2 = new ScheduledInterviewSession
+        {
+            UserId = userId2,
+            InterviewType = "sql",
+            PracticeType = "peers",
+            InterviewLevel = "beginner",
+            ScheduledStartAt = DateTime.UtcNow.AddHours(1),
+            Status = "Scheduled",
+            AssignedQuestionId = sqlQuestion2.Id,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        await _context.ScheduledInterviewSessions.AddRangeAsync(session1, session2);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result1 = await _matchingService.StartMatchingAsync(session1.Id, userId1);
+        // Small delay to ensure ordering
+        await Task.Delay(10);
+        var result2 = await _matchingService.StartMatchingAsync(session2.Id, userId2);
+
+        // Assert
+        // Both SQL interviews should match with each other
+        Assert.True(result1.Matched || result2.Matched, "SQL interviews should match with each other");
+
+        // Verify the matched session uses SQL questions
+        if (result1.Matched || result2.Matched)
+        {
+            var liveSession = await _context.LiveInterviewSessions
+                .Include(ls => ls.ScheduledSession)
+                .ThenInclude(ss => ss!.AssignedQuestion)
+                .FirstOrDefaultAsync();
+            
+            if (liveSession != null)
+            {
+                Assert.NotNull(liveSession.FirstQuestionId);
+                var firstQuestion = await _context.InterviewQuestions.FindAsync(liveSession.FirstQuestionId);
+                Assert.NotNull(firstQuestion);
+                Assert.Equal("SQL", firstQuestion.QuestionType);
+            }
+        }
+    }
 }

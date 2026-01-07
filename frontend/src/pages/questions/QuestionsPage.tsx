@@ -10,7 +10,7 @@ import '../../styles/questions.css';
 
 const ROLES = ['Software Engineer', 'Product Manager', 'Data Engineer', 'Data Scientist', 'Technical Program Manager'];
 const COMPANIES = ['Google', 'Meta', 'Amazon', 'Microsoft', 'Apple', 'Netflix'];
-const CATEGORIES = ['Arrays', 'Strings', 'Trees', 'Graphs', 'Dynamic Programming', 'Backtracking', 'Greedy', 'Math', 'Bit Manipulation', 'Sorting', 'Searching', 'Hash Tables', 'Linked Lists', 'Stacks', 'Queues', 'Heaps'];
+const CATEGORIES = ['Arrays', 'Strings', 'Trees', 'Graphs', 'Dynamic Programming', 'Backtracking', 'Greedy', 'Math', 'Bit Manipulation', 'Sorting', 'Searching', 'Hash Tables', 'Linked Lists', 'Stacks', 'Queues', 'Heaps', 'Database'];
 const DIFFICULTIES = ['Easy', 'Medium', 'Hard'];
 const FILTER_OPTIONS = ['Expert Answers', 'Videos', 'Code Editor', 'Saved'];
 const HOT_OPTIONS = ['Hot', 'Top', 'New'];
@@ -33,16 +33,20 @@ export const QuestionsPage = () => {
   useEffect(() => {
     loadQuestions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, selectedCategories, selectedDifficulties, selectedCompanies, currentPage]);
+  }, [searchTerm, selectedCategories, selectedDifficulties, selectedCompanies, selectedRoles, currentPage]);
 
   const loadQuestions = async () => {
     try {
       setLoading(true);
+      // If a single role is selected, use it; if multiple, use the first one (or implement multi-role filtering)
+      const roleFilter = selectedRoles.length === 1 ? selectedRoles[0] : selectedRoles.length > 1 ? selectedRoles[0] : undefined;
+      
       const filter: QuestionFilter = {
         search: searchTerm || undefined,
         categories: selectedCategories.length > 0 ? selectedCategories : undefined,
         difficulties: selectedDifficulties.length > 0 ? selectedDifficulties : undefined,
         companies: selectedCompanies.length > 0 ? selectedCompanies : undefined,
+        role: roleFilter,
         page: currentPage,
         pageSize: 20,
       };

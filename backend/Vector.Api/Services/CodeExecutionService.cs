@@ -1,9 +1,11 @@
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Vector.Api.Data;
 using Vector.Api.DTOs.CodeExecution;
+using Vector.Api.Models;
 
 namespace Vector.Api.Services;
 
@@ -50,7 +52,9 @@ public class CodeExecutionService : ICodeExecutionService
             { "csharp", 51 },     // C# (Mono 6.6.0.161)
             { "c#", 51 },
             { "go", 60 },          // Go 1.19.5
-            { "golang", 60 }
+            { "golang", 60 },
+            { "sql", 82 },         // SQLite 3.39.2 (Official API)
+            { "sqlite", 82 }
         };
     }
 
@@ -277,9 +281,17 @@ public class CodeExecutionService : ICodeExecutionService
                 _logger.LogInformation("Execution result for test case {TestCaseNumber}: Status={Status}, Output={Output}, Error={Error}", 
                     testCase.TestCaseNumber, executionResult.Status, executionResult.Output, executionResult.Error);
 
-                // Compare output with expected output (case-insensitive, trimmed)
+                // For SQL questions, normalize output format before comparison
                 var actualOutput = executionResult.Output?.Trim() ?? string.Empty;
                 var expectedOutput = testCase.ExpectedOutput?.Trim() ?? string.Empty;
+                
+                // Normalize SQL output format if this is a SQL question
+                if (question?.QuestionType?.Equals("SQL", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    actualOutput = NormalizeSqlOutput(actualOutput);
+                    expectedOutput = NormalizeSqlOutput(expectedOutput);
+                }
+                
                 var passed = executionResult.Status == "Accepted" &&
                              string.Equals(actualOutput, expectedOutput, StringComparison.OrdinalIgnoreCase);
 
@@ -366,6 +378,37 @@ public class CodeExecutionService : ICodeExecutionService
                 
                 _logger.LogInformation("Execution result for test case {TestCaseNumber}: Status={Status}, Output={Output}, Error={Error}", 
                     testCase.TestCaseNumber, executionResult.Status, executionResult.Output, executionResult.Error);
+
+                // For SQL questions, use output directly without parsing JSON
+                if (question?.QuestionType?.Equals("SQL", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    var sqlActualOutput = executionResult.Output?.Trim() ?? string.Empty;
+                    var sqlExpectedOutput = testCase.ExpectedOutput?.Trim() ?? string.Empty;
+                    
+                    // Normalize SQL output format
+                    sqlActualOutput = NormalizeSqlOutput(sqlActualOutput);
+                    sqlExpectedOutput = NormalizeSqlOutput(sqlExpectedOutput);
+                    
+                    var sqlPassed = executionResult.Status == "Accepted" &&
+                                 string.Equals(sqlActualOutput, sqlExpectedOutput, StringComparison.OrdinalIgnoreCase);
+                    
+                    var sqlTestResult = new TestResultDto
+                    {
+                        TestCaseId = testCase.Id,
+                        TestCaseNumber = testCase.TestCaseNumber,
+                        Output = sqlActualOutput,
+                        ExpectedOutput = sqlExpectedOutput,
+                        Input = testCase.Input,
+                        Error = executionResult.Error,
+                        Runtime = executionResult.Runtime,
+                        Memory = executionResult.Memory,
+                        Status = executionResult.Status,
+                        Passed = sqlPassed
+                    };
+                    
+                    results.Add(sqlTestResult);
+                    continue;
+                }
 
                 // Separate stdout (all console.log/print) from actual output (last line = JSON.stringify(result))
                 var fullStdout = executionResult.Output?.Trim() ?? string.Empty;
@@ -455,6 +498,16 @@ public class CodeExecutionService : ICodeExecutionService
             if (question == null)
             {
                 throw new KeyNotFoundException("Question not found.");
+            }
+
+            // Check if this is a SQL question
+            bool isSqlQuestion = question.QuestionType?.Equals("SQL", StringComparison.OrdinalIgnoreCase) == true ||
+                                 request.Language?.Equals("sql", StringComparison.OrdinalIgnoreCase) == true;
+
+            // Handle SQL questions differently
+            if (isSqlQuestion)
+            {
+                return await RunSqlCodeWithTestCasesAsync(question, request);
             }
 
             // Extract parameter names from user code
@@ -663,6 +716,202 @@ public class CodeExecutionService : ICodeExecutionService
         }
     }
 
+    /// <summary>
+    /// Run SQL code with test cases - handles SQL test case format (JSON with schema/data)
+    /// </summary>
+    private async Task<RunResultDto> RunSqlCodeWithTestCasesAsync(InterviewQuestion question, RunCodeWithTestCasesDto request)
+    {
+        // Parse SQL test cases - each line is a JSON object with schema and data
+        var lines = request.TestCaseText.Split('\n')
+            .Select((line, index) => new { Line = line.TrimEnd(), Index = index + 1 })
+            .Where(l => !string.IsNullOrWhiteSpace(l.Line))
+            .ToList();
+
+        if (lines.Count == 0)
+        {
+            return new RunResultDto
+            {
+                Status = "INVALID_INPUT",
+                ValidationError = new TestCaseParseErrorDto
+                {
+                    Type = "NO_TESTCASES",
+                    Message = "No testcases provided",
+                    LineNumber = null
+                },
+                Cases = new List<CaseResultDto>()
+            };
+        }
+
+        var caseResults = new List<CaseResultDto>();
+        decimal totalRuntime = 0;
+        long maxMemory = 0;
+
+        // Get visible test cases from database for expected outputs
+        var visibleTestCases = question.TestCases
+            .Where(tc => !tc.IsHidden)
+            .OrderBy(tc => tc.TestCaseNumber)
+            .ToList();
+
+        for (int i = 0; i < lines.Count; i++)
+        {
+            var lineInfo = lines[i];
+            var testCaseIndex = i + 1;
+
+            try
+            {
+                // Parse JSON test case (should have schema and data)
+                var testCaseJson = JsonDocument.Parse(lineInfo.Line);
+                var root = testCaseJson.RootElement;
+
+                if (!root.TryGetProperty("schema", out _) || !root.TryGetProperty("data", out _))
+                {
+                    caseResults.Add(new CaseResultDto
+                    {
+                        CaseIndex = testCaseIndex,
+                        InputValues = new[] { lineInfo.Line },
+                        ParameterNames = Array.Empty<string>(),
+                        Status = "INVALID_INPUT",
+                        Passed = false,
+                        Error = new RuntimeErrorDto
+                        {
+                            Message = $"Invalid SQL test case format at line {lineInfo.Index}. Expected JSON object with 'schema' and 'data' fields.",
+                            Stack = null
+                        }
+                    });
+                    continue;
+                }
+
+                // Use the JSON string directly as input (already in correct format)
+                var testCaseInput = lineInfo.Line;
+
+                // Wrap code for SQL execution
+                var wrappedCode = _codeWrapper.WrapCodeForExecution(
+                    request.SourceCode,
+                    request.Language,
+                    testCaseInput,
+                    question);
+
+                // Execute
+                var executionRequest = new ExecutionRequestDto
+                {
+                    SourceCode = wrappedCode,
+                    Language = request.Language,
+                    Stdin = string.Empty
+                };
+
+                var executionResult = await ExecuteCodeAsync(executionRequest);
+
+                // For SQL, use output directly without JSON parsing
+                var actualOutput = executionResult.Output?.Trim() ?? string.Empty;
+                var expectedOutput = i < visibleTestCases.Count 
+                    ? visibleTestCases[i].ExpectedOutput?.Trim() ?? string.Empty 
+                    : string.Empty;
+
+                // Normalize SQL output for comparison
+                actualOutput = NormalizeSqlOutput(actualOutput);
+                expectedOutput = NormalizeSqlOutput(expectedOutput);
+
+                // Determine if passed
+                bool? passed = null;
+                if (executionResult.Status == "Accepted")
+                {
+                    if (!string.IsNullOrWhiteSpace(expectedOutput))
+                    {
+                        passed = string.Equals(actualOutput, expectedOutput, StringComparison.OrdinalIgnoreCase);
+                    }
+                    else
+                    {
+                        // No expected output - assume passed if execution succeeded
+                        passed = true;
+                    }
+                }
+                else
+                {
+                    passed = false;
+                }
+
+                var caseResult = new CaseResultDto
+                {
+                    CaseIndex = testCaseIndex,
+                    InputValues = new[] { testCaseInput },
+                    ParameterNames = Array.Empty<string>(),
+                    Stdout = string.Empty,
+                    Output = actualOutput,
+                    ExpectedOutput = expectedOutput,
+                    Runtime = executionResult.Runtime,
+                    Memory = executionResult.Memory,
+                    Status = executionResult.Status,
+                    Passed = passed,
+                    Error = !string.IsNullOrWhiteSpace(executionResult.Error) ? new RuntimeErrorDto
+                    {
+                        Message = executionResult.Error,
+                        Stack = null
+                    } : null
+                };
+
+                caseResults.Add(caseResult);
+                totalRuntime += executionResult.Runtime;
+                maxMemory = Math.Max(maxMemory, executionResult.Memory);
+            }
+            catch (JsonException ex)
+            {
+                caseResults.Add(new CaseResultDto
+                {
+                    CaseIndex = testCaseIndex,
+                    InputValues = new[] { lineInfo.Line },
+                    ParameterNames = Array.Empty<string>(),
+                    Status = "INVALID_INPUT",
+                    Passed = false,
+                    Error = new RuntimeErrorDto
+                    {
+                        Message = $"Invalid JSON format at line {lineInfo.Index}: {ex.Message}",
+                        Stack = null
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error executing SQL test case {TestCaseIndex}", testCaseIndex);
+                caseResults.Add(new CaseResultDto
+                {
+                    CaseIndex = testCaseIndex,
+                    InputValues = new[] { lineInfo.Line },
+                    ParameterNames = Array.Empty<string>(),
+                    Status = "RUNTIME_ERROR",
+                    Passed = false,
+                    Error = new RuntimeErrorDto
+                    {
+                        Message = $"Error executing test case: {ex.Message}",
+                        Stack = null
+                    }
+                });
+            }
+        }
+
+        // Determine overall status
+        string overallStatus = "ACCEPTED";
+        if (caseResults.Any(c => c.Passed == false))
+        {
+            overallStatus = "WRONG_ANSWER";
+        }
+        else if (caseResults.Any(c => c.Status != "Accepted" && c.Passed != true))
+        {
+            overallStatus = "RUNTIME_ERROR";
+        }
+        else if (caseResults.Count == 0)
+        {
+            overallStatus = "WRONG_ANSWER";
+        }
+
+        return new RunResultDto
+        {
+            Status = overallStatus,
+            RuntimeMs = totalRuntime,
+            MemoryMb = maxMemory / 1024.0m,
+            Cases = caseResults
+        };
+    }
+
     private object? ExtractJsonValue(JsonElement element)
     {
         return element.ValueKind switch
@@ -692,7 +941,8 @@ public class CodeExecutionService : ICodeExecutionService
             new() { Name = "Java", Value = "java", Judge0LanguageId = 91, Version = "17.0.2" },
             new() { Name = "C++", Value = "cpp", Judge0LanguageId = 54, Version = "GCC 9.2.0" },
             new() { Name = "C#", Value = "csharp", Judge0LanguageId = 51, Version = ".NET 6.0.102" },
-            new() { Name = "Go", Value = "go", Judge0LanguageId = 60, Version = "1.19.5" }
+            new() { Name = "Go", Value = "go", Judge0LanguageId = 60, Version = "1.19.5" },
+            new() { Name = "SQL", Value = "sql", Judge0LanguageId = 82, Version = "SQLite 3.39.2" }
         };
 
         return await Task.FromResult(languages);
@@ -755,6 +1005,56 @@ public class CodeExecutionService : ICodeExecutionService
             Runtime = runtimeMs,
             Memory = result.Memory ?? 0
         };
+    }
+
+    /// <summary>
+    /// Normalize SQL output for comparison (handles various formats from Judge0 SQLite)
+    /// </summary>
+    private string NormalizeSqlOutput(string output)
+    {
+        if (string.IsNullOrWhiteSpace(output))
+        {
+            return string.Empty;
+        }
+
+        // Treat "(No output - code executed successfully)" as empty output
+        if (output.Trim() == "(No output - code executed successfully)")
+        {
+            return string.Empty;
+        }
+
+        // Remove leading/trailing whitespace and normalize line endings
+        output = output.Trim().Replace("\r\n", "\n").Replace("\r", "\n");
+
+        // If output is already JSON array or object, try to normalize it
+        try
+        {
+            // Try to parse as JSON and re-serialize to normalize format
+            using var doc = JsonDocument.Parse(output);
+            // Use compact JSON format with sorted keys for consistent comparison
+            return JsonSerializer.Serialize(doc, new JsonSerializerOptions 
+            { 
+                WriteIndented = false
+            }).Trim();
+        }
+        catch
+        {
+            // Not JSON, might be tabular output from SQLite
+            // Judge0 SQLite returns query results directly
+            // Normalize whitespace and normalize numeric formatting (remove trailing .0 from integers)
+            var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            var normalizedLines = lines.Select(l =>
+            {
+                var trimmed = l.Trim();
+                // Normalize numeric values: "4.0" -> "4", "3.5" -> "3.5", "3.50" -> "3.5"
+                // Use regex to replace patterns like "|4.0|" or "4.0|" or "|4.0" or just "4.0" (at boundaries)
+                // But preserve actual decimals like "3.5" (non-zero after decimal point)
+                // Pattern: match digit(s).0 followed by pipe, start of string, or end of string
+                trimmed = Regex.Replace(trimmed, @"(\d+)\.0(?=\||$|^)", "$1");
+                return trimmed;
+            });
+            return string.Join("\n", normalizedLines).Trim();
+        }
     }
 
     /// <summary>

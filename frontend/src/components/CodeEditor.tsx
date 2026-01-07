@@ -339,6 +339,7 @@ export const CodeEditor = ({
       java: 'java',
       cpp: 'cpp',
       csharp: 'csharp',
+      sql: 'sql',
       go: 'go',
     };
     return languageMap[lang.toLowerCase()] || 'plaintext';

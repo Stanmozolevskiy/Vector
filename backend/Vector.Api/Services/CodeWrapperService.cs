@@ -21,6 +21,7 @@ public class CodeWrapperService
             "cpp" or "c++" => WrapCppCode(userCode, testCaseInput, question),
             "csharp" or "c#" => WrapCSharpCode(userCode, testCaseInput, question),
             "go" or "golang" => WrapGoCode(userCode, testCaseInput, question),
+            "sql" or "sqlite" => WrapSqlCode(userCode, testCaseInput, question),
             _ => throw new ArgumentException($"Unsupported language for code wrapping: {language}")
         };
     }
@@ -159,6 +160,53 @@ print(input_data)";
         return userCode;
     }
 
+    private string WrapSqlCode(string userCode, string testCaseInput, InterviewQuestion? question)
+    {
+        try
+        {
+            // Parse SQL test case JSON: {"schema": "...", "data": "..."}
+            var inputJson = JsonDocument.Parse(testCaseInput);
+            var root = inputJson.RootElement;
+            
+            if (!root.TryGetProperty("schema", out var schemaElement) || 
+                !root.TryGetProperty("data", out var dataElement))
+            {
+                throw new ArgumentException("SQL test case must have 'schema' and 'data' fields");
+            }
+            
+            var schema = (schemaElement.GetString() ?? string.Empty).Trim();
+            var data = (dataElement.GetString() ?? string.Empty).Trim();
+            var userQuery = userCode.Trim();
+            
+            // For SQL execution with Judge0 SQLite, we need to:
+            // 1. Execute schema (CREATE TABLE statements) - ensure semicolon at end
+            // 2. Execute data (INSERT statements) - ensure semicolon at end
+            // 3. Execute user's query
+            // Judge0 SQLite executes statements separated by semicolons
+            
+            // Ensure schema ends with semicolon (but not multiple)
+            if (!string.IsNullOrEmpty(schema) && !schema.TrimEnd().EndsWith(";", StringComparison.Ordinal))
+            {
+                schema = schema.TrimEnd() + ";";
+            }
+            
+            // Ensure data ends with semicolon if it's a statement
+            if (!string.IsNullOrEmpty(data) && !data.TrimEnd().EndsWith(";", StringComparison.Ordinal))
+            {
+                data = data.TrimEnd() + ";";
+            }
+            
+            // Build the wrapped SQL code with semicolons separating statements
+            var wrappedCode = $"{schema}\n\n{data}\n\n{userQuery}";
+            
+            return wrappedCode;
+        }
+        catch (JsonException ex)
+        {
+            throw new ArgumentException($"Invalid SQL test case JSON format: {ex.Message}", ex);
+        }
+    }
+
     private string FormatJsonValue(JsonElement element)
     {
         return element.ValueKind switch
@@ -226,6 +274,7 @@ print(input_data)";
             "cpp" or "c++" => ExtractCppParameters(code),
             "csharp" or "c#" => ExtractCSharpParameters(code),
             "go" or "golang" => ExtractGoParameters(code),
+            "sql" or "sqlite" => Array.Empty<string>(), // SQL doesn't have parameters in the same sense
             _ => Array.Empty<string>()
         };
     }

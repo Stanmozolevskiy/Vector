@@ -56,7 +56,26 @@ public class QuestionService : IQuestionService
                     EF.Functions.Like(q.Description, $"%{searchTerm}%"));
             }
 
-            if (!string.IsNullOrEmpty(filter.QuestionType))
+            // Map role to question type if role is provided and QuestionType is not
+            if (!string.IsNullOrEmpty(filter.Role) && string.IsNullOrEmpty(filter.QuestionType))
+            {
+                var roleLower = filter.Role.Trim().ToLowerInvariant();
+                var questionType = roleLower switch
+                {
+                    "data-engineer" or "data engineer" or "de" => "SQL",
+                    "software-engineer" or "software engineer" or "swe" or "developer" => "Coding",
+                    "system-designer" or "system designer" or "architect" => "System Design",
+                    "product-manager" or "product manager" or "pm" => "Behavioral",
+                    "engineering-manager" or "engineering manager" or "em" => "Behavioral",
+                    _ => null
+                };
+                
+                if (!string.IsNullOrEmpty(questionType))
+                {
+                    query = query.Where(q => q.QuestionType == questionType);
+                }
+            }
+            else if (!string.IsNullOrEmpty(filter.QuestionType))
             {
                 query = query.Where(q => q.QuestionType == filter.QuestionType);
             }
@@ -193,14 +212,14 @@ public class QuestionService : IQuestionService
         }
 
         // Validate question type
-        var validQuestionTypes = new[] { "Coding", "System Design", "Behavioral" };
+        var validQuestionTypes = new[] { "Coding", "System Design", "Behavioral", "SQL" };
         if (!validQuestionTypes.Contains(dto.QuestionType, StringComparer.OrdinalIgnoreCase))
         {
             throw new ArgumentException($"Invalid question type. Must be one of: {string.Join(", ", validQuestionTypes)}");
         }
 
         // Validate category (common categories)
-        var validCategories = new[] { "Arrays", "Strings", "Trees", "Graphs", "Dynamic Programming", "Greedy", "Backtracking", "Math", "Bit Manipulation", "Sorting", "Searching", "Hash Tables", "Linked Lists", "Stacks", "Queues", "Heaps", "System Design", "Behavioral" };
+        var validCategories = new[] { "Arrays", "Strings", "Trees", "Graphs", "Dynamic Programming", "Greedy", "Backtracking", "Math", "Bit Manipulation", "Sorting", "Searching", "Hash Tables", "Linked Lists", "Stacks", "Queues", "Heaps", "System Design", "Behavioral", "Database" };
         if (!string.IsNullOrEmpty(dto.Category) && !validCategories.Contains(dto.Category, StringComparer.OrdinalIgnoreCase))
         {
             _logger.LogWarning("Category '{Category}' is not in the standard list. Allowing custom category.", dto.Category);

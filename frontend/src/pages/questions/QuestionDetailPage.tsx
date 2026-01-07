@@ -30,7 +30,11 @@ export const QuestionDetailPage = () => {
   const [solutions, setSolutions] = useState<QuestionSolution[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('description');
-  const [selectedLanguage, setSelectedLanguage] = useState('javascript');
+  // Initialize language based on question type - SQL for SQL questions, javascript for others
+  const [selectedLanguage, setSelectedLanguage] = useState<string>(() => {
+    // Will be updated when question loads
+    return 'javascript';
+  });
   const [code, setCode] = useState('');
   const [isExecuting, setIsExecuting] = useState(false);
   const [activeTestTab, setActiveTestTab] = useState<'testcase' | 'result'>('testcase');
@@ -403,7 +407,15 @@ export const QuestionDetailPage = () => {
   }, [code, id, selectedLanguage, showToast]);
 
   // Extract parameters separately, debounced to avoid re-renders on every keystroke
+  // Skip parameter extraction for SQL questions
   useEffect(() => {
+    // Don't extract parameters for SQL questions
+    if (question?.questionType?.toLowerCase() === 'sql') {
+      setParameterNames([]);
+      setParameterCount(1); // Set to 1 to avoid validation issues, but SQL validation will skip this
+      return;
+    }
+    
     const timeoutId = setTimeout(() => {
       const params = extractParameterNames(code, selectedLanguage);
       setParameterNames(params);
@@ -411,7 +423,7 @@ export const QuestionDetailPage = () => {
     }, 300); // Debounce parameter extraction
 
     return () => clearTimeout(timeoutId);
-  }, [code, selectedLanguage]); // Only extract when code or language actually changes
+  }, [code, selectedLanguage, question?.questionType]); // Include question type in dependencies
 
   // Memoize onChange handler to prevent re-renders
   const handleCodeChange = useCallback((value: string | undefined) => {
@@ -478,7 +490,55 @@ export const QuestionDetailPage = () => {
       };
     }
 
-    // Check if divisible by parameter count
+    // Check if this is a SQL question - check question type, selected language, OR test case format
+    // Also check if the first line looks like a SQL test case (JSON with schema/data)
+    let isSqlQuestion = question?.questionType?.toLowerCase() === 'sql' || selectedLanguage === 'sql';
+    
+    // Auto-detect SQL test case format by checking if first line is JSON with schema/data
+    if (!isSqlQuestion && lines.length > 0) {
+      try {
+        const firstLine = JSON.parse(lines[0].line);
+        if (firstLine && typeof firstLine === 'object' && 'schema' in firstLine && 'data' in firstLine) {
+          isSqlQuestion = true;
+        }
+      } catch {
+        // Not JSON, not a SQL test case
+      }
+    }
+    
+    // For SQL questions, validate JSON objects with schema and data
+    if (isSqlQuestion) {
+      // SQL test cases: each line should be a JSON object with schema and data
+      for (const lineInfo of lines) {
+        try {
+          const parsed = JSON.parse(lineInfo.line);
+          // Check if it has schema and data fields (SQL test case format)
+          if (!parsed.schema || !parsed.data) {
+            return {
+              valid: false,
+              error: {
+                type: 'INVALID_SQL_TESTCASE',
+                message: `Invalid SQL test case format at line ${lineInfo.lineNumber}. Expected JSON object with "schema" and "data" fields.`,
+                lineNumber: lineInfo.lineNumber
+              }
+            };
+          }
+        } catch (e) {
+          return {
+            valid: false,
+            error: {
+              type: 'INVALID_JSON',
+              message: `Invalid JSON format at line ${lineInfo.lineNumber}: ${e instanceof Error ? e.message : 'Parse error'}.`,
+              lineNumber: lineInfo.lineNumber
+            }
+          };
+        }
+      }
+      // All SQL test cases are valid
+      return { valid: true };
+    }
+
+    // For coding questions, check if divisible by parameter count
     if (lines.length % parameterCount !== 0) {
       const incompleteCaseStartLine = ((lines.length / parameterCount) | 0) * parameterCount + 1;
       return {
@@ -609,9 +669,41 @@ export const QuestionDetailPage = () => {
 
   // Initialize testcase text from existing test cases on load
   useEffect(() => {
-    if (testCases.length > 0 && !testCaseText) {
-      // Convert existing test cases to line-based format
-      const visibleCases = testCases.filter(tc => !tc.isHidden);
+    if (!question) return;
+    
+    const visibleCases = testCases.filter(tc => !tc.isHidden);
+    
+    if (visibleCases.length === 0) {
+      // No visible test cases
+      if (testCaseText) {
+        setTestCaseText('');
+      }
+      return;
+    }
+    
+    // Check if this is a SQL question OR if test cases look like SQL format (JSON with schema/data)
+    const isSqlQuestion = question.questionType?.toLowerCase() === 'sql' || selectedLanguage === 'sql';
+    
+    // Also auto-detect SQL format by checking first test case
+    let isSqlFormat = isSqlQuestion;
+    if (!isSqlFormat && visibleCases.length > 0) {
+      try {
+        const firstInput = JSON.parse(visibleCases[0].input);
+        if (firstInput && typeof firstInput === 'object' && 'schema' in firstInput && 'data' in firstInput) {
+          isSqlFormat = true;
+        }
+      } catch {
+        // Not JSON with schema/data
+      }
+    }
+    
+    // For SQL questions, keep the full JSON object with schema and data
+    if (isSqlFormat) {
+      const sqlTestCases = visibleCases.map(testCase => testCase.input);
+      const newTestCaseText = sqlTestCases.join('\n');
+      setTestCaseText(newTestCaseText);
+    } else {
+      // For coding questions, convert to line-based format
       const lines: string[] = [];
       
       visibleCases.forEach(testCase => {
@@ -628,9 +720,10 @@ export const QuestionDetailPage = () => {
         }
       });
       
-      setTestCaseText(lines.join('\n'));
+      const newTestCaseText = lines.join('\n');
+      setTestCaseText(newTestCaseText);
     }
-  }, [testCases]);
+  }, [testCases, question, selectedLanguage]); // Removed testCaseText from deps to avoid infinite loops
 
 
   // Vertical resizer (between description and editor)
@@ -950,6 +1043,8 @@ export const QuestionDetailPage = () => {
     if (!id) return;
     try {
       setLoading(true);
+      // Clear test case text when loading new question
+      setTestCaseText('');
       const [questionData, testCasesData, solutionsData] = await Promise.all([
         questionService.getQuestionById(id),
         questionService.getTestCases(id, false),
@@ -958,6 +1053,19 @@ export const QuestionDetailPage = () => {
       setQuestion(questionData);
       setTestCases(testCasesData);
       setSolutions(solutionsData);
+      
+      // Log for debugging SQL test cases
+      if (questionData?.questionType?.toLowerCase() === 'sql') {
+        console.log(`SQL question loaded: ${questionData.title}, Test cases: ${testCasesData.length}`);
+      }
+      
+      // Set default language based on question type
+      if (questionData?.questionType?.toLowerCase() === 'sql') {
+        setSelectedLanguage('sql');
+      } else if (!selectedLanguage || selectedLanguage === 'sql') {
+        // If currently SQL but question is not SQL, switch to javascript
+        setSelectedLanguage('javascript');
+      }
       
       // Check if user has solved this question (optimized lookup)
       // This is independent of code loading - code always loads from saved draft
@@ -1301,8 +1409,8 @@ export const QuestionDetailPage = () => {
     );
   }
 
-  // Only show coding question layout for coding questions
-  if (question.questionType?.toLowerCase() !== 'coding') {
+  // Show coding question layout for coding questions and SQL questions
+  if (question.questionType?.toLowerCase() !== 'coding' && question.questionType?.toLowerCase() !== 'sql') {
     // For non-coding questions, show a simpler layout
     return (
       <div className="question-detail-page">
@@ -1928,12 +2036,18 @@ export const QuestionDetailPage = () => {
                   value={selectedLanguage}
                   onChange={(e) => setSelectedLanguage(e.target.value)}
                 >
-                  <option value="javascript">JavaScript</option>
-                  <option value="python">Python3</option>
-                  <option value="java">Java</option>
-                  <option value="cpp">C++</option>
-                  <option value="csharp">C#</option>
-                  <option value="go">Go</option>
+                  {question?.questionType?.toLowerCase() === 'sql' ? (
+                    <option value="sql">SQL</option>
+                  ) : (
+                    <>
+                      <option value="javascript">JavaScript</option>
+                      <option value="python">Python3</option>
+                      <option value="java">Java</option>
+                      <option value="cpp">C++</option>
+                      <option value="csharp">C#</option>
+                      <option value="go">Go</option>
+                    </>
+                  )}
                 </select>
                 {hasUnsavedCode && (
                   <span 

@@ -50,15 +50,15 @@ public class PeerInterviewService : IPeerInterviewService
             UpdatedAt = DateTime.UtcNow
         };
 
-        // Assign a question if interview type is data-structures-algorithms
-        if (dto.InterviewType == "data-structures-algorithms")
+        // Assign a question if interview type is data-structures-algorithms or sql
+        if (dto.InterviewType == "data-structures-algorithms" || dto.InterviewType == "sql")
         {
             var assignedQuestionId = await SelectRandomQuestionAsync(dto.InterviewType);
             if (assignedQuestionId.HasValue)
             {
                 session.AssignedQuestionId = assignedQuestionId.Value;
-                _logger.LogInformation("Assigned question {QuestionId} to scheduled session {SessionId} for user {UserId}",
-                    assignedQuestionId.Value, session.Id, userId);
+                _logger.LogInformation("Assigned question {QuestionId} to scheduled session {SessionId} for user {UserId} (InterviewType: {InterviewType})",
+                    assignedQuestionId.Value, session.Id, userId, dto.InterviewType);
             }
         }
 
@@ -662,7 +662,7 @@ public class PeerInterviewService : IPeerInterviewService
             { "system-design", "System Design" },
             { "behavioral", "Behavioral" },
             { "product-management", "Behavioral" }, // Product management uses behavioral questions
-            { "sql", "Coding" },
+            { "sql", "SQL" }, // SQL interviews use SQL questions
             { "data-science-ml", "Coding" }
         };
 

@@ -578,8 +578,8 @@ public class InterviewMatchingService : IInterviewMatchingService
         Guid? firstQuestionId = null;
         Guid? secondQuestionId = null;
 
-        // Use assigned questions from both users if available (for data-structures-algorithms)
-        if (schedulerRequest.InterviewType == "data-structures-algorithms" 
+        // Use assigned questions from both users if available (for data-structures-algorithms or sql)
+        if ((schedulerRequest.InterviewType == "data-structures-algorithms" || schedulerRequest.InterviewType == "sql")
             && schedulerSession?.AssignedQuestionId.HasValue == true 
             && matchedSession?.AssignedQuestionId.HasValue == true)
         {
@@ -677,7 +677,7 @@ public class InterviewMatchingService : IInterviewMatchingService
             { "system-design", "System Design" },
             { "behavioral", "Behavioral" },
             { "product-management", "Behavioral" },
-            { "sql", "Coding" },
+            { "sql", "SQL" }, // SQL interviews use SQL questions
             { "data-science-ml", "Coding" }
         };
 
@@ -729,7 +729,7 @@ public class InterviewMatchingService : IInterviewMatchingService
             { "system-design", "System Design" },
             { "behavioral", "Behavioral" },
             { "product-management", "Behavioral" },
-            { "sql", "Coding" },
+            { "sql", "SQL" }, // SQL interviews use SQL questions
             { "data-science-ml", "Coding" }
         };
 

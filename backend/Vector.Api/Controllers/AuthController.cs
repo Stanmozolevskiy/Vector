@@ -289,6 +289,7 @@ public class AuthController : ControllerBase
     /// <response code="200">Tokens refreshed successfully</response>
     /// <response code="401">Invalid or expired refresh token</response>
     [HttpPost("refresh")]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenDto dto)

@@ -53,6 +53,7 @@ export interface QuestionFilter {
   difficulties?: string[];
   companies?: string[];
   tags?: string[];
+  role?: string;
   isActive?: boolean;
   page?: number;
   pageSize?: number;

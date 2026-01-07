@@ -10,6 +10,7 @@ export interface QuestionTemplate {
   cpp: string;
   csharp: string;
   go: string;
+  sql?: string;
 }
 
 const QUESTION_TEMPLATES: Record<string, QuestionTemplate> = {
@@ -93,6 +94,52 @@ const QUESTION_TEMPLATES: Record<string, QuestionTemplate> = {
     csharp: 'public class Solution {\n    public int MaxSubArray(int[] nums) {\n        \n    }\n}',
     go: 'func maxSubArray(nums []int) int {\n    \n}',
   },
+  // SQL Questions - Start with empty editor, no pre-filled solutions
+  "Second Highest Salary": {
+    javascript: '', // Not used for SQL questions
+    python: '',
+    java: '',
+    cpp: '',
+    csharp: '',
+    go: '',
+    sql: '' // Empty template - users write their own solution
+  },
+  "Employees Earning More Than Their Managers": {
+    javascript: '',
+    python: '',
+    java: '',
+    cpp: '',
+    csharp: '',
+    go: '',
+    sql: '' // Empty template - users write their own solution
+  },
+  "Rank Scores": {
+    javascript: '',
+    python: '',
+    java: '',
+    cpp: '',
+    csharp: '',
+    go: '',
+    sql: '' // Empty template - users write their own solution
+  },
+  "Department Top Three Salaries": {
+    javascript: '',
+    python: '',
+    java: '',
+    cpp: '',
+    csharp: '',
+    go: '',
+    sql: '' // Empty template - users write their own solution
+  },
+  "Consecutive Numbers": {
+    javascript: '',
+    python: '',
+    java: '',
+    cpp: '',
+    csharp: '',
+    go: '',
+    sql: '' // Empty template - users write their own solution
+  },
 };
 
 // Default template (fallback)
@@ -110,7 +157,14 @@ const DEFAULT_TEMPLATE: QuestionTemplate = {
  */
 export function getQuestionTemplate(questionTitle: string, language: string): string {
   const template = QUESTION_TEMPLATES[questionTitle] || DEFAULT_TEMPLATE;
-  return template[language as keyof QuestionTemplate] || template.javascript;
+  
+  // For SQL questions, return SQL template or empty string
+  if (language.toLowerCase() === 'sql') {
+    return template.sql || '';
+  }
+  
+  // For other languages, return the template or default to javascript
+  return template[language as keyof QuestionTemplate] || template.javascript || '';
 }
 
 /**

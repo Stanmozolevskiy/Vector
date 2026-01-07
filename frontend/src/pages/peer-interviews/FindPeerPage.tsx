@@ -25,7 +25,7 @@ const INTERVIEW_TYPES = [
   { id: 'system-design', name: 'System Design', icon: '⚙️', description: 'Practice designing technical architectures.' },
   { id: 'behavioral', name: 'Behavioral', icon: '💬', description: 'Practice questions about your work experiences.' },
   { id: 'product-management', name: 'Product Management', icon: '👥', description: 'Practice product sense, estimation, and more.' },
-  { id: 'sql', name: 'SQL (Beta)', icon: '🗄️', description: 'Practice writing and optimizing SQL queries.', beta: true },
+  { id: 'sql', name: 'SQL', icon: '🗄️', description: 'Practice writing and optimizing SQL queries.' },
   { id: 'data-science-ml', name: 'Data Science & ML (Beta)', icon: '📊', description: 'Practice using data to answer questions and design systems.', beta: true },
 ];
 

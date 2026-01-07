@@ -93,23 +93,56 @@ public static class DbSeeder
     {
         try
         {
-            // Always repopulate questions - clear existing and add fresh ones
+            // Check if SQL questions exist
+            var existingSqlQuestions = await context.InterviewQuestions
+                .Where(q => q.QuestionType == "SQL")
+                .ToListAsync();
+            
+            // Get all existing question titles upfront to avoid duplicates
+            var allExistingTitles = await context.InterviewQuestions
+                .Select(q => q.Title)
+                .ToListAsync();
+            
+            // Always try to repopulate - but only delete questions that aren't referenced
             var existingQuestions = await context.InterviewQuestions.ToListAsync();
             if (existingQuestions.Any())
             {
-                logger.LogInformation("Clearing existing {Count} interview questions for repopulation...", existingQuestions.Count);
+                // Check which questions are referenced
+                var referencedQuestionIds = await context.ScheduledInterviewSessions
+                    .Where(s => s.AssignedQuestionId != null)
+                    .Select(s => s.AssignedQuestionId!.Value)
+                    .Distinct()
+                    .ToListAsync();
                 
-                // Remove related test cases and solutions first
-                var questionIds = existingQuestions.Select(q => q.Id).ToList();
-                var relatedTestCases = await context.QuestionTestCases.Where(tc => questionIds.Contains(tc.QuestionId)).ToListAsync();
-                var relatedSolutions = await context.QuestionSolutions.Where(s => questionIds.Contains(s.QuestionId)).ToListAsync();
+                // Only delete questions that aren't referenced
+                var questionsToDelete = existingQuestions
+                    .Where(q => !referencedQuestionIds.Contains(q.Id))
+                    .ToList();
                 
-                context.QuestionTestCases.RemoveRange(relatedTestCases);
-                context.QuestionSolutions.RemoveRange(relatedSolutions);
-                context.InterviewQuestions.RemoveRange(existingQuestions);
-                await context.SaveChangesAsync();
-                
-                logger.LogInformation("Cleared existing questions, test cases, and solutions.");
+                if (questionsToDelete.Any())
+                {
+                    logger.LogInformation("Clearing {Count} unreferenced interview questions for repopulation...", questionsToDelete.Count);
+                    
+                    var questionIds = questionsToDelete.Select(q => q.Id).ToList();
+                    var relatedTestCases = await context.QuestionTestCases.Where(tc => questionIds.Contains(tc.QuestionId)).ToListAsync();
+                    var relatedSolutions = await context.QuestionSolutions.Where(s => questionIds.Contains(s.QuestionId)).ToListAsync();
+                    
+                    context.QuestionTestCases.RemoveRange(relatedTestCases);
+                    context.QuestionSolutions.RemoveRange(relatedSolutions);
+                    context.InterviewQuestions.RemoveRange(questionsToDelete);
+                    await context.SaveChangesAsync();
+                    
+                    // Update existing titles list after deletion
+                    allExistingTitles = allExistingTitles
+                        .Where(title => !questionsToDelete.Any(q => q.Title == title))
+                        .ToList();
+                    
+                    logger.LogInformation("Cleared unreferenced questions, test cases, and solutions.");
+                }
+                else
+                {
+                    logger.LogInformation("All existing questions are referenced. Skipping deletion.");
+                }
             }
 
             // Get admin user for CreatedBy
@@ -348,14 +381,130 @@ public static class DbSeeder
                     TimeComplexityHint = "O(n)",
                     SpaceComplexityHint = "O(1)",
                     AcceptanceRate = 49.8
+                },
+                // SQL Questions for Data Engineers
+                new {
+                    Title = "Second Highest Salary",
+                    Description = "Write a SQL query to get the second highest salary from the Employee table. If there is no second highest salary, then the query should return null.\n\nTable: Employee\n+----+--------+\n| Id | Salary |\n+----+--------+\n| 1  | 100    |\n| 2  | 200    |\n| 3  | 300    |\n+----+--------+",
+                    Difficulty = "Easy",
+                    QuestionType = "SQL",
+                    Category = "Database",
+                    Tags = new[] { "SQL", "Subquery", "MAX", "LIMIT" },
+                    CompanyTags = new[] { "Amazon", "Microsoft", "Bloomberg" },
+                    Constraints = "There will be at least one record in the Employee table.\nSalary values are positive integers.",
+                    Examples = new[] {
+                        new { Input = "Employee table:\n| Id | Salary |\n|----|--------|\n| 1  | 100    |\n| 2  | 200    |\n| 3  | 300    |", Output = "| SecondHighestSalary |\n|---------------------|\n| 200                 |", Explanation = (string?)"The second highest salary is 200." },
+                        new { Input = "Employee table:\n| Id | Salary |\n|----|--------|\n| 1  | 100    |", Output = "| SecondHighestSalary |\n|---------------------|\n| null                |", Explanation = (string?)"There is no second highest salary, so return null." }
+                    },
+                    Hints = new[] { 
+                        "Think about how to find the maximum value first, then find the maximum value that is less than the overall maximum.",
+                        "You can use a subquery to exclude the highest salary, then find the maximum of the remaining salaries.",
+                        "Alternatively, you can use LIMIT and OFFSET, but remember to handle the case where there are fewer than 2 distinct salaries."
+                    },
+                    TimeComplexityHint = "O(n)",
+                    SpaceComplexityHint = "O(1)",
+                    AcceptanceRate = 35.2
+                },
+                new {
+                    Title = "Employees Earning More Than Their Managers",
+                    Description = "The Employee table holds all employees including their managers. Every employee has an Id, and there is also a column for the manager Id.\n\nGiven the Employee table, write a SQL query that finds out employees who earn more than their managers.\n\nTable: Employee\n+----+-------+--------+-----------+\n| Id | Name  | Salary | ManagerId |\n+----+-------+--------+-----------+\n| 1  | Joe   | 70000  | 3         |\n| 2  | Henry | 80000  | 4         |\n| 3  | Sam   | 60000  | NULL      |\n| 4  | Max   | 90000  | NULL      |\n+----+-------+--------+-----------+",
+                    Difficulty = "Easy",
+                    QuestionType = "SQL",
+                    Category = "Database",
+                    Tags = new[] { "SQL", "JOIN", "Self Join" },
+                    CompanyTags = new[] { "Amazon", "Google", "Facebook" },
+                    Constraints = "ManagerId can be NULL.\nAll employees have unique Ids.\nSalary values are positive integers.",
+                    Examples = new[] {
+                        new { Input = "Employee table:\n| Id | Name  | Salary | ManagerId |\n|----|-------|--------|-----------|\n| 1  | Joe   | 70000  | 3         |\n| 2  | Henry | 80000  | 4         |\n| 3  | Sam   | 60000  | NULL      |\n| 4  | Max   | 90000  | NULL      |", Output = "| Employee |\n|----------|\n| Joe      |", Explanation = (string?)"Joe is the only employee who earns more than his manager (Sam earns 60000, Joe earns 70000)." }
+                    },
+                    Hints = new[] { 
+                        "This is a self-join problem. You need to join the Employee table with itself.",
+                        "Think about joining where Employee.Id = Employee.ManagerId, then compare salaries.",
+                        "Make sure to use table aliases to distinguish between the employee and manager records."
+                    },
+                    TimeComplexityHint = "O(n)",
+                    SpaceComplexityHint = "O(n)",
+                    AcceptanceRate = 62.8
+                },
+                new {
+                    Title = "Rank Scores",
+                    Description = "Write a SQL query to rank scores. If there is a tie between two scores, both should have the same ranking. Note that after a tie, the next ranking number should be the next consecutive integer value. In other words, there should be no \"holes\" between ranks.\n\nTable: Scores\n+----+-------+\n| Id | Score |\n+----+-------+\n| 1  | 3.50  |\n| 2  | 3.65  |\n| 3  | 4.00  |\n| 4  | 3.85  |\n| 5  | 4.00  |\n| 6  | 3.65  |\n+----+-------+",
+                    Difficulty = "Medium",
+                    QuestionType = "SQL",
+                    Category = "Database",
+                    Tags = new[] { "SQL", "Window Functions", "DENSE_RANK", "RANK" },
+                    CompanyTags = new[] { "Microsoft", "Oracle", "Salesforce" },
+                    Constraints = "Scores are floating point numbers.\nAll scores are unique or can have duplicates.",
+                    Examples = new[] {
+                        new { Input = "Scores table:\n| Id | Score |\n|----|-------|\n| 1  | 3.50  |\n| 2  | 3.65  |\n| 3  | 4.00  |\n| 4  | 3.85  |\n| 5  | 4.00  |\n| 6  | 3.65  |", Output = "| Score | Rank |\n|-------|------|\n| 4.00  | 1    |\n| 4.00  | 1    |\n| 3.85  | 2    |\n| 3.65  | 3    |\n| 3.65  | 3    |\n| 3.50  | 4    |", Explanation = (string?)"Scores are ranked from highest to lowest, with ties getting the same rank and no gaps in ranking." }
+                    },
+                    Hints = new[] { 
+                        "You'll need to use window functions like DENSE_RANK() or RANK().",
+                        "DENSE_RANK() gives consecutive ranks without gaps, which is what we need here.",
+                        "Remember to order by Score in descending order to get the highest scores first."
+                    },
+                    TimeComplexityHint = "O(n log n)",
+                    SpaceComplexityHint = "O(n)",
+                    AcceptanceRate = 55.3
+                },
+                new {
+                    Title = "Department Top Three Salaries",
+                    Description = "A company's executives are interested in seeing who earns the most money in each of the company's departments. A high earner in a department is an employee who has a salary in the top three unique salaries for that department.\n\nWrite a SQL query to find the employees who are high earners in each of the departments.\n\nTable: Employee\n+----+-------+--------+--------------+\n| Id | Name  | Salary | DepartmentId |\n+----+-------+--------+--------------+\n| 1  | Joe   | 85000  | 1            |\n| 2  | Henry | 80000  | 2            |\n| 3  | Sam   | 60000  | 2            |\n| 4  | Max   | 90000  | 1            |\n| 5  | Janet | 69000  | 1            |\n| 6  | Randy | 85000  | 1            |\n| 7  | Will  | 70000  | 1            |\n+----+-------+--------+--------------+\n\nTable: Department\n+----+----------+\n| Id | Name     |\n+----+----------+\n| 1  | IT       |\n| 2  | Sales    |\n+----+----------+",
+                    Difficulty = "Hard",
+                    QuestionType = "SQL",
+                    Category = "Database",
+                    Tags = new[] { "SQL", "Window Functions", "DENSE_RANK", "JOIN", "Subquery" },
+                    CompanyTags = new[] { "Google", "Amazon", "Microsoft" },
+                    Constraints = "Each department has at least one employee.\nSalary values are positive integers.\nThere may be multiple employees with the same salary in a department.",
+                    Examples = new[] {
+                        new { Input = "Employee table:\n| Id | Name  | Salary | DepartmentId |\n|----|-------|--------|--------------|\n| 1  | Joe   | 85000  | 1            |\n| 2  | Henry | 80000  | 2            |\n| 3  | Sam   | 60000  | 2            |\n| 4  | Max   | 90000  | 1            |\n| 5  | Janet | 69000  | 1            |\n| 6  | Randy | 85000  | 1            |\n| 7  | Will  | 70000  | 1            |\n\nDepartment table:\n| Id | Name  |\n|----|-------|\n| 1  | IT    |\n| 2  | Sales |", Output = "| Department | Employee | Salary |\n|------------|----------|--------|\n| IT         | Max      | 90000  |\n| IT         | Joe      | 85000  |\n| IT         | Randy    | 85000  |\n| IT         | Will     | 70000  |\n| Sales      | Henry    | 80000  |\n| Sales      | Sam      | 60000  |", Explanation = (string?)"In the IT department, Max earns the highest unique salary (90000), Joe and Randy both earn the second-highest unique salary (85000), and Will earns the third-highest unique salary (70000). In the Sales department, Henry earns the highest salary (80000) and Sam earns the second-highest salary (60000)." }
+                    },
+                    Hints = new[] { 
+                        "You'll need to use window functions like DENSE_RANK() partitioned by DepartmentId.",
+                        "Join the Employee table with the Department table to get department names.",
+                        "Filter the results where the rank is <= 3 to get the top 3 earners per department.",
+                        "Remember that DENSE_RANK() handles ties correctly - employees with the same salary get the same rank."
+                    },
+                    TimeComplexityHint = "O(n log n)",
+                    SpaceComplexityHint = "O(n)",
+                    AcceptanceRate = 42.7
+                },
+                new {
+                    Title = "Consecutive Numbers",
+                    Description = "Write a SQL query to find all numbers that appear at least three times consecutively.\n\nTable: Logs\n+----+-----+\n| Id | Num |\n+----+-----+\n| 1  |  1  |\n| 2  |  1  |\n| 3  |  1  |\n| 4  |  2  |\n| 5  |  1  |\n| 6  |  2  |\n| 7  |  2  |\n+----+-----+",
+                    Difficulty = "Medium",
+                    QuestionType = "SQL",
+                    Category = "Database",
+                    Tags = new[] { "SQL", "Self Join", "Window Functions", "LAG", "LEAD" },
+                    CompanyTags = new[] { "Amazon", "Microsoft", "Adobe" },
+                    Constraints = "Id is an auto-increment primary key.\nNum values are integers.",
+                    Examples = new[] {
+                        new { Input = "Logs table:\n| Id | Num |\n|----|-----|\n| 1  |  1  |\n| 2  |  1  |\n| 3  |  1  |\n| 4  |  2  |\n| 5  |  1  |\n| 6  |  2  |\n| 7  |  2  |", Output = "| ConsecutiveNums |\n|-----------------|\n| 1               |", Explanation = (string?)"1 is the only number that appears consecutively at least three times." }
+                    },
+                    Hints = new[] { 
+                        "You can use window functions like LAG() and LEAD() to compare a number with its previous and next values.",
+                        "Alternatively, you can use self-joins to compare each row with the next two rows.",
+                        "Think about checking if Num equals the previous Num AND equals the next Num.",
+                        "Make sure to handle cases where there might be gaps in the Id sequence (though in this problem Ids are consecutive)."
+                    },
+                    TimeComplexityHint = "O(n)",
+                    SpaceComplexityHint = "O(n)",
+                    AcceptanceRate = 48.9
                 }
             };
 
             int questionIndex = 0;
             foreach (var qData in questionsData)
             {
-                // Approve first 8 questions by default
-                bool isApproved = questionIndex < 8;
+                // Skip if question already exists (by title)
+                if (allExistingTitles.Contains(qData.Title))
+                {
+                    questionIndex++;
+                    continue;
+                }
+                
+                // Approve first 8 questions by default, and all SQL questions
+                bool isApproved = questionIndex < 8 || qData.QuestionType == "SQL";
                 
                 var question = new InterviewQuestion
                 {
@@ -415,8 +564,20 @@ public static class DbSeeder
             var solutions = new List<QuestionSolution>();
             var now = DateTime.UtcNow;
 
-            // Two Sum test cases and solution
-            var twoSum = questions.First(q => q.Title == "Two Sum");
+            // Two Sum test cases and solution - check both new questions and existing ones
+            var twoSum = questions.FirstOrDefault(q => q.Title == "Two Sum");
+            if (twoSum == null)
+            {
+                twoSum = await context.InterviewQuestions
+                    .FirstOrDefaultAsync(q => q.Title == "Two Sum");
+            }
+            
+            if (twoSum == null)
+            {
+                logger.LogWarning("Two Sum question not found, skipping Two Sum test cases");
+            }
+            else
+            {
             
             // Two Sum: Add exactly 10 test cases (3 visible + 7 hidden)
             // Generate large input test case (array with 1000 elements for performance testing)
@@ -534,13 +695,26 @@ public static class DbSeeder
                 }
             };
             
-            testCases.AddRange(twoSumTestCases);
+                // Check if Two Sum test cases already exist
+                var existingTwoSumTestCases = await context.QuestionTestCases
+                    .CountAsync(tc => tc.QuestionId == twoSum.Id);
+                
+                if (existingTwoSumTestCases == 0)
+                {
+                    testCases.AddRange(twoSumTestCases);
+                }
 
-            solutions.Add(new QuestionSolution
-            {
-                Id = Guid.NewGuid(),
-                QuestionId = twoSum.Id,
-                Language = "JavaScript",
+                // Check if Two Sum solutions already exist
+                var existingTwoSumSolutions = await context.QuestionSolutions
+                    .CountAsync(s => s.QuestionId == twoSum.Id);
+                
+                if (existingTwoSumSolutions == 0)
+                {
+                    solutions.Add(new QuestionSolution
+                    {
+                        Id = Guid.NewGuid(),
+                        QuestionId = twoSum.Id,
+                        Language = "JavaScript",
                 Code = "function twoSum(nums, target) {\n    const numToIndex = {};\n    for (let i = 0; i < nums.length; i++) {\n        const complement = target - nums[i];\n        if (complement in numToIndex) {\n            return [numToIndex[complement], i];\n        }\n        numToIndex[nums[i]] = i;\n    }\n    return [];\n}",
                 Explanation = "Solution 1: Hash map approach\nOur solution processes the input array by iterating through it while maintaining a hash map of previously seen elements and their indices. For each element, it calculates the complement (i.e., target - nums[i]) and checks if this complement is already present in the hash map. If the complement is found, it means we have identified a pair of indices that sum up to the target, and we return these indices. If no such pair is found by the end of the iteration, we return an empty array.\n\nThe solution uses a hash map (or unordered map) to achieve efficient lookups and insertions. This approach ensures that each element is processed only once, making it both readable and performant.\n\nTime Complexity: The solution has a time complexity of O(n), where n is the number of elements in the array. This is because we iterate through the array once, performing constant-time operations (hash map lookups and insertions) for each element.\n\nSpace Complexity: The solution uses O(n) space for the hash map that stores the indices of the elements. In the worst case, if all elements are unique, the hash map will contain n entries.",
                 TimeComplexity = "O(n)",
@@ -550,19 +724,21 @@ public static class DbSeeder
                 UpdatedAt = now
             });
 
-            solutions.Add(new QuestionSolution
-            {
-                Id = Guid.NewGuid(),
-                QuestionId = twoSum.Id,
-                Language = "Python",
-                Code = "def twoSum(nums, target):\n    hashmap = {}\n    for i, num in enumerate(nums):\n        complement = target - num\n        if complement in hashmap:\n            return [hashmap[complement], i]\n        hashmap[num] = i\n    return []",
-                Explanation = "Python implementation using dictionary for O(1) lookups.",
-                TimeComplexity = "O(n)",
-                SpaceComplexity = "O(n)",
-                IsOfficial = true,
-                CreatedAt = now,
-                UpdatedAt = now
-            });
+                    solutions.Add(new QuestionSolution
+                    {
+                        Id = Guid.NewGuid(),
+                        QuestionId = twoSum.Id,
+                        Language = "Python",
+                        Code = "def twoSum(nums, target):\n    hashmap = {}\n    for i, num in enumerate(nums):\n        complement = target - num\n        if complement in hashmap:\n            return [hashmap[complement], i]\n        hashmap[num] = i\n    return []",
+                        Explanation = "Python implementation using dictionary for O(1) lookups.",
+                        TimeComplexity = "O(n)",
+                        SpaceComplexity = "O(n)",
+                        IsOfficial = true,
+                        CreatedAt = now,
+                        UpdatedAt = now
+                    });
+                }
+            }
 
             // Add comprehensive test cases and solutions for all other questions
             var questionTestCasesMap = new Dictionary<string, List<(string Input, string ExpectedOutput, bool IsHidden)>>();
@@ -804,13 +980,181 @@ public static class DbSeeder
                 };
             }
 
+            // SQL Questions - Second Highest Salary
+            // Note: SQLite outputs plain values, not JSON. For null, it outputs empty string.
+            var secondHighestSalary = questions.FirstOrDefault(q => q.Title == "Second Highest Salary");
+            if (secondHighestSalary != null)
+            {
+                questionTestCasesMap["Second Highest Salary"] = new List<(string, string, bool)>
+                {
+                    // 3 visible test cases - SQLite outputs plain values
+                    ("{\"schema\": \"CREATE TABLE Employee (Id INT, Salary INT);\", \"data\": \"INSERT INTO Employee VALUES (1, 100), (2, 200), (3, 300);\"}", "200", false),
+                    ("{\"schema\": \"CREATE TABLE Employee (Id INT, Salary INT);\", \"data\": \"INSERT INTO Employee VALUES (1, 100);\"}", "", false),
+                    ("{\"schema\": \"CREATE TABLE Employee (Id INT, Salary INT);\", \"data\": \"INSERT INTO Employee VALUES (1, 100), (2, 200), (3, 200), (4, 300);\"}", "200", false),
+                    // 7 hidden test cases
+                    ("{\"schema\": \"CREATE TABLE Employee (Id INT, Salary INT);\", \"data\": \"INSERT INTO Employee VALUES (1, 50000), (2, 60000), (3, 70000), (4, 80000), (5, 90000);\"}", "80000", true),
+                    ("{\"schema\": \"CREATE TABLE Employee (Id INT, Salary INT);\", \"data\": \"INSERT INTO Employee VALUES (1, 1000), (2, 2000), (3, 3000), (4, 3000), (5, 3000);\"}", "2000", true),
+                    ("{\"schema\": \"CREATE TABLE Employee (Id INT, Salary INT);\", \"data\": \"INSERT INTO Employee VALUES (1, 500);\"}", "", true),
+                    ("{\"schema\": \"CREATE TABLE Employee (Id INT, Salary INT);\", \"data\": \"INSERT INTO Employee VALUES (1, 10), (2, 10);\"}", "", true),
+                    ("{\"schema\": \"CREATE TABLE Employee (Id INT, Salary INT);\", \"data\": \"INSERT INTO Employee VALUES (1, 100), (2, 100), (3, 200), (4, 300);\"}", "200", true),
+                    ("{\"schema\": \"CREATE TABLE Employee (Id INT, Salary INT);\", \"data\": \"INSERT INTO Employee VALUES (1, 10000), (2, 20000);\"}", "10000", true),
+                    ("{\"schema\": \"CREATE TABLE Employee (Id INT, Salary INT);\", \"data\": \"INSERT INTO Employee VALUES (1, 500), (2, 1000), (3, 1500), (4, 2000), (5, 2500), (6, 3000);\"}", "2500", true)
+                };
+                // Add SQL solution
+                questionSolutionsMap["Second Highest Salary"] = new Dictionary<string, string>
+                {
+                    ["SQL"] = "SELECT MAX(Salary) AS SecondHighestSalary\nFROM Employee\nWHERE Salary < (SELECT MAX(Salary) FROM Employee);"
+                };
+            }
+
+            // SQL Questions - Employees Earning More Than Their Managers
+            // SQLite outputs plain text, one row per line
+            var employeesEarningMore = questions.FirstOrDefault(q => q.Title == "Employees Earning More Than Their Managers");
+            if (employeesEarningMore != null)
+            {
+                questionTestCasesMap["Employees Earning More Than Their Managers"] = new List<(string, string, bool)>
+                {
+                    // 3 visible test cases - SQLite outputs plain text
+                    ("{\"schema\": \"CREATE TABLE Employee (Id INT, Name VARCHAR(255), Salary INT, ManagerId INT);\", \"data\": \"INSERT INTO Employee VALUES (1, 'Joe', 70000, 3), (2, 'Henry', 80000, 4), (3, 'Sam', 60000, NULL), (4, 'Max', 90000, NULL);\"}", "Joe", false),
+                    ("{\"schema\": \"CREATE TABLE Employee (Id INT, Name VARCHAR(255), Salary INT, ManagerId INT);\", \"data\": \"INSERT INTO Employee VALUES (1, 'Alice', 50000, 2), (2, 'Bob', 60000, NULL), (3, 'Charlie', 55000, 2);\"}", "", false),
+                    ("{\"schema\": \"CREATE TABLE Employee (Id INT, Name VARCHAR(255), Salary INT, ManagerId INT);\", \"data\": \"INSERT INTO Employee VALUES (1, 'John', 80000, NULL), (2, 'Jane', 75000, 1), (3, 'Jim', 90000, 1);\"}", "Jim", false),
+                    // 7 hidden test cases
+                    ("{\"schema\": \"CREATE TABLE Employee (Id INT, Name VARCHAR(255), Salary INT, ManagerId INT);\", \"data\": \"INSERT INTO Employee VALUES (1, 'A', 50000, NULL), (2, 'B', 60000, 1), (3, 'C', 55000, 1);\"}", "B\nC", true),
+                    ("{\"schema\": \"CREATE TABLE Employee (Id INT, Name VARCHAR(255), Salary INT, ManagerId INT);\", \"data\": \"INSERT INTO Employee VALUES (1, 'X', 100000, NULL), (2, 'Y', 90000, 1), (3, 'Z', 95000, 1);\"}", "", true),
+                    ("{\"schema\": \"CREATE TABLE Employee (Id INT, Name VARCHAR(255), Salary INT, ManagerId INT);\", \"data\": \"INSERT INTO Employee VALUES (1, 'Manager', 50000, NULL), (2, 'Emp1', 40000, 1), (3, 'Emp2', 45000, 1);\"}", "", true),
+                    ("{\"schema\": \"CREATE TABLE Employee (Id INT, Name VARCHAR(255), Salary INT, ManagerId INT);\", \"data\": \"INSERT INTO Employee VALUES (1, 'CEO', 200000, NULL), (2, 'VP', 150000, 1), (3, 'Director', 100000, 2), (4, 'Manager', 80000, 3), (5, 'Employee', 120000, 3);\"}", "Employee", true),
+                    ("{\"schema\": \"CREATE TABLE Employee (Id INT, Name VARCHAR(255), Salary INT, ManagerId INT);\", \"data\": \"INSERT INTO Employee VALUES (1, 'A', 10000, NULL), (2, 'B', 20000, 1);\"}", "B", true),
+                    ("{\"schema\": \"CREATE TABLE Employee (Id INT, Name VARCHAR(255), Salary INT, ManagerId INT);\", \"data\": \"INSERT INTO Employee VALUES (1, 'M1', 50000, NULL), (2, 'E1', 40000, 1), (3, 'E2', 30000, 1), (4, 'E3', 60000, 1);\"}", "E3", true),
+                    ("{\"schema\": \"CREATE TABLE Employee (Id INT, Name VARCHAR(255), Salary INT, ManagerId INT);\", \"data\": \"INSERT INTO Employee VALUES (1, 'Boss', 80000, NULL), (2, 'Worker1', 70000, 1), (3, 'Worker2', 85000, 1);\"}", "Worker2", true)
+                };
+                // Add SQL solution
+                questionSolutionsMap["Employees Earning More Than Their Managers"] = new Dictionary<string, string>
+                {
+                    ["SQL"] = "SELECT e1.Name AS Employee\nFROM Employee e1\nJOIN Employee e2 ON e1.ManagerId = e2.Id\nWHERE e1.Salary > e2.Salary;"
+                };
+            }
+
+            // SQL Questions - Rank Scores
+            // SQLite outputs columns separated by | (pipe) character
+            var rankScores = questions.FirstOrDefault(q => q.Title == "Rank Scores");
+            if (rankScores != null)
+            {
+                questionTestCasesMap["Rank Scores"] = new List<(string, string, bool)>
+                {
+                    // 3 visible test cases - SQLite outputs: Score|Rank per row (note: decimals may be formatted without trailing zeros)
+                    ("{\"schema\": \"CREATE TABLE Scores (Id INT, Score DECIMAL(3,2));\", \"data\": \"INSERT INTO Scores VALUES (1, 3.50), (2, 3.65), (3, 4.00), (4, 3.85), (5, 4.00), (6, 3.65);\"}", "4|1\n4|1\n3.85|2\n3.65|3\n3.65|3\n3.5|4", false),
+                    ("{\"schema\": \"CREATE TABLE Scores (Id INT, Score DECIMAL(3,2));\", \"data\": \"INSERT INTO Scores VALUES (1, 4.00), (2, 4.00), (3, 4.00);\"}", "4|1\n4|1\n4|1", false),
+                    ("{\"schema\": \"CREATE TABLE Scores (Id INT, Score DECIMAL(3,2));\", \"data\": \"INSERT INTO Scores VALUES (1, 1.00), (2, 2.00), (3, 3.00);\"}", "3|1\n2|2\n1|3", false),
+                    // 7 hidden test cases
+                    ("{\"schema\": \"CREATE TABLE Scores (Id INT, Score DECIMAL(3,2));\", \"data\": \"INSERT INTO Scores VALUES (1, 3.50), (2, 3.50), (3, 3.50);\"}", "3.5|1\n3.5|1\n3.5|1", true),
+                    ("{\"schema\": \"CREATE TABLE Scores (Id INT, Score DECIMAL(3,2));\", \"data\": \"INSERT INTO Scores VALUES (1, 5.00), (2, 4.50), (3, 4.00), (4, 3.50), (5, 3.00);\"}", "5|1\n4.5|2\n4|3\n3.5|4\n3|5", true),
+                    ("{\"schema\": \"CREATE TABLE Scores (Id INT, Score DECIMAL(3,2));\", \"data\": \"INSERT INTO Scores VALUES (1, 2.50), (2, 2.50), (3, 3.00), (4, 3.00), (5, 1.00);\"}", "3|1\n3|1\n2.5|2\n2.5|2\n1|3", true),
+                    ("{\"schema\": \"CREATE TABLE Scores (Id INT, Score DECIMAL(3,2));\", \"data\": \"INSERT INTO Scores VALUES (1, 0.00);\"}", "0|1", true),
+                    ("{\"schema\": \"CREATE TABLE Scores (Id INT, Score DECIMAL(3,2));\", \"data\": \"INSERT INTO Scores VALUES (1, 4.75), (2, 4.50), (3, 4.25), (4, 4.00), (5, 3.75);\"}", "4.75|1\n4.5|2\n4.25|3\n4|4\n3.75|5", true),
+                    ("{\"schema\": \"CREATE TABLE Scores (Id INT, Score DECIMAL(3,2));\", \"data\": \"INSERT INTO Scores VALUES (1, 1.50), (2, 1.50), (3, 2.00), (4, 2.00), (5, 2.50), (6, 2.50);\"}", "2.5|1\n2.5|1\n2|2\n2|2\n1.5|3\n1.5|3", true),
+                    ("{\"schema\": \"CREATE TABLE Scores (Id INT, Score DECIMAL(3,2));\", \"data\": \"INSERT INTO Scores VALUES (1, 3.33), (2, 3.66), (3, 3.99), (4, 3.33), (5, 3.66);\"}", "3.99|1\n3.66|2\n3.66|2\n3.33|3\n3.33|3", true)
+                };
+                // Add SQL solution
+                questionSolutionsMap["Rank Scores"] = new Dictionary<string, string>
+                {
+                    ["SQL"] = "SELECT Score, DENSE_RANK() OVER (ORDER BY Score DESC) AS Rank\nFROM Scores\nORDER BY Score DESC;"
+                };
+            }
+
+            // SQL Questions - Department Top Three Salaries
+            // SQLite outputs columns separated by | (pipe) character
+            var deptTopThree = questions.FirstOrDefault(q => q.Title == "Department Top Three Salaries");
+            if (deptTopThree != null)
+            {
+                questionTestCasesMap["Department Top Three Salaries"] = new List<(string, string, bool)>
+                {
+                    // 3 visible test cases - SQLite outputs: Department|Employee|Salary per row
+                    ("{\"schema\": \"CREATE TABLE Employee (Id INT, Name VARCHAR(255), Salary INT, DepartmentId INT); CREATE TABLE Department (Id INT, Name VARCHAR(255));\", \"data\": \"INSERT INTO Employee VALUES (1, 'Joe', 85000, 1), (2, 'Henry', 80000, 2), (3, 'Sam', 60000, 2), (4, 'Max', 90000, 1), (5, 'Janet', 69000, 1), (6, 'Randy', 85000, 1), (7, 'Will', 70000, 1); INSERT INTO Department VALUES (1, 'IT'), (2, 'Sales');\"}", "IT|Max|90000\nIT|Joe|85000\nIT|Randy|85000\nIT|Will|70000\nSales|Henry|80000\nSales|Sam|60000", false),
+                    ("{\"schema\": \"CREATE TABLE Employee (Id INT, Name VARCHAR(255), Salary INT, DepartmentId INT); CREATE TABLE Department (Id INT, Name VARCHAR(255));\", \"data\": \"INSERT INTO Employee VALUES (1, 'Alice', 50000, 1), (2, 'Bob', 60000, 1), (3, 'Charlie', 70000, 1); INSERT INTO Department VALUES (1, 'Engineering');\"}", "Engineering|Charlie|70000\nEngineering|Bob|60000\nEngineering|Alice|50000", false),
+                    ("{\"schema\": \"CREATE TABLE Employee (Id INT, Name VARCHAR(255), Salary INT, DepartmentId INT); CREATE TABLE Department (Id INT, Name VARCHAR(255));\", \"data\": \"INSERT INTO Employee VALUES (1, 'X', 100000, 1), (2, 'Y', 100000, 1), (3, 'Z', 100000, 1), (4, 'W', 90000, 1); INSERT INTO Department VALUES (1, 'Finance');\"}", "Finance|X|100000\nFinance|Y|100000\nFinance|Z|100000\nFinance|W|90000", false),
+                    // 7 hidden test cases
+                    ("{\"schema\": \"CREATE TABLE Employee (Id INT, Name VARCHAR(255), Salary INT, DepartmentId INT); CREATE TABLE Department (Id INT, Name VARCHAR(255));\", \"data\": \"INSERT INTO Employee VALUES (1, 'A', 50000, 1), (2, 'B', 60000, 1), (3, 'C', 70000, 1), (4, 'D', 80000, 1), (5, 'E', 90000, 1); INSERT INTO Department VALUES (1, 'IT');\"}", "IT|E|90000\nIT|D|80000\nIT|C|70000", true),
+                    // Case 5: Only 2 unique salaries (75000, 50000) - since there are fewer than 3 unique, return all employees
+                    ("{\"schema\": \"CREATE TABLE Employee (Id INT, Name VARCHAR(255), Salary INT, DepartmentId INT); CREATE TABLE Department (Id INT, Name VARCHAR(255));\", \"data\": \"INSERT INTO Employee VALUES (1, 'Emp1', 75000, 1), (2, 'Emp2', 75000, 1), (3, 'Emp3', 75000, 1), (4, 'Emp4', 50000, 1); INSERT INTO Department VALUES (1, 'Sales');\"}", "Sales|Emp1|75000\nSales|Emp2|75000\nSales|Emp3|75000\nSales|Emp4|50000", true),
+                    ("{\"schema\": \"CREATE TABLE Employee (Id INT, Name VARCHAR(255), Salary INT, DepartmentId INT); CREATE TABLE Department (Id INT, Name VARCHAR(255));\", \"data\": \"INSERT INTO Employee VALUES (1, 'A', 100000, 1), (2, 'B', 90000, 1), (3, 'C', 80000, 1), (4, 'D', 70000, 1), (5, 'E', 60000, 1), (6, 'F', 50000, 1); INSERT INTO Department VALUES (1, 'HR');\"}", "HR|A|100000\nHR|B|90000\nHR|C|80000", true),
+                    ("{\"schema\": \"CREATE TABLE Employee (Id INT, Name VARCHAR(255), Salary INT, DepartmentId INT); CREATE TABLE Department (Id INT, Name VARCHAR(255));\", \"data\": \"INSERT INTO Employee VALUES (1, 'X', 50000, 1), (2, 'Y', 60000, 2), (3, 'Z', 70000, 1); INSERT INTO Department VALUES (1, 'Dept1'), (2, 'Dept2');\"}", "Dept1|Z|70000\nDept1|X|50000\nDept2|Y|60000", true),
+                    // Case 8: Only 2 unique salaries (85000, 70000) - since there are fewer than 3 unique, return all employees
+                    ("{\"schema\": \"CREATE TABLE Employee (Id INT, Name VARCHAR(255), Salary INT, DepartmentId INT); CREATE TABLE Department (Id INT, Name VARCHAR(255));\", \"data\": \"INSERT INTO Employee VALUES (1, 'One', 85000, 1), (2, 'Two', 85000, 1), (3, 'Three', 85000, 1), (4, 'Four', 70000, 1); INSERT INTO Department VALUES (1, 'Tech');\"}", "Tech|One|85000\nTech|Two|85000\nTech|Three|85000\nTech|Four|70000", true),
+                    ("{\"schema\": \"CREATE TABLE Employee (Id INT, Name VARCHAR(255), Salary INT, DepartmentId INT); CREATE TABLE Department (Id INT, Name VARCHAR(255));\", \"data\": \"INSERT INTO Employee VALUES (1, 'High1', 95000, 1), (2, 'High2', 90000, 1), (3, 'Mid1', 80000, 1), (4, 'Mid2', 80000, 1), (5, 'Low', 60000, 1); INSERT INTO Department VALUES (1, 'Ops');\"}", "Ops|High1|95000\nOps|High2|90000\nOps|Mid1|80000\nOps|Mid2|80000", true),
+                    ("{\"schema\": \"CREATE TABLE Employee (Id INT, Name VARCHAR(255), Salary INT, DepartmentId INT); CREATE TABLE Department (Id INT, Name VARCHAR(255));\", \"data\": \"INSERT INTO Employee VALUES (1, 'A1', 100000, 1), (2, 'A2', 95000, 1), (3, 'A3', 90000, 1), (4, 'A4', 85000, 1), (5, 'A5', 80000, 1); INSERT INTO Department VALUES (1, 'Management');\"}", "Management|A1|100000\nManagement|A2|95000\nManagement|A3|90000", true)
+                };
+                // Add SQL solution
+                questionSolutionsMap["Department Top Three Salaries"] = new Dictionary<string, string>
+                {
+                    ["SQL"] = "SELECT d.Name AS Department, e.Name AS Employee, e.Salary\nFROM Employee e\nJOIN Department d ON e.DepartmentId = d.Id\nWHERE (\n    SELECT COUNT(DISTINCT e2.Salary)\n    FROM Employee e2\n    WHERE e2.DepartmentId = e.DepartmentId AND e2.Salary > e.Salary\n) < 3\nORDER BY d.Name, e.Salary DESC;"
+                };
+            }
+
+            // SQL Questions - Consecutive Numbers
+            // SQLite outputs plain values, one per line
+            var consecutiveNumbers = questions.FirstOrDefault(q => q.Title == "Consecutive Numbers");
+            if (consecutiveNumbers != null)
+            {
+                questionTestCasesMap["Consecutive Numbers"] = new List<(string, string, bool)>
+                {
+                    // 3 visible test cases - SQLite outputs plain values
+                    ("{\"schema\": \"CREATE TABLE Logs (Id INT, Num INT);\", \"data\": \"INSERT INTO Logs VALUES (1, 1), (2, 1), (3, 1), (4, 2), (5, 1), (6, 2), (7, 2);\"}", "1", false),
+                    ("{\"schema\": \"CREATE TABLE Logs (Id INT, Num INT);\", \"data\": \"INSERT INTO Logs VALUES (1, 1), (2, 2), (3, 3);\"}", "", false),
+                    ("{\"schema\": \"CREATE TABLE Logs (Id INT, Num INT);\", \"data\": \"INSERT INTO Logs VALUES (1, 5), (2, 5), (3, 5), (4, 5);\"}", "5", false),
+                    // 7 hidden test cases
+                    ("{\"schema\": \"CREATE TABLE Logs (Id INT, Num INT);\", \"data\": \"INSERT INTO Logs VALUES (1, 1), (2, 1), (3, 1), (4, 1), (5, 2);\"}", "1", true),
+                    ("{\"schema\": \"CREATE TABLE Logs (Id INT, Num INT);\", \"data\": \"INSERT INTO Logs VALUES (1, 3), (2, 3), (3, 3), (4, 4), (5, 4), (6, 4);\"}", "3\n4", true),
+                    ("{\"schema\": \"CREATE TABLE Logs (Id INT, Num INT);\", \"data\": \"INSERT INTO Logs VALUES (1, 10), (2, 10), (3, 10), (4, 20), (5, 20), (6, 20);\"}", "10\n20", true),
+                    ("{\"schema\": \"CREATE TABLE Logs (Id INT, Num INT);\", \"data\": \"INSERT INTO Logs VALUES (1, 1), (2, 2), (3, 1), (4, 1), (5, 1);\"}", "1", true),
+                    ("{\"schema\": \"CREATE TABLE Logs (Id INT, Num INT);\", \"data\": \"INSERT INTO Logs VALUES (1, 7), (2, 7), (3, 8), (4, 7), (5, 7), (6, 7);\"}", "7", true),
+                    ("{\"schema\": \"CREATE TABLE Logs (Id INT, Num INT);\", \"data\": \"INSERT INTO Logs VALUES (1, 100), (2, 100), (3, 100), (4, 200), (5, 100), (6, 200), (7, 200), (8, 200);\"}", "100\n200", true),
+                    ("{\"schema\": \"CREATE TABLE Logs (Id INT, Num INT);\", \"data\": \"INSERT INTO Logs VALUES (1, 1), (2, 1), (3, 1), (4, 1), (5, 1), (6, 2);\"}", "1", true)
+                };
+                // Add SQL solution
+                questionSolutionsMap["Consecutive Numbers"] = new Dictionary<string, string>
+                {
+                    ["SQL"] = "SELECT DISTINCT l1.Num AS ConsecutiveNums\nFROM Logs l1\nJOIN Logs l2 ON l1.Id = l2.Id - 1\nJOIN Logs l3 ON l2.Id = l3.Id - 1\nWHERE l1.Num = l2.Num AND l2.Num = l3.Num;"
+                };
+            }
+
+            // Get all existing questions that might need test cases added (including SQL questions)
+            var allQuestionTitles = questionTestCasesMap.Keys.Union(questionSolutionsMap.Keys).ToList();
+            var existingQuestionsNeedingTestCases = await context.InterviewQuestions
+                .Where(q => allQuestionTitles.Contains(q.Title))
+                .ToListAsync();
+            
+            // Combine new questions with existing questions that need test cases
+            var allQuestionsToProcess = questions
+                .Skip(1)
+                .Union(existingQuestionsNeedingTestCases.Where(eq => !questions.Any(q => q.Id == eq.Id)))
+                .ToList();
+            
             // Add test cases and solutions for all questions
-            foreach (var question in questions.Skip(1))
+            foreach (var question in allQuestionsToProcess)
             {
                 var questionTitle = question.Title;
                 
-                // Add test cases
-                if (questionTestCasesMap.ContainsKey(questionTitle))
+                // For SQL questions, delete existing test cases and re-seed with corrected format
+                if (question.QuestionType == "SQL")
+                {
+                    var existingSqlTestCases = await context.QuestionTestCases
+                        .Where(tc => tc.QuestionId == question.Id)
+                        .ToListAsync();
+                    
+                    if (existingSqlTestCases.Any())
+                    {
+                        context.QuestionTestCases.RemoveRange(existingSqlTestCases);
+                        await context.SaveChangesAsync();
+                        logger.LogInformation("Deleted {Count} old test cases for SQL question: {Title}", existingSqlTestCases.Count, questionTitle);
+                    }
+                }
+                
+                // Check if test cases already exist for this question
+                var existingTestCaseCount = await context.QuestionTestCases
+                    .CountAsync(tc => tc.QuestionId == question.Id);
+                
+                // Add test cases if they don't exist yet
+                if (questionTestCasesMap.ContainsKey(questionTitle) && existingTestCaseCount == 0)
                 {
                     int testCaseNum = 1;
                     foreach (var (input, expectedOutput, isHidden) in questionTestCasesMap[questionTitle])
@@ -842,30 +1186,39 @@ public static class DbSeeder
                     });
                 }
 
-                // Add solutions with detailed explanations
+                // Add solutions with detailed explanations if they don't exist yet
                 if (questionSolutionsMap.ContainsKey(questionTitle))
                 {
-                    int solutionNum = 1;
-                    foreach (var (language, code) in questionSolutionsMap[questionTitle])
+                    // Check if solutions already exist for this question
+                    var existingSolutionCount = await context.QuestionSolutions
+                        .CountAsync(s => s.QuestionId == question.Id);
+                    
+                    if (existingSolutionCount == 0)
                     {
-                        var explanation = GetSolutionExplanation(questionTitle, solutionNum, language, question.TimeComplexityHint, question.SpaceComplexityHint);
-                        solutions.Add(new QuestionSolution
+                        int solutionNum = 1;
+                        foreach (var (language, code) in questionSolutionsMap[questionTitle])
                         {
-                            Id = Guid.NewGuid(),
-                            QuestionId = question.Id,
-                            Language = language,
-                            Code = code,
-                            Explanation = explanation,
-                            TimeComplexity = question.TimeComplexityHint,
-                            SpaceComplexity = question.SpaceComplexityHint,
-                            IsOfficial = true,
-                            CreatedAt = now,
-                            UpdatedAt = now
-                        });
-                        solutionNum++;
+                            var explanation = GetSolutionExplanation(questionTitle, solutionNum, language, question.TimeComplexityHint, question.SpaceComplexityHint);
+                            solutions.Add(new QuestionSolution
+                            {
+                                Id = Guid.NewGuid(),
+                                QuestionId = question.Id,
+                                Language = language,
+                                Code = code,
+                                Explanation = explanation,
+                                TimeComplexity = question.TimeComplexityHint,
+                                SpaceComplexity = question.SpaceComplexityHint,
+                                IsOfficial = true,
+                                CreatedAt = now,
+                                UpdatedAt = now
+                            });
+                            solutionNum++;
+                        }
                     }
                 }
-                else
+                
+                // Fallback: add at least one solution if no solutions were added above
+                if (!questionSolutionsMap.ContainsKey(questionTitle))
                 {
                     // Fallback: add at least one solution
                     solutions.Add(new QuestionSolution
@@ -1072,6 +1425,44 @@ public static class DbSeeder
                 "    return maxSum\n\n" +
                 $"Time Complexity: {timeComplexity}. We traverse the array once.\n\n" +
                 $"Space Complexity: {spaceComplexity}. We only use a constant amount of extra space.",
+
+            "Second Highest Salary" => $"Solution {solutionNum}: Subquery approach\n" +
+                "Our solution uses a subquery to find the maximum salary first, then selects the maximum salary that is less than that maximum. This effectively gives us the second highest salary.\n\n" +
+                "The outer query selects the maximum salary from employees whose salary is less than the overall maximum salary (found by the subquery). If there is no second highest salary (i.e., all employees have the same salary or there's only one employee), the query returns NULL.\n\n" +
+                "Alternative approaches include using LIMIT and OFFSET, or window functions like ROW_NUMBER() or DENSE_RANK(). However, the subquery approach is straightforward and works well when we need to handle edge cases like ties or missing values.\n\n" +
+                $"Time Complexity: {timeComplexity}. The query scans the Employee table twice: once for the subquery and once for the outer query. Most databases optimize this, but worst-case complexity is O(n).\n\n" +
+                $"Space Complexity: {spaceComplexity}. The query uses temporary storage for intermediate results, typically O(n) in worst case.",
+
+            "Employees Earning More Than Their Managers" => $"Solution {solutionNum}: Self-join approach\n" +
+                "Our solution uses a self-join on the Employee table to compare each employee's salary with their manager's salary. We join the table to itself where the employee's ManagerId matches the manager's Id.\n\n" +
+                "The join condition connects employees to their managers: e1.ManagerId = e2.Id. We then filter for employees whose salary (e1.Salary) is greater than their manager's salary (e2.Salary). The result includes only employees who earn more than their managers.\n\n" +
+                "This is a classic self-join problem where we need to compare rows within the same table based on a relationship defined within that table (manager-employee relationship).\n\n" +
+                $"Time Complexity: {timeComplexity}. The join operation requires comparing each employee with their manager. With proper indexing on Id and ManagerId, this is typically O(n log n) due to the join operation.\n\n" +
+                $"Space Complexity: {spaceComplexity}. The join creates an intermediate result set, requiring O(n) space in the worst case.",
+
+            "Rank Scores" => $"Solution {solutionNum}: Window function approach (DENSE_RANK)\n" +
+                "Our solution uses the DENSE_RANK() window function to assign ranks to scores. DENSE_RANK() assigns consecutive ranks without gaps, which is exactly what we need for this problem.\n\n" +
+                "The window function DENSE_RANK() OVER (ORDER BY Score DESC) partitions and orders all rows by Score in descending order, then assigns ranks. Scores with the same value receive the same rank, and the next distinct score receives the next consecutive rank (no gaps).\n\n" +
+                "We order by Score DESC to ensure the highest scores get rank 1. The final ORDER BY Score DESC ensures the output is sorted from highest to lowest score.\n\n" +
+                "Alternative approaches include using subqueries to count distinct scores greater than the current score, but window functions are more efficient and readable.\n\n" +
+                $"Time Complexity: {timeComplexity}. The DENSE_RANK() window function requires sorting the scores, which is typically O(n log n).\n\n" +
+                $"Space Complexity: {spaceComplexity}. Window functions may require additional space for sorting and ranking, typically O(n).",
+
+            "Department Top Three Salaries" => $"Solution {solutionNum}: Correlated subquery approach\n" +
+                "Our solution uses a correlated subquery to count how many distinct salaries are higher than the current employee's salary within the same department. If this count is less than 3, the employee is in the top 3 earners of their department.\n\n" +
+                "The correlated subquery (SELECT COUNT(DISTINCT e2.Salary) FROM Employee e2 WHERE e2.DepartmentId = e.DepartmentId AND e2.Salary > e.Salary) counts distinct salaries higher than the current employee's salary in the same department. If this count is 0, 1, or 2, the employee is ranked 1st, 2nd, or 3rd respectively.\n\n" +
+                "We join with the Department table to get department names, and order by department name and salary in descending order for readable output.\n\n" +
+                "Alternative approaches include using window functions like DENSE_RANK() partitioned by department, which might be more efficient for large datasets.\n\n" +
+                $"Time Complexity: {timeComplexity}. For each employee, we execute a correlated subquery that scans employees in the same department. This results in O(n²) complexity in the worst case, though databases may optimize this.\n\n" +
+                $"Space Complexity: {spaceComplexity}. The query requires space for joins and subquery results, typically O(n).",
+
+            "Consecutive Numbers" => $"Solution {solutionNum}: Self-join approach\n" +
+                "Our solution uses self-joins to check if three consecutive rows have the same number. We join the Logs table to itself twice to access the previous and next rows.\n\n" +
+                "The first join connects l1 to l2 where l2.Id = l1.Id - 1 (next row). The second join connects l2 to l3 where l3.Id = l2.Id - 1 (row after next). We then filter for cases where all three rows have the same Num value: l1.Num = l2.Num AND l2.Num = l3.Num.\n\n" +
+                "We use DISTINCT because multiple consecutive triplets might share the same number (e.g., four consecutive 1s would match the pattern twice).\n\n" +
+                "Alternative approaches include using window functions like LAG() and LEAD() to access previous and next values, which might be more efficient and readable.\n\n" +
+                $"Time Complexity: {timeComplexity}. The self-joins require comparing each row with its neighbors. With proper indexing on Id, this is typically O(n) since each row is joined a constant number of times.\n\n" +
+                $"Space Complexity: {spaceComplexity}. The joins create intermediate result sets, requiring O(n) space.",
 
             _ => $"Solution {solutionNum}: {language} approach\n" +
                 $"Official {language} solution for {questionTitle}.\n\n" +

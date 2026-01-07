@@ -10,6 +10,7 @@ public class QuestionFilterDto
     public List<string>? Difficulties { get; set; }
     public List<string>? Companies { get; set; }
     public List<string>? Tags { get; set; }
+    public string? Role { get; set; }
     public bool? IsActive { get; set; } = true;
     public string? ApprovalStatus { get; set; }
     public int Page { get; set; } = 1;

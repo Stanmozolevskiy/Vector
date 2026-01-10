@@ -13,6 +13,7 @@
     "test:coverage": "vitest --coverage"
   },
   "dependencies": {
+    "@alkemio/excalidraw": "^0.18.0-864353b-alkemio-8",
     "@hookform/resolvers": "^5.2.2",
     "@microsoft/signalr": "^10.0.0",
     "@monaco-editor/react": "^4.7.0",
@@ -22,6 +23,7 @@
     "react-dom": "^19.2.0",
     "react-hook-form": "^7.66.1",
     "react-router-dom": "^7.9.6",
+    "tldraw": "^4.2.3",
     "zod": "^4.1.13"
   },
   "devDependencies": {

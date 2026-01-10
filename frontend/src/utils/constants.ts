@@ -22,4 +22,5 @@ export const ROUTES = {
   FIND_PEER: '/peer-interviews/find',
   PEER_INTERVIEWS: '/peer-interviews',
   PEER_INTERVIEW_SESSION: '/peer-interviews/sessions/:id',
+  WHITEBOARD: '/whiteboard',
 };

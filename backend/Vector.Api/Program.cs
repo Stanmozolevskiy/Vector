@@ -133,6 +133,7 @@ builder.Services.AddScoped<ICodeDraftService, CodeDraftService>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 builder.Services.AddScoped<IPeerInterviewService, PeerInterviewService>();
 builder.Services.AddScoped<IInterviewMatchingService, InterviewMatchingService>();
+builder.Services.AddScoped<IWhiteboardService, WhiteboardService>();
 builder.Services.AddSingleton<IMatchingPresenceService, MatchingPresenceService>();
 
 // SignalR for real-time collaboration

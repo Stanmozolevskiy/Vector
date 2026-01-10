@@ -1,0 +1,147 @@
+.whiteboard-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  background-color: #f8f9fa;
+}
+
+.whiteboard-page-content {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  overflow: hidden;
+  margin-top: 0;
+  height: 100vh;
+  position: relative;
+}
+
+.whiteboard-main-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  transition: margin-left 0.3s ease;
+  height: 100%;
+}
+
+.whiteboard-main-area.with-sidebar {
+  margin-left: 320px;
+}
+
+@media (max-width: 768px) {
+  .whiteboard-main-area.with-sidebar {
+    margin-left: 280px;
+  }
+}
+
+.whiteboard-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background-color: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.whiteboard-page-title h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.whiteboard-page-subtitle {
+  margin-top: 4px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.whiteboard-page-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.save-status {
+  font-size: 14px;
+  margin-right: 8px;
+}
+
+.status-saving {
+  color: #6b7280;
+}
+
+.status-saved {
+  color: #10b981;
+  font-weight: 500;
+}
+
+.status-error {
+  color: #ef4444;
+  font-weight: 500;
+}
+
+.whiteboard-action-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background-color: #fff;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.whiteboard-action-button:hover {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.whiteboard-action-button:active {
+  transform: scale(0.98);
+}
+
+.whiteboard-action-button i {
+  font-size: 14px;
+}
+
+.whiteboard-page-canvas {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.whiteboard-page-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-size: 18px;
+  color: #6b7280;
+}
+
+@media (max-width: 768px) {
+  .whiteboard-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .whiteboard-page-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .whiteboard-action-button {
+    flex: 1;
+    min-width: 120px;
+  }
+}

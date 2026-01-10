@@ -34,6 +34,7 @@ export const Navbar = () => {
         </div>
         <div className="nav-menu">
           <Link to={ROUTES.QUESTIONS}>Questions</Link>
+          <Link to={ROUTES.WHITEBOARD}>Whiteboard</Link>
           <Link to={ROUTES.FIND_PEER}>Mock Interviews</Link>
           {(user?.role === 'admin' || user?.role === 'coach') && (
             <Link to={ROUTES.ADD_QUESTION}>Add Question</Link>

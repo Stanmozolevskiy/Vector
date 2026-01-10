@@ -30,6 +30,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<LiveInterviewSession> LiveInterviewSessions { get; set; }
     public DbSet<LiveInterviewParticipant> LiveInterviewParticipants { get; set; }
     public DbSet<InterviewFeedback> InterviewFeedbacks { get; set; }
+    public DbSet<WhiteboardData> WhiteboardData { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -375,6 +376,27 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(e => e.LiveSessionId); // For querying session feedback
             entity.HasIndex(e => e.ReviewerId); // For querying reviewer's feedback
             entity.HasIndex(e => e.RevieweeId); // For querying feedback about a user
+        });
+
+        // Configure WhiteboardData entity
+        modelBuilder.Entity<WhiteboardData>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Question)
+                .WithMany()
+                .HasForeignKey(e => e.QuestionId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.Property(e => e.Elements).IsRequired().HasColumnType("text");
+            entity.Property(e => e.AppState).IsRequired().HasColumnType("text");
+            entity.Property(e => e.Files).IsRequired().HasColumnType("text");
+            // One whiteboard per user (main whiteboard), or one per user-question combination
+            entity.HasIndex(e => e.UserId); // For querying user's whiteboard
+            entity.HasIndex(e => new { e.UserId, e.QuestionId }); // For querying whiteboard by user and question
+            entity.HasIndex(e => e.UpdatedAt); // For sorting by update date
         });
 
     }

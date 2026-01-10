@@ -92,42 +92,84 @@ public class PeerInterviewService : IPeerInterviewService
     {
         var now = DateTime.UtcNow;
         
-        // Find all completed scheduled sessions for this user
-        var completedSessions = await _context.ScheduledInterviewSessions
+        // Find all scheduled sessions for this user that:
+        // 1. Are not cancelled
+        // 2. Are either "Completed" OR "InProgress" with a live session that has ended
+        // 3. Have a live session associated (actually happened)
+        var candidateSessions = await _context.ScheduledInterviewSessions
             .Include(s => s.User)
-            .Where(s => s.UserId == userId 
-                && s.Status != "Cancelled"
-                && s.Status == "Completed") // Only show completed sessions (sessions that actually happened)
+            .Include(s => s.LiveSession)
+            .Where(s => s.UserId == userId && s.Status != "Cancelled")
             .OrderByDescending(s => s.ScheduledStartAt)
             .ToListAsync();
 
-        // Find all matching requests that link these sessions to live sessions
-        var sessionIds = completedSessions.Select(s => s.Id).ToList();
+        // Find all matching requests that link sessions to live sessions
+        var sessionIds = candidateSessions.Select(s => s.Id).ToList();
         var matchingRequests = await _context.InterviewMatchingRequests
             .Where(m => sessionIds.Contains(m.ScheduledSessionId) && m.LiveSessionId != null)
-            .Select(m => m.ScheduledSessionId)
-            .Distinct()
+            .Include(m => m.LiveSession)
             .ToListAsync();
 
-        // Also check for sessions directly linked via LiveInterviewSession.ScheduledSessionId
-        var directlyLinkedSessionIds = await _context.LiveInterviewSessions
-            .Where(ls => sessionIds.Contains(ls.ScheduledSessionId ?? Guid.Empty) && ls.Status == "Completed")
-            .Select(ls => ls.ScheduledSessionId!.Value)
+        // Build a map of scheduled session ID to live session
+        var sessionToLiveSessionMap = new Dictionary<Guid, LiveInterviewSession>();
+        
+        // Add from matching requests
+        foreach (var request in matchingRequests)
+        {
+            if (request.LiveSession != null && !sessionToLiveSessionMap.ContainsKey(request.ScheduledSessionId))
+            {
+                sessionToLiveSessionMap[request.ScheduledSessionId] = request.LiveSession;
+            }
+        }
+        
+        // Add from direct links (LiveInterviewSession.ScheduledSessionId)
+        var directlyLinkedLiveSessions = await _context.LiveInterviewSessions
+            .Where(ls => sessionIds.Contains(ls.ScheduledSessionId ?? Guid.Empty))
             .ToListAsync();
+        
+        foreach (var liveSession in directlyLinkedLiveSessions)
+        {
+            if (liveSession.ScheduledSessionId.HasValue && 
+                !sessionToLiveSessionMap.ContainsKey(liveSession.ScheduledSessionId.Value))
+            {
+                sessionToLiveSessionMap[liveSession.ScheduledSessionId.Value] = liveSession;
+            }
+        }
 
-        // Combine both sets of session IDs that have live sessions
-        var sessionsWithLiveSession = matchingRequests
-            .Union(directlyLinkedSessionIds)
-            .Distinct()
-            .ToList();
+        // Filter sessions to include any session that has a live session (regardless of status)
+        // This ensures all sessions that actually happened are shown in past interviews
+        var pastSessions = candidateSessions
+            .Where(s =>
+            {
+                LiveInterviewSession? liveSession = null;
+                
+                // Try to get live session from map first
+                if (!sessionToLiveSessionMap.TryGetValue(s.Id, out liveSession))
+                {
+                    // Also check if session has a directly linked live session via navigation property
+                    liveSession = s.LiveSession;
+                }
 
-        // Filter to only sessions that have a live session
-        var sessions = completedSessions
-            .Where(s => sessionsWithLiveSession.Contains(s.Id))
+                // Include if there's a live session (session actually happened)
+                // This includes all statuses: InProgress, Completed, Cancelled
+                if (liveSession != null)
+                {
+                    return true;
+                }
+                
+                // If no live session, only include if scheduled session is marked as completed
+                // (scheduled but never matched, then explicitly cancelled)
+                if (s.Status == "Completed")
+                {
+                    return true;
+                }
+                
+                return false;
+            })
             .ToList();
 
         var dtos = new List<ScheduledInterviewSessionDto>();
-        foreach (var session in sessions)
+        foreach (var session in pastSessions)
         {
             dtos.Add(await MapToScheduledSessionDtoAsync(session));
         }

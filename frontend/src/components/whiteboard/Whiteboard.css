@@ -1,0 +1,147 @@
+.whiteboard-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background-color: #f8f9fa;
+  min-height: 600px;
+}
+
+/* Ensure Excalidraw fills the container */
+.whiteboard-container > * {
+  height: 100% !important;
+  width: 100% !important;
+}
+
+.whiteboard-button {
+  transition: all 0.2s ease;
+}
+
+.whiteboard-button:hover {
+  background-color: #f0f0f0 !important;
+  border-color: #bbb !important;
+}
+
+.whiteboard-button:active {
+  transform: scale(0.98);
+}
+
+.whiteboard-controls {
+  z-index: 1000;
+}
+
+.grid-toggle-button {
+  transition: all 0.2s ease;
+}
+
+.grid-toggle-button:hover {
+  background-color: #eff6ff !important;
+  border-color: #3b82f6 !important;
+}
+
+/* Question overlay displayed on the whiteboard */
+.question-overlay {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 100;
+  max-width: 400px;
+  pointer-events: none;
+}
+
+.question-overlay-content {
+  background-color: rgba(255, 255, 255, 0.95);
+  border: 2px solid #3b82f6;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  backdrop-filter: blur(8px);
+}
+
+.question-overlay-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.question-overlay-header i {
+  color: #3b82f6;
+  font-size: 16px;
+}
+
+.question-overlay-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #3b82f6;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.question-overlay-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.question-overlay-description {
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.5;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+  .question-overlay {
+    max-width: calc(100% - 40px);
+    top: 10px;
+    left: 10px;
+  }
+
+  .question-overlay-title {
+    font-size: 16px;
+  }
+
+  .question-overlay-description {
+    font-size: 13px;
+  }
+}
+
+/* Hide the hamburger menu (3 lines button) on the left side of Excalidraw */
+.excalidraw [data-testid="mobile-menu-trigger"],
+.excalidraw button[aria-label*="menu" i],
+.excalidraw button[aria-label*="Menu" i],
+.excalidraw .sidebar-menu-button,
+.excalidraw .menu-button,
+.excalidraw button[class*="menu"],
+.excalidraw button[class*="Menu"],
+.excalidraw [class*="sidebar-toggle"],
+.excalidraw [class*="menu-toggle"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Hide the Excalidraw sidebar toggle if it exists */
+.excalidraw .sidebar-toggle {
+  display: none !important;
+}
+
+/* Hide any button with three horizontal lines icon (hamburger menu) */
+.excalidraw button svg path[d*="M3"]:first-child,
+.excalidraw button[aria-label*="hamburger" i],
+.excalidraw button[aria-label*="Hamburger" i] {
+  display: none !important;
+}
+
+/* More aggressive hiding for sidebar/menu elements */
+.excalidraw [class*="sidebar"],
+.excalidraw [class*="Sidebar"],
+.excalidraw [class*="menu-trigger"],
+.excalidraw [data-testid*="menu"] {
+  display: none !important;
+  visibility: hidden !important;
+}

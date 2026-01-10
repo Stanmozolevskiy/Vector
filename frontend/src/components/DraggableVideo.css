@@ -1,33 +1,86 @@
 .draggable-video-container {
   position: fixed;
-  width: 300px;
   background: #1a1a1a;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   z-index: 1000;
-  cursor: move;
   user-select: none;
   overflow: hidden;
-  transition: transform 0.2s;
+  display: flex;
+  flex-direction: column;
+  resize: none;
 }
 
-.draggable-video-container.minimized {
-  height: 40px;
+.video-drag-handle {
+  height: 24px;
+  background: rgba(42, 42, 42, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: move;
+  user-select: none;
+  border-bottom: 1px solid rgba(58, 58, 58, 0.5);
+  transition: background 0.2s;
+}
+
+.video-drag-handle:hover {
+  background: rgba(42, 42, 42, 0.9);
+}
+
+.video-title {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.resize-handle {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  cursor: se-resize;
+  background: linear-gradient(-45deg, transparent 30%, rgba(255, 255, 255, 0.3) 30%, rgba(255, 255, 255, 0.3) 50%, transparent 50%);
+  z-index: 10;
+}
+
+.draggable-video-content {
+  flex: 1;
+  overflow: hidden;
+  background: #1a1a1a;
+  min-height: 0;
+}
+
+.draggable-video-content .video-chat-container {
+  height: 100%;
+  background: transparent;
+}
+
+.draggable-video-content .video-chat-grid {
+  grid-template-columns: 1fr;
+  gap: 0;
+  padding: 0;
+  height: 100%;
+}
+
+.draggable-video-content .video-wrapper {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  position: relative;
+}
+
+.draggable-video-content .control-btn {
+  width: 32px;
+  height: 32px;
+  font-size: 0.875rem;
 }
 
 .draggable-video-container:active {
   cursor: grabbing;
 }
 
-.video-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem 0.75rem;
-  background: #2a2a2a;
-  border-bottom: 1px solid #3a3a3a;
-  cursor: move;
-}
 
 .video-title {
   font-size: 0.875rem;

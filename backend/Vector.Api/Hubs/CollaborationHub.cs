@@ -154,5 +154,69 @@ public class CollaborationHub : Hub
     {
         await Clients.GroupExcept(sessionId, Context.ConnectionId).SendAsync("TestResultsUpdated", testResults);
     }
+
+    // ==================== WebRTC Signaling Methods ====================
+
+    /// <summary>
+    /// Send WebRTC offer to peer in session
+    /// </summary>
+    public async Task SendWebRTCOffer(string sessionId, string offer)
+    {
+        var userId = GetUserId();
+        if (!userId.HasValue)
+        {
+            _logger.LogWarning("Invalid userId in SendWebRTCOffer");
+            return;
+        }
+
+        _logger.LogDebug("User {UserId} sending WebRTC offer for session {SessionId}", userId.Value, sessionId);
+        await Clients.GroupExcept(sessionId, Context.ConnectionId).SendAsync("WebRTCOffer", new
+        {
+            userId = userId.Value.ToString(),
+            offer = offer
+        });
+    }
+
+    /// <summary>
+    /// Send WebRTC answer to peer in session
+    /// </summary>
+    public async Task SendWebRTCAnswer(string sessionId, string answer)
+    {
+        var userId = GetUserId();
+        if (!userId.HasValue)
+        {
+            _logger.LogWarning("Invalid userId in SendWebRTCAnswer");
+            return;
+        }
+
+        _logger.LogDebug("User {UserId} sending WebRTC answer for session {SessionId}", userId.Value, sessionId);
+        await Clients.GroupExcept(sessionId, Context.ConnectionId).SendAsync("WebRTCAnswer", new
+        {
+            userId = userId.Value.ToString(),
+            answer = answer
+        });
+    }
+
+    /// <summary>
+    /// Send WebRTC ICE candidate to peer in session
+    /// </summary>
+    public async Task SendWebRTCIceCandidate(string sessionId, string candidate, int? sdpMLineIndex, string? sdpMid)
+    {
+        var userId = GetUserId();
+        if (!userId.HasValue)
+        {
+            _logger.LogWarning("Invalid userId in SendWebRTCIceCandidate");
+            return;
+        }
+
+        _logger.LogDebug("User {UserId} sending WebRTC ICE candidate for session {SessionId}", userId.Value, sessionId);
+        await Clients.GroupExcept(sessionId, Context.ConnectionId).SendAsync("WebRTCIceCandidate", new
+        {
+            userId = userId.Value.ToString(),
+            candidate = candidate,
+            sdpMLineIndex = sdpMLineIndex,
+            sdpMid = sdpMid
+        });
+    }
 }
 

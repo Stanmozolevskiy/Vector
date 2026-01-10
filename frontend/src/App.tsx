@@ -1,4 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Component } from 'react';
+import type { ErrorInfo, ReactNode } from 'react';
 import { AuthProvider } from './hooks/useAuth.tsx';
 import ProtectedRoute from './components/ProtectedRoute';
 import { IndexPage } from './pages/home/IndexPage';
@@ -21,16 +23,59 @@ import { EditQuestionPage } from './pages/questions/EditQuestionPage';
 import { SolutionHistoryPage } from './pages/solutions/SolutionHistoryPage';
 import { ProgressPage } from './pages/progress/ProgressPage';
 import FindPeerPage from './pages/peer-interviews/FindPeerPage';
+import { lazy, Suspense } from 'react';
+
+// Lazy load WhiteboardPage to avoid breaking the app if Excalidraw fails
+const WhiteboardPage = lazy(() => import('./pages/whiteboard/WhiteboardPage').then(module => ({ default: module.WhiteboardPage })));
 import UnauthorizedPage from './pages/UnauthorizedPage';
 import { SessionNotificationManager } from './components/SessionNotificationManager';
 import { ROUTES } from './utils/constants';
 
+// Error Boundary to catch rendering errors
+class ErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('App Error Boundary caught an error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
+          <h1>Application Error</h1>
+          <p>Something went wrong. Please refresh the page.</p>
+          <details style={{ marginTop: '20px' }}>
+            <summary>Error Details</summary>
+            <pre style={{ background: '#f0f0f0', padding: '10px', borderRadius: '4px', overflow: 'auto' }}>
+              {this.state.error?.stack || this.state.error?.message || 'Unknown error'}
+            </pre>
+          </details>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <SessionNotificationManager />
-        <Routes>
+    <ErrorBoundary>
+      <AuthProvider>
+        <BrowserRouter>
+          <SessionNotificationManager />
+          <Routes>
         {/* Public routes - no protection */}
         <Route path={ROUTES.HOME} element={<IndexPage />} />
         <Route path={ROUTES.VERIFY_EMAIL} element={<VerifyEmailPage />} />
@@ -83,6 +128,13 @@ function App() {
             <FindPeerPage />
           </ProtectedRoute>
         } />
+        <Route path={ROUTES.WHITEBOARD} element={
+          <ProtectedRoute requireAuth>
+            <Suspense fallback={<div style={{ padding: '20px', textAlign: 'center' }}>Loading whiteboard...</div>}>
+              <WhiteboardPage />
+            </Suspense>
+          </ProtectedRoute>
+        } />
         <Route path={`${ROUTES.QUESTIONS}/:id`} element={
           <ProtectedRoute requireAuth>
             <QuestionDetailPage />
@@ -115,7 +167,8 @@ function App() {
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
         </Routes>
       </BrowserRouter>
-    </AuthProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

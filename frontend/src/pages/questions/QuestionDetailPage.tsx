@@ -8,7 +8,7 @@ import { solutionService } from '../../services/solution.service';
 import { ROUTES } from '../../utils/constants';
 import { CodeEditor } from '../../components/CodeEditor';
 import { CollaborativeCodeEditor } from '../../components/CollaborativeCodeEditor';
-import { DraggableVideo } from '../../components/DraggableVideo';
+import { DraggableVideoChat } from '../../components/DraggableVideoChat';
 import { useAuth } from '../../hooks/useAuth';
 import { getQuestionTemplate } from '../../utils/questionTemplates';
 import { ToastContainer } from '../../components/Toast';
@@ -1656,8 +1656,8 @@ export const QuestionDetailPage = () => {
         />
       )}
 
-      {showPartnerVideo && activeSession && activeSession.interviewerId && activeSession.intervieweeId && (
-        <DraggableVideo
+      {showPartnerVideo && activeSession && activeSession.interviewerId && activeSession.intervieweeId && activeSession.status === 'InProgress' && (
+        <DraggableVideoChat
           sessionId={activeSession.id}
           userId={user?.id || ''}
           peerUserId={
@@ -1668,7 +1668,6 @@ export const QuestionDetailPage = () => {
           onError={(error) => {
             showToast(error, 'error');
           }}
-          onClose={() => setShowPartnerVideo(false)}
         />
       )}
 

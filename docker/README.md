@@ -101,8 +101,29 @@ Update the `VITE_API_URL` in your frontend `.env` file to point to `http://local
 
 1. Start services: `docker-compose up -d`
 2. Make code changes
-3. Rebuild affected services: `docker-compose build backend` (or `frontend`)
-4. Restart service: `docker-compose restart backend` (or `frontend`)
+3. Rebuild and redeploy using deployment scripts:
+   ```powershell
+   # Deploy frontend only
+   .\deploy-frontend.ps1
+   
+   # Deploy backend only
+   .\deploy-backend.ps1
+   
+   # Deploy all services
+   .\deploy-all.ps1
+   
+   # Deploy specific service
+   .\deploy-all.ps1 -service frontend
+   .\deploy-all.ps1 -service backend
+   ```
+
+### Deployment Scripts
+
+- `deploy-frontend.ps1` - Rebuilds and deploys frontend only (no cache, as per deployment rules)
+- `deploy-backend.ps1` - Rebuilds and deploys backend only (no cache)
+- `deploy-all.ps1` - Rebuilds and deploys all services or specific service
+
+**Important:** All deployment scripts rebuild containers without cache to avoid serving stale assets, as required by the deployment rules.
 
 For hot-reload during development, it's recommended to run the services locally instead of in Docker.
 

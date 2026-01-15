@@ -390,6 +390,8 @@ public class ApplicationDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(e => e.QuestionId)
                 .OnDelete(DeleteBehavior.SetNull);
+            // Index for session-based queries
+            entity.HasIndex(e => e.SessionId);
             entity.Property(e => e.Elements).IsRequired().HasColumnType("text");
             entity.Property(e => e.AppState).IsRequired().HasColumnType("text");
             entity.Property(e => e.Files).IsRequired().HasColumnType("text");

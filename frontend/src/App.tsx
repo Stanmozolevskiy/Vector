@@ -27,6 +27,7 @@ import { lazy, Suspense } from 'react';
 
 // Lazy load WhiteboardPage to avoid breaking the app if Excalidraw fails
 const WhiteboardPage = lazy(() => import('./pages/whiteboard/WhiteboardPage').then(module => ({ default: module.WhiteboardPage })));
+const SystemDesignInterviewPage = lazy(() => import('./pages/system-design-interview/SystemDesignInterviewPage').then(module => ({ default: module.SystemDesignInterviewPage })));
 import UnauthorizedPage from './pages/UnauthorizedPage';
 import { SessionNotificationManager } from './components/SessionNotificationManager';
 import { ROUTES } from './utils/constants';
@@ -132,6 +133,13 @@ function App() {
           <ProtectedRoute requireAuth>
             <Suspense fallback={<div style={{ padding: '20px', textAlign: 'center' }}>Loading whiteboard...</div>}>
               <WhiteboardPage />
+            </Suspense>
+          </ProtectedRoute>
+        } />
+        <Route path={ROUTES.SYSTEM_DESIGN_INTERVIEW} element={
+          <ProtectedRoute requireAuth>
+            <Suspense fallback={<div style={{ padding: '20px', textAlign: 'center' }}>Loading interview session...</div>}>
+              <SystemDesignInterviewPage />
             </Suspense>
           </ProtectedRoute>
         } />

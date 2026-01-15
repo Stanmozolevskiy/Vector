@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Navbar } from '../../components/layout/Navbar';
 import { Whiteboard } from '../../components/whiteboard/Whiteboard';
 import { SystemDesignQuestionModal } from '../../components/whiteboard/SystemDesignQuestionModal';
@@ -21,6 +21,9 @@ interface ExcalidrawInitialDataState {
 export const WhiteboardPage = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const sessionIdParam = searchParams.get('sessionId') || undefined;
+  const isViewOnly = searchParams.get('view') === '1';
   // Initialize with default empty state so Excalidraw always has valid data
   const [whiteboardData, setWhiteboardData] = useState<ExcalidrawInitialDataState>({
     elements: [],
@@ -39,6 +42,23 @@ export const WhiteboardPage = () => {
   const [selectedQuestion, setSelectedQuestion] = useState<QuestionList | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isGridEnabled] = useState(false); // Grid off by default
+
+  // Excalidraw doesn't always recalc canvas size immediately on layout changes.
+  // Force a resize event after the sidebar toggles to prevent blank/gap areas.
+  useEffect(() => {
+    const fireResize = () => window.dispatchEvent(new Event('resize'));
+
+    // Immediate (next frame) + after sidebar transition completes
+    const t0 = window.setTimeout(() => {
+      requestAnimationFrame(() => requestAnimationFrame(fireResize));
+    }, 0);
+    const t1 = window.setTimeout(fireResize, 350);
+
+    return () => {
+      window.clearTimeout(t0);
+      window.clearTimeout(t1);
+    };
+  }, [isSidebarOpen]);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -67,8 +87,9 @@ export const WhiteboardPage = () => {
 
     const loadWhiteboardData = async () => {
       try {
-        const questionId = selectedQuestion?.id || undefined;
-        const savedData = await whiteboardService.getWhiteboardData(questionId);
+        const savedData = sessionIdParam
+          ? await whiteboardService.getSessionWhiteboard(sessionIdParam)
+          : await whiteboardService.getWhiteboardData(selectedQuestion?.id || undefined);
         
         if (savedData) {
           try {
@@ -175,12 +196,13 @@ export const WhiteboardPage = () => {
     };
 
     loadWhiteboardData();
-  }, [user?.id, selectedQuestion?.id]);
+  }, [user?.id, selectedQuestion?.id, sessionIdParam]);
 
   // Save whiteboard data to backend API
   const handleSave = useCallback(
     async (data: ExcalidrawInitialDataState) => {
       if (!user?.id) return;
+      if (isViewOnly) return;
 
       try {
         // Sanitize data before saving - remove non-serializable fields
@@ -215,20 +237,28 @@ export const WhiteboardPage = () => {
           };
         }
         
-        // Save to backend API
-        await whiteboardService.saveWhiteboardData({
-          questionId: selectedQuestion?.id,
-          elements: JSON.stringify(dataToSave.elements),
-          appState: JSON.stringify(sanitizedAppState),
-          files: JSON.stringify(dataToSave.files || {}),
-        });
+        if (sessionIdParam) {
+          await whiteboardService.saveSessionWhiteboard(sessionIdParam, {
+            elements: JSON.stringify(dataToSave.elements),
+            appState: JSON.stringify(sanitizedAppState),
+            files: JSON.stringify(dataToSave.files || {}),
+          });
+        } else {
+          // Save to backend API (user/question based)
+          await whiteboardService.saveWhiteboardData({
+            questionId: selectedQuestion?.id,
+            elements: JSON.stringify(dataToSave.elements),
+            appState: JSON.stringify(sanitizedAppState),
+            files: JSON.stringify(dataToSave.files || {}),
+          });
+        }
         
         setWhiteboardData(dataToSave);
       } catch (error) {
         console.error('Failed to save whiteboard data to backend:', error);
       }
     },
-    [user?.id, selectedQuestion?.id]
+    [user?.id, selectedQuestion?.id, sessionIdParam, isViewOnly]
   );
 
   // Export whiteboard as JSON (simplified, not used but required by Whiteboard component)
@@ -259,7 +289,6 @@ export const WhiteboardPage = () => {
 
   const handleSelectQuestion = useCallback((question: QuestionList) => {
     setSelectedQuestion(question);
-    console.log('Selected question:', question);
   }, []);
 
   if (isLoading) {
@@ -304,6 +333,7 @@ export const WhiteboardPage = () => {
               initialData={whiteboardData}
               onSave={handleSave}
               onExport={handleExportJSON}
+              readOnly={isViewOnly}
               gridEnabled={isGridEnabled}
             />
           </div>

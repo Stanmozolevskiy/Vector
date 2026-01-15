@@ -18,9 +18,12 @@ export interface SaveWhiteboardDataDto {
 }
 
 export const whiteboardService = {
-  async getWhiteboardData(questionId?: string): Promise<WhiteboardData | null> {
+  async getWhiteboardData(questionId?: string, partnerUserId?: string): Promise<WhiteboardData | null> {
     try {
-      const params = questionId ? { questionId } : {};
+      const params: any = questionId ? { questionId } : {};
+      if (partnerUserId) {
+        params.partnerUserId = partnerUserId;
+      }
       const response = await api.get<WhiteboardData>('/whiteboard', { params });
       return response.data;
     } catch (error: any) {
@@ -31,8 +34,33 @@ export const whiteboardService = {
     }
   },
 
-  async saveWhiteboardData(data: SaveWhiteboardDataDto): Promise<WhiteboardData> {
-    const response = await api.post<WhiteboardData>('/whiteboard', data);
+  async getSessionWhiteboard(sessionId: string): Promise<WhiteboardData | null> {
+    try {
+      const response = await api.get<WhiteboardData>('/whiteboard', { params: { sessionId } });
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        return null;
+      }
+      throw error;
+    }
+  },
+
+  async saveWhiteboardData(data: SaveWhiteboardDataDto, userId?: string): Promise<WhiteboardData> {
+    const params: any = {};
+    if (userId) {
+      params.userId = userId;
+    }
+    const response = await api.post<WhiteboardData>('/whiteboard', data, { params });
+    return response.data;
+  },
+
+  async saveSessionWhiteboard(sessionId: string, data: Omit<SaveWhiteboardDataDto, 'questionId'>): Promise<WhiteboardData> {
+    const response = await api.post<WhiteboardData>(
+      '/whiteboard',
+      { ...data },
+      { params: { sessionId } }
+    );
     return response.data;
   },
 

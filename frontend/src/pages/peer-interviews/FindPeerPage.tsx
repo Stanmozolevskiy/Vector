@@ -48,6 +48,24 @@ const FindPeerPage: React.FC = () => {
   const [pastSessions, setPastSessions] = useState<PeerInterviewSession[]>([]);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [scheduleData, setScheduleData] = useState<ScheduleModalData>({ step: 1 });
+
+  // Helper function to get redirect URL based on interview type
+  const getSessionRedirectUrl = (session: PeerInterviewSession | null, sessionId: string, matchingRequest?: any): string => {
+    // Get interviewType from session or matchingRequest
+    const interviewType = session?.interviewType || matchingRequest?.interviewType;
+    
+    // Check if it's a system design interview
+    if (interviewType === 'system-design') {
+      return ROUTES.SYSTEM_DESIGN_INTERVIEW.replace(':sessionId', sessionId);
+    }
+
+    // Default to questions page for other interview types
+    if (session?.questionId) {
+      return `${ROUTES.QUESTIONS}/${session.questionId}?session=${sessionId}`;
+    }
+    return `${ROUTES.QUESTIONS}?session=${sessionId}`;
+  };
+
   const [availableTimeSlots, setAvailableTimeSlots] = useState<Date[]>([]);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [scheduledSession, setScheduledSession] = useState<PeerInterviewSession | null>(null);
@@ -354,11 +372,7 @@ const FindPeerPage: React.FC = () => {
           console.log('Session already active, redirecting to live session:', matchingStatus.liveSessionId);
           try {
             const liveSession = await peerInterviewService.getSession(matchingStatus.liveSessionId);
-            if (liveSession.questionId) {
-              window.location.href = `${ROUTES.QUESTIONS}/${liveSession.questionId}?session=${matchingStatus.liveSessionId}`;
-            } else {
-              window.location.href = `${ROUTES.QUESTIONS}?session=${matchingStatus.liveSessionId}`;
-            }
+            window.location.href = getSessionRedirectUrl(liveSession, matchingStatus.liveSessionId, matchingStatus);
             return;
           } catch (error) {
             console.error('Error getting live session:', error);
@@ -402,13 +416,9 @@ const FindPeerPage: React.FC = () => {
             // Get the session to find questionId
             try {
               const completedSession = await peerInterviewService.getSession(sessionId);
-              if (completedSession.questionId) {
-                window.location.href = `${ROUTES.QUESTIONS}/${completedSession.questionId}?session=${sessionId}`;
-              } else {
-                window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
-              }
+              window.location.href = getSessionRedirectUrl(completedSession, sessionId);
             } catch {
-              window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
+              window.location.href = getSessionRedirectUrl(null, sessionId);
             }
             return;
           }
@@ -419,11 +429,7 @@ const FindPeerPage: React.FC = () => {
           // Handle errors gracefully
           if (error?.response?.data?.message?.includes('already has an interviewee')) {
             // Session already has interviewee, navigate directly
-            if (session.questionId) {
-              window.location.href = `${ROUTES.QUESTIONS}/${session.questionId}?session=${sessionId}`;
-            } else {
-              window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
-            }
+            window.location.href = getSessionRedirectUrl(session, sessionId);
             return;
           }
           throw error;
@@ -433,23 +439,8 @@ const FindPeerPage: React.FC = () => {
       
       if (session.intervieweeId && session.status === 'InProgress') {
         // Session already has an interviewee, navigate directly to question page
-        if (session.questionId) {
-          window.location.href = `${ROUTES.QUESTIONS}/${session.questionId}?session=${sessionId}`;
-        } else {
-          // Wait for backend to assign question
-          setTimeout(async () => {
-            try {
-              const updatedSession = await peerInterviewService.getSession(sessionId);
-              if (updatedSession.questionId) {
-                window.location.href = `${ROUTES.QUESTIONS}/${updatedSession.questionId}?session=${sessionId}`;
-              } else {
-                window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
-              }
-            } catch {
-              window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
-            }
-          }, 1000);
-        }
+        // For system design, redirect immediately (no question assignment)
+        window.location.href = getSessionRedirectUrl(session, sessionId);
         return;
       }
 
@@ -485,25 +476,9 @@ const FindPeerPage: React.FC = () => {
           // Navigate to question page with session parameter
           try {
             const updatedSession = await peerInterviewService.getSession(sessionId);
-            if (updatedSession.questionId) {
-              window.location.href = `${ROUTES.QUESTIONS}/${updatedSession.questionId}?session=${sessionId}`;
-            } else {
-              // No question yet - wait for backend to assign
-              setTimeout(async () => {
-                try {
-                  const updatedSession = await peerInterviewService.getSession(sessionId);
-                  if (updatedSession.questionId) {
-                    window.location.href = `${ROUTES.QUESTIONS}/${updatedSession.questionId}?session=${sessionId}`;
-                  } else {
-                    window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
-                  }
-                } catch {
-                  window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
-                }
-              }, 1000);
-            }
+            window.location.href = getSessionRedirectUrl(updatedSession, sessionId);
           } catch {
-            window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
+            window.location.href = getSessionRedirectUrl(null, sessionId);
           }
           return;
         }
@@ -519,23 +494,7 @@ const FindPeerPage: React.FC = () => {
             const updatedSession = await peerInterviewService.getSession(sessionId);
             if (updatedSession.intervieweeId) {
               setShowMatchingModal(false);
-              if (updatedSession.questionId) {
-                window.location.href = `${ROUTES.QUESTIONS}/${updatedSession.questionId}?session=${sessionId}`;
-              } else {
-                // No question yet - wait for backend to assign
-                setTimeout(async () => {
-                  try {
-                    const updatedSession = await peerInterviewService.getSession(sessionId);
-                    if (updatedSession.questionId) {
-                      window.location.href = `${ROUTES.QUESTIONS}/${updatedSession.questionId}?session=${sessionId}`;
-                    } else {
-                      window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
-                    }
-                  } catch {
-                    window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
-                  }
-                }, 1000);
-              }
+              window.location.href = getSessionRedirectUrl(updatedSession, sessionId);
               return;
             }
           } catch {
@@ -563,26 +522,10 @@ const FindPeerPage: React.FC = () => {
         try {
           const session = await peerInterviewService.getSession(sessionId);
           if (session.intervieweeId) {
-            // Session is ready, navigate directly to question page
-            setShowMatchingModal(false);
-            if (session.questionId) {
-              window.location.href = `${ROUTES.QUESTIONS}/${session.questionId}?session=${sessionId}`;
-            } else {
-              // No question yet - wait for backend to assign
-              setTimeout(async () => {
-                try {
-                  const updatedSession = await peerInterviewService.getSession(sessionId);
-                  if (updatedSession.questionId) {
-                    window.location.href = `${ROUTES.QUESTIONS}/${updatedSession.questionId}?session=${sessionId}`;
-                  } else {
-                    window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
-                  }
-                } catch {
-                  window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
-                }
-              }, 1000);
-            }
-            return;
+          // Session is ready, navigate directly to question page
+          setShowMatchingModal(false);
+          window.location.href = getSessionRedirectUrl(session, sessionId);
+          return;
           }
           // No interviewee yet, but start polling anyway - might work
           setShowMatchingModal(true);
@@ -742,15 +685,9 @@ const FindPeerPage: React.FC = () => {
             try {
               const liveSession = await peerInterviewService.getSession(liveSessionId);
               console.log('Got live session:', liveSession);
-              if (liveSession.questionId) {
-                console.log('Polling detected both confirmed, redirecting to question:', liveSession.questionId);
-                window.location.href = `${ROUTES.QUESTIONS}/${liveSession.questionId}?session=${liveSessionId}`;
-                return;
-                    } else {
-                console.log('Polling detected both confirmed, redirecting to questions list');
-                window.location.href = `${ROUTES.QUESTIONS}?session=${liveSessionId}`;
-                    return;
-                  }
+              console.log('Polling detected both confirmed, redirecting to:', liveSession.interviewType || status?.interviewType || 'default');
+              window.location.href = getSessionRedirectUrl(liveSession, liveSessionId, status);
+              return;
                 } catch (error) {
               console.error('Error getting live session during poll:', error);
                 }
@@ -763,15 +700,10 @@ const FindPeerPage: React.FC = () => {
             const latestStatus = await peerInterviewService.getMatchingStatus(sessionId);
             if (latestStatus?.liveSessionId) {
               const liveSession = await peerInterviewService.getSession(latestStatus.liveSessionId);
-              if (liveSession.questionId) {
-                console.log('Found live session in fallback, redirecting:', liveSession.questionId);
-                window.location.href = `${ROUTES.QUESTIONS}/${liveSession.questionId}?session=${latestStatus.liveSessionId}`;
-                } else {
-                console.log('Found live session in fallback, redirecting to questions list');
-                window.location.href = `${ROUTES.QUESTIONS}?session=${latestStatus.liveSessionId}`;
-                }
-                return;
-              }
+              console.log('Found live session in fallback, redirecting to:', liveSession.interviewType || latestStatus.interviewType || 'default');
+              window.location.href = getSessionRedirectUrl(liveSession, latestStatus.liveSessionId, latestStatus);
+              return;
+            }
             } catch (error) {
             console.error('Error in fallback redirect:', error);
               }
@@ -783,13 +715,9 @@ const FindPeerPage: React.FC = () => {
               const latestStatus = await peerInterviewService.getMatchingStatus(sessionId);
               if (latestStatus?.liveSessionId) {
                 const liveSession = await peerInterviewService.getSession(latestStatus.liveSessionId);
-                if (liveSession.questionId) {
-                  window.location.href = `${ROUTES.QUESTIONS}/${liveSession.questionId}?session=${latestStatus.liveSessionId}`;
-                          } else {
-                  window.location.href = `${ROUTES.QUESTIONS}?session=${latestStatus.liveSessionId}`;
-                }
+                window.location.href = getSessionRedirectUrl(liveSession, latestStatus.liveSessionId, latestStatus);
                 return;
-                          }
+              }
             } catch (error) {
               console.error('Error in last resort redirect:', error);
             }
@@ -941,29 +869,16 @@ const FindPeerPage: React.FC = () => {
         // Use the session ID from the result
         const sessionId = result.session.id;
         
-        if (sessionId && result.session.activeQuestionId) {
-          // Session has question - redirect to question page
-          console.log('Redirecting to question:', result.session.activeQuestionId);
-          window.location.href = `${ROUTES.QUESTIONS}/${result.session.activeQuestionId}?session=${sessionId}`;
-          return;
-        } else if (sessionId) {
-          // Session exists but no question yet - wait for backend to assign
-          console.log('Session exists but no question yet, waiting...');
-          setTimeout(async () => {
-            try {
-              const session = await peerInterviewService.getSession(sessionId);
-              if (session.questionId) {
-                console.log('Redirecting to question:', session.questionId);
-                window.location.href = `${ROUTES.QUESTIONS}/${session.questionId}?session=${sessionId}`;
-              } else {
-                console.log('No question assigned, redirecting to questions list');
-                window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
-              }
-            } catch (error) {
-              console.error('Error getting session after confirm:', error);
-              window.location.href = `${ROUTES.QUESTIONS}?session=${sessionId}`;
-            }
-          }, 1000);
+        if (sessionId) {
+          // Session exists - redirect based on interview type
+          try {
+            const session = await peerInterviewService.getSession(sessionId);
+            console.log('Redirecting to session, interviewType:', session.interviewType || 'default');
+            window.location.href = getSessionRedirectUrl(session, sessionId, result.matchingRequest);
+          } catch (error) {
+            console.error('Error getting session after confirm:', error);
+            window.location.href = getSessionRedirectUrl(null, sessionId, result.matchingRequest);
+          }
           return;
         }
       } else if (result.completed && result.matchingRequest?.liveSessionId) {
@@ -986,17 +901,12 @@ const FindPeerPage: React.FC = () => {
         
         try {
           const liveSession = await peerInterviewService.getSession(result.matchingRequest.liveSessionId);
-          if (liveSession.questionId) {
-            console.log('Redirecting to question:', liveSession.questionId);
-            window.location.href = `${ROUTES.QUESTIONS}/${liveSession.questionId}?session=${result.matchingRequest.liveSessionId}`;
-      } else {
-            console.log('No question assigned, redirecting to questions list');
-            window.location.href = `${ROUTES.QUESTIONS}?session=${result.matchingRequest.liveSessionId}`;
-          }
+          console.log('Redirecting to live session, interviewType:', liveSession.interviewType || result.matchingRequest?.interviewType || 'default');
+          window.location.href = getSessionRedirectUrl(liveSession, result.matchingRequest.liveSessionId, result.matchingRequest);
           return;
         } catch (error) {
           console.error('Error getting live session:', error);
-          window.location.href = `${ROUTES.QUESTIONS}?session=${result.matchingRequest.liveSessionId}`;
+          window.location.href = getSessionRedirectUrl(null, result.matchingRequest.liveSessionId, result.matchingRequest);
           return;
         }
       } else {
@@ -1432,7 +1342,16 @@ const FindPeerPage: React.FC = () => {
                     <td>{formatDate(session.scheduledTime)}</td>
                     <td>{session.interviewType || 'N/A'}</td>
                     <td>
-                      {session.firstQuestion || session.secondQuestion ? (
+                      {session.interviewType === 'system-design' && session.liveSessionId ? (
+                        <div>
+                          <Link
+                            to={`/whiteboard?sessionId=${session.liveSessionId}&view=1`}
+                            className="question-link"
+                          >
+                            View whiteboard
+                          </Link>
+                        </div>
+                      ) : session.firstQuestion || session.secondQuestion ? (
                         <div>
                           {session.firstQuestion && (
                             <div>

@@ -97,14 +97,27 @@ public class CollaborationHub : Hub
     }
     public async Task JoinSession(string sessionId)
     {
-        // Use sessionId directly as group name (no "session-" prefix)
-        // This matches the format used in the controller
-        await Groups.AddToGroupAsync(Context.ConnectionId, sessionId);
+        // Ensure sessionId is a string for consistent group naming
+        var sessionIdString = sessionId?.ToString() ?? string.Empty;
+        _logger.LogInformation("User {ConnectionId} joining session group {SessionId}", Context.ConnectionId, sessionIdString);
+        await Groups.AddToGroupAsync(Context.ConnectionId, sessionIdString);
+        _logger.LogInformation("User {ConnectionId} successfully joined session group {SessionId}", Context.ConnectionId, sessionIdString);
     }
 
     public async Task LeaveSession(string sessionId)
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, sessionId);
+    }
+
+    /// <summary>
+    /// Notify other users in the session that roles have been switched
+    /// </summary>
+    public async Task SendRoleSwitched(string sessionId)
+    {
+        var sessionIdString = sessionId?.ToString() ?? string.Empty;
+        _logger.LogInformation("Role switched in session {SessionId}, notifying other users", sessionIdString);
+        
+        await Clients.GroupExcept(sessionIdString, Context.ConnectionId).SendAsync("RoleSwitched");
     }
 
     public async Task SendCodeUpdate(string sessionId, string code, string language)
@@ -153,6 +166,56 @@ public class CollaborationHub : Hub
     public async Task SendTestResults(string sessionId, object testResults)
     {
         await Clients.GroupExcept(sessionId, Context.ConnectionId).SendAsync("TestResultsUpdated", testResults);
+    }
+
+    /// <summary>
+    /// Broadcast whiteboard update to all other users in the session
+    /// </summary>
+    public async Task BroadcastWhiteboardUpdate(string sessionId, WhiteboardUpdateData whiteboardData)
+    {
+        _logger.LogInformation("Broadcasting whiteboard update for session {SessionId}, ConnectionId: {ConnectionId}", sessionId, Context.ConnectionId);
+        try
+        {
+            if (whiteboardData == null)
+            {
+                _logger.LogWarning("Whiteboard data is null for session {SessionId}", sessionId);
+                return;
+            }
+            
+            // Convert sessionId to string to ensure consistent group naming
+            var sessionIdString = sessionId?.ToString() ?? string.Empty;
+            
+            var elementsList = whiteboardData.Elements ?? new List<object>();
+            var appStateDict = whiteboardData.AppState ?? new Dictionary<string, object>();
+            
+            _logger.LogInformation("Sending whiteboard update to group {SessionId}, excluding connection {ConnectionId}. Elements count: {ElementsCount}", 
+                sessionIdString, Context.ConnectionId, elementsList.Count);
+            
+            await Clients.GroupExcept(sessionIdString, Context.ConnectionId).SendAsync("WhiteboardUpdate", new
+            {
+                sessionId = sessionIdString,
+                elements = elementsList,
+                appState = appStateDict,
+                role = whiteboardData.Role
+            });
+            
+            _logger.LogInformation("Whiteboard update broadcast successfully for session {SessionId} to group", sessionIdString);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error broadcasting whiteboard update for session {SessionId}", sessionId);
+            throw;
+        }
+    }
+    
+    /// <summary>
+    /// Data class for whiteboard updates
+    /// </summary>
+    public class WhiteboardUpdateData
+    {
+        public List<object>? Elements { get; set; }
+        public Dictionary<string, object>? AppState { get; set; }
+        public string? Role { get; set; }
     }
 
     // ==================== WebRTC Signaling Methods ====================

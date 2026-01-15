@@ -872,6 +872,8 @@ public class PeerInterviewService : IPeerInterviewService
             Status = session.Status,
             StartedAt = session.StartedAt,
             EndedAt = session.EndedAt,
+            InterviewerRoomId = session.InterviewerRoomId,
+            IntervieweeRoomId = session.IntervieweeRoomId,
             CreatedAt = session.CreatedAt,
             UpdatedAt = session.UpdatedAt,
             FirstQuestion = session.FirstQuestion != null ? new QuestionSummaryDto

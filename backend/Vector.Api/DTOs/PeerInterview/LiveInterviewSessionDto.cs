@@ -13,6 +13,8 @@ public class LiveInterviewSessionDto
     public string Status { get; set; } = "InProgress";
     public DateTime? StartedAt { get; set; }
     public DateTime? EndedAt { get; set; }
+    public string? InterviewerRoomId { get; set; }
+    public string? IntervieweeRoomId { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     

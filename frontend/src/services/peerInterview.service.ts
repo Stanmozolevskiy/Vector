@@ -27,6 +27,8 @@ export interface LiveInterviewSession {
   status: 'InProgress' | 'Completed' | 'Cancelled';
   startedAt?: string;
   endedAt?: string;
+  interviewerRoomId?: string;
+  intervieweeRoomId?: string;
   createdAt: string;
   updatedAt: string;
   firstQuestion?: QuestionSummary;
@@ -237,8 +239,21 @@ export const peerInterviewService = {
    * Get a scheduled session by ID
    */
   async getScheduledSession(sessionId: string): Promise<ScheduledInterviewSession> {
-    const response = await api.get<ScheduledInterviewSession>(`/peer-interviews/scheduled/${sessionId}`);
-    return response.data;
+    try {
+      const response = await api.get<ScheduledInterviewSession>(`/peer-interviews/scheduled/${sessionId}`, {
+        validateStatus: (status) => status === 200 || status === 404
+      });
+      if (response.status === 404) {
+        throw { response: { status: 404 }, isExpected404: true };
+      }
+      return response.data;
+    } catch (error: any) {
+      // Mark expected 404s to avoid console errors
+      if (error.response?.status === 404) {
+        error.isExpected404 = true;
+      }
+      throw error;
+    }
   },
 
   /**
@@ -381,7 +396,12 @@ export const peerInterviewService = {
           }
 
           return legacy;
-        } catch {
+        } catch (scheduledError: any) {
+          // If scheduled session also not found, mark as expected 404 to avoid console errors
+          if (scheduledError?.response?.status === 404 || scheduledError?.isExpected404) {
+            // Both live and scheduled sessions not found - this is expected for some session types
+            scheduledError.isExpected404 = true;
+          }
           throw error; // Re-throw original error if scheduled session also not found
         }
       }

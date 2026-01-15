@@ -13,8 +13,10 @@
   flex: 1;
   overflow: hidden;
   margin-top: 0;
-  height: 100vh;
+  /* Let the parent (.whiteboard-page) control the height (it already uses 100vh) */
+  min-height: 0;
   position: relative;
+  width: 100%;
 }
 
 .whiteboard-main-area {
@@ -23,15 +25,16 @@
   flex-direction: column;
   transition: margin-left 0.3s ease;
   height: 100%;
+  min-width: 0; /* allow flex child to shrink fully and avoid phantom gaps */
 }
 
 .whiteboard-main-area.with-sidebar {
-  margin-left: 320px;
+  margin-left: 0px;
 }
 
 @media (max-width: 768px) {
   .whiteboard-main-area.with-sidebar {
-    margin-left: 280px;
+    margin-left: 0px;
   }
 }
 

@@ -52,6 +52,20 @@ public class LiveInterviewSession
     /// </summary>
     public DateTime? EndedAt { get; set; }
     
+    /// <summary>
+    /// Excalidraw room ID for the interviewer's whiteboard (for system design interviews)
+    /// Format: roomId,key (e.g., "35a7b3f8f24f22d21f18,gaiLKrrJVtanONO5UiU2UA")
+    /// </summary>
+    [MaxLength(200)]
+    public string? InterviewerRoomId { get; set; }
+    
+    /// <summary>
+    /// Excalidraw room ID for the interviewee's whiteboard (for system design interviews)
+    /// Format: roomId,key (e.g., "35a7b3f8f24f22d21f18,gaiLKrrJVtanONO5UiU2UA")
+    /// </summary>
+    [MaxLength(200)]
+    public string? IntervieweeRoomId { get; set; }
+    
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

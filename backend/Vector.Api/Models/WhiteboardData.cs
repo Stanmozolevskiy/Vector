@@ -10,10 +10,9 @@ public class WhiteboardData
     public Guid Id { get; set; } = Guid.NewGuid();
     
     /// <summary>
-    /// Foreign key to User
+    /// Foreign key to User (nullable for session-based whiteboards)
     /// </summary>
-    [Required]
-    public Guid UserId { get; set; }
+    public Guid? UserId { get; set; }
     
     /// <summary>
     /// Navigation property to User
@@ -29,6 +28,11 @@ public class WhiteboardData
     /// Navigation property to Question
     /// </summary>
     public InterviewQuestion? Question { get; set; }
+    
+    /// <summary>
+    /// Optional session ID for collaborative whiteboards (for peer interviews)
+    /// </summary>
+    public Guid? SessionId { get; set; }
     
     /// <summary>
     /// Excalidraw elements (JSON array)

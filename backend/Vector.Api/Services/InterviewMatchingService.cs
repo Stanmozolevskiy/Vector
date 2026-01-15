@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Vector.Api.Data;
 using Vector.Api.DTOs.PeerInterview;
 using Vector.Api.Models;
+using System.Linq;
 
 namespace Vector.Api.Services;
 
@@ -601,14 +602,36 @@ public class InterviewMatchingService : IInterviewMatchingService
         }
         else
         {
-            // Fallback to random selection if assigned questions not available
-            firstQuestionId = await SelectRandomQuestionAsync(schedulerRequest.InterviewType);
-            secondQuestionId = await SelectRandomQuestionAsync(schedulerRequest.InterviewType, firstQuestionId);
+            // For system-design interviews, don't assign questions - users will select them manually
+            if (schedulerRequest.InterviewType != "system-design")
+            {
+                // Fallback to random selection if assigned questions not available
+                firstQuestionId = await SelectRandomQuestionAsync(schedulerRequest.InterviewType);
+                secondQuestionId = await SelectRandomQuestionAsync(schedulerRequest.InterviewType, firstQuestionId);
+            }
         }
 
-        if (!firstQuestionId.HasValue)
+        // For system-design, questions are optional (users select manually)
+        // For other types, require at least one question
+        if (schedulerRequest.InterviewType != "system-design" && !firstQuestionId.HasValue)
         {
             throw new InvalidOperationException("Could not find questions for the interview type.");
+        }
+
+        // Generate ONE shared Excalidraw room ID for system design interviews
+        // (single shared board for both users; stored for reference on the session)
+        string? interviewerRoomId = null;
+        string? intervieweeRoomId = null;
+        
+        if (schedulerRequest.InterviewType == "system-design")
+        {
+            // Generate room ID in Excalidraw format: roomId,key
+            // Format similar to: "35a7b3f8f24f22d21f18,gaiLKrrJVtanONO5UiU2UA"
+            var sharedRoomId = GenerateExcalidrawRoomId();
+            interviewerRoomId = sharedRoomId;
+            intervieweeRoomId = sharedRoomId;
+            
+            _logger.LogInformation("Generated shared Excalidraw room for system design interview: {RoomId}", sharedRoomId);
         }
 
         // Create live session (this is called AFTER both users confirm)
@@ -616,11 +639,13 @@ public class InterviewMatchingService : IInterviewMatchingService
         {
             Id = Guid.NewGuid(),
             ScheduledSessionId = schedulerRequest.ScheduledSessionId,
-            FirstQuestionId = firstQuestionId.Value,
+            FirstQuestionId = firstQuestionId,
             SecondQuestionId = secondQuestionId,
-            ActiveQuestionId = firstQuestionId.Value, // Start with first question
+            ActiveQuestionId = firstQuestionId, // May be null for system-design
             Status = "InProgress", // Set to InProgress immediately (both users already confirmed)
             StartedAt = DateTime.UtcNow, // Set immediately
+            InterviewerRoomId = interviewerRoomId,
+            IntervieweeRoomId = intervieweeRoomId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -948,6 +973,24 @@ public class InterviewMatchingService : IInterviewMatchingService
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Generates an Excalidraw room ID in the format: roomId,key
+    /// Similar to Excalidraw's format: "35a7b3f8f24f22d21f18,gaiLKrrJVtanONO5UiU2UA"
+    /// </summary>
+    private static string GenerateExcalidrawRoomId()
+    {
+        // Generate a random room ID (22 characters, alphanumeric)
+        const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        var roomId = new string(Enumerable.Repeat(chars, 22)
+            .Select(s => s[_random.Next(s.Length)]).ToArray());
+        
+        // Generate a random key (22 characters, alphanumeric)
+        var key = new string(Enumerable.Repeat(chars, 22)
+            .Select(s => s[_random.Next(s.Length)]).ToArray());
+        
+        return $"{roomId},{key}";
     }
 
     #endregion

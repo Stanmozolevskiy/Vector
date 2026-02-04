@@ -45,9 +45,9 @@ public class S3Service : IS3Service
                 Key = key,
                 BucketName = _bucketName,
                 ContentType = contentType,
-                // Profile pictures and coach application images are public (for user avatars and portfolio)
-                // Other files remain private
-                CannedACL = (folder == "profile-pictures" || folder == "coach-applications") 
+                // Public assets (rendered directly in the UI)
+                // Other files remain private by default
+                CannedACL = (folder == "profile-pictures" || folder == "coach-applications" || folder == "question-videos") 
                     ? S3CannedACL.PublicRead 
                     : S3CannedACL.Private
             };

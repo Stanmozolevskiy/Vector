@@ -111,7 +111,6 @@ public class SolutionService : ISolutionService
     {
         var query = _context.UserSolutions
             .Include(s => s.Question)
-            .Include(s => s.TestCaseResults)
             .Where(s => s.UserId == userId);
 
         if (filter != null)
@@ -145,7 +144,7 @@ public class SolutionService : ISolutionService
 
         var solutions = await query.ToListAsync();
 
-        var solutionDtos = solutions.Select(s => MapToDto(s, s.TestCaseResults.ToList())).ToList();
+        var solutionDtos = solutions.Select(MapToDto).ToList();
 
         return (solutionDtos, totalCount);
     }
@@ -154,8 +153,6 @@ public class SolutionService : ISolutionService
     {
         var solution = await _context.UserSolutions
             .Include(s => s.Question)
-            .Include(s => s.TestCaseResults)
-            .ThenInclude(ss => ss.TestCase)
             .FirstOrDefaultAsync(s => s.Id == solutionId && s.UserId == userId);
 
         if (solution == null)
@@ -163,19 +160,18 @@ public class SolutionService : ISolutionService
             return null;
         }
 
-        return MapToDto(solution, solution.TestCaseResults.ToList());
+        return MapToDto(solution);
     }
 
     public async Task<List<UserSolutionDto>> GetSolutionsForQuestionAsync(Guid questionId, Guid userId)
     {
         var solutions = await _context.UserSolutions
             .Include(s => s.Question)
-            .Include(s => s.TestCaseResults)
             .Where(s => s.QuestionId == questionId && s.UserId == userId)
             .OrderByDescending(s => s.SubmittedAt)
             .ToListAsync();
 
-        return solutions.Select(s => MapToDto(s, s.TestCaseResults.ToList())).ToList();
+        return solutions.Select(MapToDto).ToList();
     }
 
     public async Task<SolutionStatisticsDto> GetSolutionStatisticsAsync(Guid userId)
@@ -213,7 +209,7 @@ public class SolutionService : ISolutionService
         return statistics;
     }
 
-    private UserSolutionDto MapToDto(UserSolution solution, List<SolutionSubmission> submissions)
+    private UserSolutionDto MapToDto(UserSolution solution)
     {
         return new UserSolutionDto
         {
@@ -228,19 +224,7 @@ public class SolutionService : ISolutionService
             MemoryUsed = solution.MemoryUsed,
             TestCasesPassed = solution.TestCasesPassed,
             TotalTestCases = solution.TotalTestCases,
-            SubmittedAt = solution.SubmittedAt,
-            TestCaseResults = submissions.Select(ss => new SolutionSubmissionDto
-            {
-                Id = ss.Id,
-                TestCaseId = ss.TestCaseId,
-                TestCaseNumber = ss.TestCaseNumber,
-                Status = ss.Status,
-                Output = ss.Output,
-                ExpectedOutput = ss.ExpectedOutput,
-                ErrorMessage = ss.ErrorMessage,
-                ExecutionTime = ss.ExecutionTime,
-                MemoryUsed = ss.MemoryUsed
-            }).ToList()
+            SubmittedAt = solution.SubmittedAt
         };
     }
 

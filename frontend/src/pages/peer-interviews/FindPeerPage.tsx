@@ -48,15 +48,26 @@ const FindPeerPage: React.FC = () => {
   const [pastSessions, setPastSessions] = useState<PeerInterviewSession[]>([]);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [scheduleData, setScheduleData] = useState<ScheduleModalData>({ step: 1 });
+  const [friendEmail, setFriendEmail] = useState('');
+  const [friendInviteUrl, setFriendInviteUrl] = useState('');
+  const [friendRedirectUrl, setFriendRedirectUrl] = useState('');
+  const [friendEmailSent, setFriendEmailSent] = useState(false);
+  const [friendCopied, setFriendCopied] = useState(false);
 
   // Helper function to get redirect URL based on interview type
   const getSessionRedirectUrl = (session: PeerInterviewSession | null, sessionId: string, matchingRequest?: any): string => {
     // Get interviewType from session or matchingRequest
-    const interviewType = session?.interviewType || matchingRequest?.interviewType;
+    const interviewType = String(session?.interviewType || matchingRequest?.interviewType || '').trim().toLowerCase();
     
     // Check if it's a system design interview
     if (interviewType === 'system-design') {
       return ROUTES.SYSTEM_DESIGN_INTERVIEW.replace(':sessionId', sessionId);
+    }
+
+    // PM / Behavioral interviews use dedicated session UI (no assigned question / no roles)
+    if (interviewType === 'behavioral' || interviewType === 'product-management') {
+      const encodedType = encodeURIComponent(String(interviewType));
+      return `${ROUTES.PEER_INTERVIEW_SESSION.replace(':id', sessionId)}?type=${encodedType}`;
     }
 
     // Default to questions page for other interview types
@@ -106,8 +117,9 @@ const FindPeerPage: React.FC = () => {
           : 'http://localhost:5000';
         
         const connection = new signalR.HubConnectionBuilder()
-          .withUrl(`${baseUrl}/api/collaboration?access_token=${accessToken}`, {
+          .withUrl(`${baseUrl}/api/collaboration`, {
             transport: signalR.HttpTransportType.WebSockets,
+            accessTokenFactory: () => localStorage.getItem('accessToken') || '',
           })
           .withAutomaticReconnect()
           .build();
@@ -240,6 +252,8 @@ const FindPeerPage: React.FC = () => {
       id: s.liveSession?.id || s.id,
       status: (s.liveSession?.status || s.status) as any,
       scheduledTime: s.scheduledStartAt,
+      startedAt: s.liveSession?.startedAt,
+      endedAt: s.liveSession?.endedAt,
       duration: 60,
       interviewType: s.interviewType,
       practiceType: s.practiceType,
@@ -269,19 +283,33 @@ const FindPeerPage: React.FC = () => {
         peerInterviewService.getPastSessions(),
       ]);
       
-      // Convert to legacy format using helper function
-      const upcoming = upcomingSessions.map(convertToLegacySession).sort((a, b) => {
-        const timeA = a.scheduledTime ? new Date(a.scheduledTime).getTime() : 0;
-        const timeB = b.scheduledTime ? new Date(b.scheduledTime).getTime() : 0;
-        return timeA - timeB;
+      // Safety: de-dupe by scheduled session ID (backend should already enforce rules)
+      const upcomingById = new Map<string, ScheduledInterviewSession>();
+      upcomingSessions.forEach((s) => upcomingById.set(s.id, s));
+
+      const pastById = new Map<string, ScheduledInterviewSession>();
+      pastSessions.forEach((s) => pastById.set(s.id, s));
+
+      // Past should win if a record ever appears in both lists
+      pastById.forEach((_v, id) => {
+        upcomingById.delete(id);
       });
 
-      const past = pastSessions.map(convertToLegacySession).sort((a, b) => {
-        const timeA = a.scheduledTime ? new Date(a.scheduledTime).getTime() : 0;
-        const timeB = b.scheduledTime ? new Date(b.scheduledTime).getTime() : 0;
-        return timeB - timeA;
-      });
-      console.log("past sessions: " , past);
+      const upcoming = Array.from(upcomingById.values())
+        .map(convertToLegacySession)
+        .sort((a, b) => {
+          const timeA = a.scheduledTime ? new Date(a.scheduledTime).getTime() : 0;
+          const timeB = b.scheduledTime ? new Date(b.scheduledTime).getTime() : 0;
+          return timeA - timeB;
+        });
+
+      const past = Array.from(pastById.values())
+        .map(convertToLegacySession)
+        .sort((a, b) => {
+          const timeA = a.scheduledTime ? new Date(a.scheduledTime).getTime() : 0;
+          const timeB = b.scheduledTime ? new Date(b.scheduledTime).getTime() : 0;
+          return timeB - timeA;
+        });
 
       setUpcomingSessions(upcoming);
       setPastSessions(past);
@@ -359,6 +387,24 @@ const FindPeerPage: React.FC = () => {
     if (DEV_MODE) return true; // Always show in dev mode
     const minutesUntil = getMinutesUntil(session.scheduledTime);
     return minutesUntil <= 10 && minutesUntil >= 0;
+  };
+
+  const getBrowseQuestionsUrlForInterviewType = (interviewType?: string) => {
+    const t = String(interviewType || '').trim().toLowerCase();
+    if (t === 'behavioral') return `${ROUTES.QUESTIONS}?questionType=${encodeURIComponent('Behavioral')}`;
+    if (t === 'product-management') return `${ROUTES.QUESTIONS}?questionType=${encodeURIComponent('Product Management')}`;
+    return ROUTES.QUESTIONS;
+  };
+
+  const getBrowseQuestionsTooltip = (interviewType?: string) => {
+    const t = String(interviewType || '').trim().toLowerCase();
+    if (t === 'behavioral') {
+      return "Behavioral interviews don't have pre-assigned questions. Prepare the question you'll ask ahead of time.";
+    }
+    if (t === 'product-management') {
+      return "Product Management interviews don't have pre-assigned questions. Prepare the question you'll ask ahead of time.";
+    }
+    return '';
   };
 
   const handleStartInterview = async (sessionId: string) => {
@@ -953,21 +999,64 @@ const FindPeerPage: React.FC = () => {
     return 'Interviewer';
   };
 
+  const handleJoinLiveInterview = async (session: PeerInterviewSession) => {
+    const liveId = session.liveSessionId || session.id;
+    if (!liveId) return;
+
+    const t = String(session.interviewType || '').trim().toLowerCase();
+    if (t === 'behavioral' || t === 'product-management') {
+      const encodedType = encodeURIComponent(t);
+      window.location.href = `${ROUTES.PEER_INTERVIEW_SESSION.replace(':id', liveId)}?type=${encodedType}`;
+      return;
+    }
+
+    try {
+      const liveSession = await peerInterviewService.getSession(liveId);
+      window.location.href = getSessionRedirectUrl(liveSession, liveId);
+    } catch {
+      // Fall back to whatever we already know.
+      window.location.href = getSessionRedirectUrl(session, liveId);
+    }
+  };
+
   const handleScheduleClick = () => {
     setScheduleData({ step: 1 });
+    setFriendEmail('');
+    setFriendInviteUrl('');
+    setFriendRedirectUrl('');
+    setFriendEmailSent(false);
+    setFriendCopied(false);
     setShowScheduleModal(true);
   };
 
   const handleNextStep = () => {
+    // For friend interviews, skip step 3 (interview level) - it's not needed
+    if (scheduleData.step === 2 && scheduleData.practiceType === 'friend') {
+      // Skip directly to step 4 (invite page)
+      // Set a default interview level for friend interviews
+      setScheduleData({ ...scheduleData, step: 4, interviewLevel: 'intermediate' });
+      return;
+    }
+
     if (scheduleData.step < 4) {
       setScheduleData({ ...scheduleData, step: scheduleData.step + 1 });
     } else {
       // Step 4 is the last step - submit directly
+      if (scheduleData.practiceType === 'friend') {
+        handleFriendStartOrEnter();
+        return;
+      }
       handleScheduleSubmit();
     }
   };
 
   const handleBackStep = () => {
+    // For friend interviews, skip step 3 (interview level) when going back from step 4
+    if (scheduleData.step === 4 && scheduleData.practiceType === 'friend') {
+      setScheduleData({ ...scheduleData, step: 2 });
+      return;
+    }
+
     if (scheduleData.step > 1) {
       setScheduleData({ ...scheduleData, step: scheduleData.step - 1 });
     } else {
@@ -1028,6 +1117,46 @@ const FindPeerPage: React.FC = () => {
         console.error('Schedule interview error:', errorMessage);
         // Could show a toast notification here instead of alert
       }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFriendStartOrEnter = async () => {
+    if (!user) return;
+    if (!scheduleData.interviewType || !scheduleData.interviewLevel) return;
+
+    // If already created and user clicks "Enter session", redirect
+    if (friendRedirectUrl) {
+      setShowScheduleModal(false);
+      window.location.href = friendRedirectUrl;
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const created = await peerInterviewService.createFriendInterview({
+        interviewType: scheduleData.interviewType,
+        interviewLevel: scheduleData.interviewLevel,
+        partnerEmail: friendEmail.trim() ? friendEmail.trim() : undefined,
+      });
+
+      setFriendInviteUrl(created.inviteUrl);
+      setFriendRedirectUrl(created.redirectUrl);
+      setFriendEmailSent(Boolean(created.emailSent));
+
+      // Best-effort copy to clipboard
+      try {
+        await navigator.clipboard.writeText(created.inviteUrl);
+        setFriendCopied(true);
+        setTimeout(() => setFriendCopied(false), 1500);
+      } catch {
+        // ignore
+      }
+
+      // DO NOT redirect automatically - let user see the invite link and choose when to enter
+    } catch (error: any) {
+      console.error('Error creating friend session:', error);
     } finally {
       setLoading(false);
     }
@@ -1134,6 +1263,95 @@ const FindPeerPage: React.FC = () => {
         );
 
       case 4: // Select time
+        if (scheduleData.practiceType === 'friend') {
+          const interviewTypeName =
+            INTERVIEW_TYPES.find((t) => t.id === scheduleData.interviewType)?.name || 'Interview';
+
+          return (
+            <div className="modal-step">
+              <h2>Invite a friend</h2>
+              <p className="modal-subtitle">
+                We’ll create a live {interviewTypeName} session right away. You can email an invite, or just copy the link.
+              </p>
+
+              <div className="practice-type-list" style={{ marginTop: 12 }}>
+                <div className="practice-type-card selected" style={{ cursor: 'default' }}>
+                  <div className="type-icon">👤</div>
+                  <div className="type-content">
+                    <div className="type-name">Practice with a friend</div>
+                    <div className="type-description">
+                      No scheduling, no matching queue. Share the link and start when you’re ready.
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ marginTop: 16 }}>
+                <label style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>
+                  Friend’s email (optional)
+                </label>
+                <input
+                  type="email"
+                  value={friendEmail}
+                  onChange={(e) => setFriendEmail(e.target.value)}
+                  placeholder="name@example.com"
+                  style={{
+                    width: '100%',
+                    padding: '12px 12px',
+                    borderRadius: 10,
+                    border: '1px solid rgba(15, 23, 42, 0.12)',
+                  }}
+                />
+                <p style={{ marginTop: 8, color: '#6b7280', fontSize: 13 }}>
+                  If you enter an email, we’ll send the invite link automatically.
+                </p>
+              </div>
+
+              {friendInviteUrl ? (
+                <div style={{ marginTop: 16 }}>
+                  <label style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>
+                    Invite link
+                  </label>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <input
+                      value={friendInviteUrl}
+                      readOnly
+                      style={{
+                        flex: 1,
+                        padding: '12px 12px',
+                        borderRadius: 10,
+                        border: '1px solid rgba(15, 23, 42, 0.12)',
+                        background: '#f8fafc',
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="btn-modal-back"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(friendInviteUrl);
+                          setFriendCopied(true);
+                          setTimeout(() => setFriendCopied(false), 1500);
+                        } catch {
+                          // ignore
+                        }
+                      }}
+                      style={{ whiteSpace: 'nowrap' }}
+                    >
+                      {friendCopied ? 'Copied' : 'Copy link'}
+                    </button>
+                  </div>
+                  {friendEmailSent && (
+                    <p style={{ marginTop: 10, color: '#16a34a', fontSize: 13 }}>
+                      Invite email sent.
+                    </p>
+                  )}
+                </div>
+              ) : null}
+            </div>
+          );
+        }
+
         // Get already scheduled times to filter them out
         const scheduledTimes = upcomingSessions
           .filter(s => s.scheduledTime)
@@ -1280,7 +1498,19 @@ const FindPeerPage: React.FC = () => {
                     </td>
                     <td>{session.interviewType || 'N/A'}</td>
                     <td>
-                      {session.question ? (
+                      {(() => {
+                        const t = String(session.interviewType || '').trim().toLowerCase();
+                        return t === 'behavioral' || t === 'product-management';
+                      })() ? (
+                        <span className="browse-questions-wrap" title={getBrowseQuestionsTooltip(session.interviewType)}>
+                          <Link
+                            to={getBrowseQuestionsUrlForInterviewType(session.interviewType)}
+                            className="question-link"
+                          >
+                            Browse questions
+                          </Link>
+                        </span>
+                      ) : session.question ? (
                         <Link to={`/questions/${session.questionId}`} className="question-link">
                           {session.question.title}
                         </Link>
@@ -1342,7 +1572,12 @@ const FindPeerPage: React.FC = () => {
                     <td>{formatDate(session.scheduledTime)}</td>
                     <td>{session.interviewType || 'N/A'}</td>
                     <td>
-                      {session.interviewType === 'system-design' && session.liveSessionId ? (
+                      {(() => {
+                        const t = String(session.interviewType || '').trim().toLowerCase();
+                        return t === 'behavioral' || t === 'product-management';
+                      })() ? (
+                        <span className="no-question">n/a</span>
+                      ) : session.interviewType === 'system-design' && session.liveSessionId ? (
                         <div>
                           <Link
                             to={`/whiteboard?sessionId=${session.liveSessionId}&view=1`}
@@ -1385,9 +1620,24 @@ const FindPeerPage: React.FC = () => {
                       </div>
                     </td>
                     <td>
-                      <button 
+                      {(() => {
+                        const liveId = session.liveSessionId;
+                        const isLive = Boolean(liveId);
+                        const isCompleted = session.status === 'Completed';
+                        const startedAt = session.startedAt || session.scheduledTime;
+                        const startedMs = startedAt ? new Date(startedAt).getTime() : NaN;
+                        const withinHour = Number.isFinite(startedMs) ? (Date.now() - startedMs) < (60 * 60 * 1000) : false;
+                        const canJoin = isLive && !isCompleted && withinHour;
+
+                        return (
+                          <button 
                         className="btn-view-feedback"
                         onClick={async () => {
+                          if (canJoin) {
+                            await handleJoinLiveInterview(session);
+                            return;
+                          }
+
                           if (!session.liveSessionId) {
                             alert('Session not found');
                             return;
@@ -1446,15 +1696,18 @@ const FindPeerPage: React.FC = () => {
                             }
                           } catch (error: any) {
                             console.error('Error loading feedback status:', error);
-                            alert('Failed to load feedback. Please try again.');
+                            // Show "no feedback" modal instead of alert for better UX
+                            setShowNoFeedback(true);
                           } finally {
                             setLoadingFeedback(false);
                           }
                         }}
                         disabled={loadingFeedback}
                       >
-                        {loadingFeedback ? 'Loading...' : 'View feedback'}
+                        {loadingFeedback ? 'Loading...' : (canJoin ? 'Join interview' : 'View feedback')}
                       </button>
+                        );
+                      })()}
                     </td>
                   </tr>
                 ))
@@ -1567,12 +1820,16 @@ const FindPeerPage: React.FC = () => {
                   (scheduleData.step === 1 && !scheduleData.interviewType) ||
                   (scheduleData.step === 2 && !scheduleData.practiceType) ||
                   (scheduleData.step === 3 && !scheduleData.interviewLevel) ||
-                  (scheduleData.step === 4 && !scheduleData.selectedTime) ||
+                  (scheduleData.step === 4 && scheduleData.practiceType !== 'friend' && !scheduleData.selectedTime) ||
                   loading
                 }
                 className="btn-modal-next"
               >
-                {scheduleData.step === 4 ? (loading ? 'Scheduling...' : 'Schedule') : 'Next'}
+                {scheduleData.step === 4
+                  ? (scheduleData.practiceType === 'friend'
+                      ? (loading ? 'Starting...' : (friendRedirectUrl ? 'Enter session' : 'Start session'))
+                      : (loading ? 'Scheduling...' : 'Schedule'))
+                  : 'Next'}
               </button>
             </div>
           </div>

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 using Vector.Api.Data;
 using Vector.Api.DTOs.PeerInterview;
 using Vector.Api.Models;
@@ -70,18 +71,56 @@ public class PeerInterviewService : IPeerInterviewService
 
     public async Task<IEnumerable<ScheduledInterviewSessionDto>> GetUpcomingSessionsAsync(Guid userId)
     {
+        // Upcoming interviews:
+        // - Scheduled sessions only
+        // - No active matched/confirmed live interview
+        // - Visible until 10 minutes after ScheduledStartAt
         var now = DateTime.UtcNow;
-        var sessions = await _context.ScheduledInterviewSessions
+        var windowStart = now.AddMinutes(-10);
+
+        var candidateSessions = await _context.ScheduledInterviewSessions
             .Include(s => s.User)
-            .Where(s => s.UserId == userId 
-                && s.Status != "Cancelled"
-                && s.Status != "Completed"
-                && s.ScheduledStartAt > now)
+            .Where(s => s.UserId == userId
+                && s.Status == "Scheduled"
+                && s.ScheduledStartAt >= windowStart)
             .OrderBy(s => s.ScheduledStartAt)
             .ToListAsync();
 
-        var dtos = new List<ScheduledInterviewSessionDto>();
-        foreach (var session in sessions)
+        if (!candidateSessions.Any())
+        {
+            return Array.Empty<ScheduledInterviewSessionDto>();
+        }
+
+        // Exclude any scheduled session that already has a confirmed live session.
+        // In this system, a live session is created only after both users confirm.
+        var sessionIds = candidateSessions.Select(s => s.Id).ToList();
+
+        var confirmedScheduledSessionIds = await _context.InterviewMatchingRequests
+            .Where(m => sessionIds.Contains(m.ScheduledSessionId)
+                && m.LiveSessionId != null
+                && m.Status == "Confirmed")
+            .Select(m => m.ScheduledSessionId)
+            .Distinct()
+            .ToListAsync();
+
+        var confirmedSet = confirmedScheduledSessionIds.ToHashSet();
+
+        // Also exclude directly linked live sessions (defensive)
+        var directlyLinkedLiveSessionIds = await _context.LiveInterviewSessions
+            .Where(ls => ls.ScheduledSessionId != null && sessionIds.Contains(ls.ScheduledSessionId.Value))
+            .Select(ls => ls.ScheduledSessionId!.Value)
+            .Distinct()
+            .ToListAsync();
+
+        foreach (var sid in directlyLinkedLiveSessionIds)
+        {
+            confirmedSet.Add(sid);
+        }
+
+        var upcoming = candidateSessions.Where(s => !confirmedSet.Contains(s.Id)).ToList();
+
+        var dtos = new List<ScheduledInterviewSessionDto>(upcoming.Count);
+        foreach (var session in upcoming)
         {
             dtos.Add(await MapToScheduledSessionDtoAsync(session));
         }
@@ -90,12 +129,9 @@ public class PeerInterviewService : IPeerInterviewService
 
     public async Task<IEnumerable<ScheduledInterviewSessionDto>> GetPastSessionsAsync(Guid userId)
     {
-        var now = DateTime.UtcNow;
-        
-        // Find all scheduled sessions for this user that:
-        // 1. Are not cancelled
-        // 2. Are either "Completed" OR "InProgress" with a live session that has ended
-        // 3. Have a live session associated (actually happened)
+        // Past interviews:
+        // - Only live interviews that were confirmed by BOTH users.
+        // - Live interviews can be InProgress or Completed.
         var candidateSessions = await _context.ScheduledInterviewSessions
             .Include(s => s.User)
             .Include(s => s.LiveSession)
@@ -103,68 +139,42 @@ public class PeerInterviewService : IPeerInterviewService
             .OrderByDescending(s => s.ScheduledStartAt)
             .ToListAsync();
 
-        // Find all matching requests that link sessions to live sessions
+        if (!candidateSessions.Any())
+        {
+            return Array.Empty<ScheduledInterviewSessionDto>();
+        }
+
         var sessionIds = candidateSessions.Select(s => s.Id).ToList();
-        var matchingRequests = await _context.InterviewMatchingRequests
-            .Where(m => sessionIds.Contains(m.ScheduledSessionId) && m.LiveSessionId != null)
-            .Include(m => m.LiveSession)
+        var confirmedSessionIds = await _context.InterviewMatchingRequests
+            .Where(m => sessionIds.Contains(m.ScheduledSessionId)
+                && m.LiveSessionId != null
+                && m.Status == "Confirmed")
+            .Select(m => m.ScheduledSessionId)
+            .Distinct()
             .ToListAsync();
 
-        // Build a map of scheduled session ID to live session
-        var sessionToLiveSessionMap = new Dictionary<Guid, LiveInterviewSession>();
-        
-        // Add from matching requests
-        foreach (var request in matchingRequests)
-        {
-            if (request.LiveSession != null && !sessionToLiveSessionMap.ContainsKey(request.ScheduledSessionId))
-            {
-                sessionToLiveSessionMap[request.ScheduledSessionId] = request.LiveSession;
-            }
-        }
-        
-        // Add from direct links (LiveInterviewSession.ScheduledSessionId)
+        var confirmedSet = confirmedSessionIds.ToHashSet();
+
+        // Add from direct links (defensive)
         var directlyLinkedLiveSessions = await _context.LiveInterviewSessions
             .Where(ls => sessionIds.Contains(ls.ScheduledSessionId ?? Guid.Empty))
             .ToListAsync();
         
         foreach (var liveSession in directlyLinkedLiveSessions)
         {
-            if (liveSession.ScheduledSessionId.HasValue && 
-                !sessionToLiveSessionMap.ContainsKey(liveSession.ScheduledSessionId.Value))
+            if (liveSession.ScheduledSessionId.HasValue)
             {
-                sessionToLiveSessionMap[liveSession.ScheduledSessionId.Value] = liveSession;
+                confirmedSet.Add(liveSession.ScheduledSessionId.Value);
             }
         }
 
-        // Filter sessions to include any session that has a live session (regardless of status)
-        // This ensures all sessions that actually happened are shown in past interviews
         var pastSessions = candidateSessions
             .Where(s =>
             {
-                LiveInterviewSession? liveSession = null;
-                
-                // Try to get live session from map first
-                if (!sessionToLiveSessionMap.TryGetValue(s.Id, out liveSession))
-                {
-                    // Also check if session has a directly linked live session via navigation property
-                    liveSession = s.LiveSession;
-                }
-
-                // Include if there's a live session (session actually happened)
-                // This includes all statuses: InProgress, Completed, Cancelled
-                if (liveSession != null)
-                {
-                    return true;
-                }
-                
-                // If no live session, only include if scheduled session is marked as completed
-                // (scheduled but never matched, then explicitly cancelled)
-                if (s.Status == "Completed")
-                {
-                    return true;
-                }
-                
-                return false;
+                // Primary: only sessions that have a confirmed live session.
+                if (confirmedSet.Contains(s.Id)) return true;
+                // Defensive: if session is directly linked to a live session, include it.
+                return s.LiveSession != null;
             })
             .ToList();
 
@@ -205,6 +215,250 @@ public class PeerInterviewService : IPeerInterviewService
         await _context.SaveChangesAsync();
 
         return true;
+    }
+
+    // Practice with a friend (no scheduling / no matching queue)
+    public async Task<(Guid LiveSessionId, Guid CreatorScheduledSessionId, string InterviewType, Guid? ActiveQuestionId)> CreateFriendInterviewAsync(
+        Guid userId,
+        CreateFriendInterviewDto dto)
+    {
+        // Validate user exists
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
+        {
+            throw new InvalidOperationException($"User with ID {userId} not found");
+        }
+
+        var interviewType = (dto.InterviewType ?? string.Empty).Trim().ToLowerInvariant();
+        var interviewLevel = (dto.InterviewLevel ?? string.Empty).Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(interviewType))
+        {
+            throw new InvalidOperationException("InterviewType is required.");
+        }
+        if (string.IsNullOrWhiteSpace(interviewLevel))
+        {
+            throw new InvalidOperationException("InterviewLevel is required.");
+        }
+
+        // Create a scheduled session record for the creator (used for history grids + metadata)
+        var scheduledSession = new ScheduledInterviewSession
+        {
+            UserId = userId,
+            InterviewType = interviewType,
+            PracticeType = "friend",
+            InterviewLevel = interviewLevel,
+            ScheduledStartAt = DateTime.UtcNow,
+            Status = "InProgress",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        // Assign a question to the scheduled session for coding/sql (optional reference)
+        if (interviewType == "data-structures-algorithms" || interviewType == "sql" || interviewType == "data-science-ml")
+        {
+            var assignedQuestionId = await SelectRandomQuestionAsync(interviewType);
+            if (assignedQuestionId.HasValue)
+            {
+                scheduledSession.AssignedQuestionId = assignedQuestionId.Value;
+            }
+        }
+
+        _context.ScheduledInterviewSessions.Add(scheduledSession);
+
+        // Determine questions for the live session
+        Guid? firstQuestionId = null;
+        Guid? secondQuestionId = null;
+        if (interviewType != "system-design")
+        {
+            firstQuestionId = await SelectRandomQuestionAsync(interviewType);
+            if (!firstQuestionId.HasValue)
+            {
+                throw new InvalidOperationException("Could not find questions for the interview type.");
+            }
+            secondQuestionId = await SelectRandomQuestionAsync(interviewType, firstQuestionId);
+        }
+
+        // System design uses a shared Excalidraw room for both users
+        string? interviewerRoomId = null;
+        string? intervieweeRoomId = null;
+        if (interviewType == "system-design")
+        {
+            var sharedRoomId = GenerateExcalidrawRoomId();
+            interviewerRoomId = sharedRoomId;
+            intervieweeRoomId = sharedRoomId;
+        }
+
+        var liveSession = new LiveInterviewSession
+        {
+            Id = Guid.NewGuid(),
+            ScheduledSessionId = scheduledSession.Id,
+            FirstQuestionId = firstQuestionId,
+            SecondQuestionId = secondQuestionId,
+            ActiveQuestionId = firstQuestionId,
+            Status = "InProgress",
+            StartedAt = DateTime.UtcNow,
+            InterviewerRoomId = interviewerRoomId,
+            IntervieweeRoomId = intervieweeRoomId,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        _context.LiveInterviewSessions.Add(liveSession);
+
+        // Add creator as participant (Interviewer by default)
+        _context.LiveInterviewParticipants.Add(new LiveInterviewParticipant
+        {
+            Id = Guid.NewGuid(),
+            LiveSessionId = liveSession.Id,
+            UserId = userId,
+            Role = "Interviewer",
+            IsActive = true,
+            JoinedAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+
+        await _context.SaveChangesAsync();
+
+        return (liveSession.Id, scheduledSession.Id, interviewType, liveSession.ActiveQuestionId);
+    }
+
+    public async Task<LiveInterviewSessionDto> JoinFriendInterviewAsync(Guid liveSessionId, Guid userId)
+    {
+        var session = await _context.LiveInterviewSessions
+            .Include(s => s.FirstQuestion)
+            .Include(s => s.SecondQuestion)
+            .Include(s => s.ScheduledSession)
+            .Include(s => s.Participants)
+            .FirstOrDefaultAsync(s => s.Id == liveSessionId);
+
+        if (session == null)
+        {
+            throw new KeyNotFoundException("Session not found.");
+        }
+
+        if (session.ScheduledSession == null || !string.Equals(session.ScheduledSession.PracticeType, "friend", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("This session is not a 'practice with a friend' session.");
+        }
+
+        // If already a participant, just return the session
+        if (session.Participants.Any(p => p.UserId == userId))
+        {
+            var existing = await _context.LiveInterviewSessions
+                .Include(s => s.FirstQuestion)
+                .Include(s => s.SecondQuestion)
+                .Include(s => s.Participants)
+                    .ThenInclude(p => p.User)
+                .Include(s => s.ScheduledSession)
+                .FirstOrDefaultAsync(s => s.Id == liveSessionId);
+
+            return await MapToLiveSessionDtoAsync(existing!, userId);
+        }
+
+        if (session.Participants.Count >= 2)
+        {
+            throw new InvalidOperationException("This session already has two participants.");
+        }
+
+        var creatorScheduledSession = session.ScheduledSession;
+        var creatorUserId = creatorScheduledSession.UserId;
+
+        // Create scheduled session for the joining user so it appears in their history
+        var joinerScheduledSession = new ScheduledInterviewSession
+        {
+            UserId = userId,
+            InterviewType = creatorScheduledSession.InterviewType,
+            PracticeType = "friend",
+            InterviewLevel = creatorScheduledSession.InterviewLevel,
+            ScheduledStartAt = creatorScheduledSession.ScheduledStartAt,
+            Status = "InProgress",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        // For coding/sql, set assigned question for joiner if we have a second question
+        if ((creatorScheduledSession.InterviewType == "data-structures-algorithms" || creatorScheduledSession.InterviewType == "sql" || creatorScheduledSession.InterviewType == "data-science-ml")
+            && session.SecondQuestionId.HasValue)
+        {
+            joinerScheduledSession.AssignedQuestionId = session.SecondQuestionId.Value;
+        }
+
+        _context.ScheduledInterviewSessions.Add(joinerScheduledSession);
+
+        // Add the joiner as a participant
+        _context.LiveInterviewParticipants.Add(new LiveInterviewParticipant
+        {
+            Id = Guid.NewGuid(),
+            LiveSessionId = session.Id,
+            UserId = userId,
+            Role = "Interviewee",
+            IsActive = true,
+            JoinedAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+
+        // Create matching records (Confirmed) so the interview appears in both users' "Past interviews"
+        var existingConfirmed = await _context.InterviewMatchingRequests
+            .AnyAsync(m => m.LiveSessionId == session.Id && m.Status == "Confirmed");
+
+        if (!existingConfirmed)
+        {
+            var now = DateTime.UtcNow;
+            var expiresAt = now.AddHours(6);
+
+            _context.InterviewMatchingRequests.Add(new InterviewMatchingRequest
+            {
+                Id = Guid.NewGuid(),
+                UserId = creatorUserId,
+                ScheduledSessionId = creatorScheduledSession.Id,
+                InterviewType = creatorScheduledSession.InterviewType,
+                PracticeType = "friend",
+                InterviewLevel = creatorScheduledSession.InterviewLevel,
+                ScheduledStartAt = creatorScheduledSession.ScheduledStartAt,
+                Status = "Confirmed",
+                MatchedUserId = userId,
+                LiveSessionId = session.Id,
+                UserConfirmed = true,
+                MatchedUserConfirmed = true,
+                ExpiresAt = expiresAt,
+                CreatedAt = now,
+                UpdatedAt = now
+            });
+
+            _context.InterviewMatchingRequests.Add(new InterviewMatchingRequest
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                ScheduledSessionId = joinerScheduledSession.Id,
+                InterviewType = creatorScheduledSession.InterviewType,
+                PracticeType = "friend",
+                InterviewLevel = creatorScheduledSession.InterviewLevel,
+                ScheduledStartAt = creatorScheduledSession.ScheduledStartAt,
+                Status = "Confirmed",
+                MatchedUserId = creatorUserId,
+                LiveSessionId = session.Id,
+                UserConfirmed = true,
+                MatchedUserConfirmed = true,
+                ExpiresAt = expiresAt,
+                CreatedAt = now,
+                UpdatedAt = now
+            });
+        }
+
+        await _context.SaveChangesAsync();
+
+        // Reload with all includes for DTO
+        var updated = await _context.LiveInterviewSessions
+            .Include(s => s.FirstQuestion)
+            .Include(s => s.SecondQuestion)
+            .Include(s => s.Participants)
+                .ThenInclude(p => p.User)
+            .Include(s => s.ScheduledSession)
+            .FirstOrDefaultAsync(s => s.Id == liveSessionId);
+
+        return await MapToLiveSessionDtoAsync(updated!, userId);
     }
 
     // Live Sessions
@@ -866,6 +1120,7 @@ public class PeerInterviewService : IPeerInterviewService
         {
             Id = session.Id,
             ScheduledSessionId = session.ScheduledSessionId,
+            InterviewType = session.ScheduledSession?.InterviewType,
             FirstQuestionId = session.FirstQuestionId,
             SecondQuestionId = session.SecondQuestionId,
             ActiveQuestionId = session.ActiveQuestionId,
@@ -936,6 +1191,20 @@ public class PeerInterviewService : IPeerInterviewService
                 Email = feedback.Reviewee.Email
             } : null
         };
+    }
+
+    /// <summary>
+    /// Generates an Excalidraw room ID in the format: roomId,key
+    /// Similar to Excalidraw's format: "35a7b3f8f24f22d21f18,gaiLKrrJVtanONO5UiU2UA"
+    /// </summary>
+    private static string GenerateExcalidrawRoomId()
+    {
+        const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        var roomId = new string(Enumerable.Repeat(chars, 22)
+            .Select(s => s[_random.Next(s.Length)]).ToArray());
+        var key = new string(Enumerable.Repeat(chars, 22)
+            .Select(s => s[_random.Next(s.Length)]).ToArray());
+        return $"{roomId},{key}";
     }
 }
 

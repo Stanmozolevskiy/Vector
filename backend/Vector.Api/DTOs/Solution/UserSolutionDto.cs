@@ -14,6 +14,5 @@ public class UserSolutionDto
     public int TestCasesPassed { get; set; }
     public int TotalTestCases { get; set; }
     public DateTime SubmittedAt { get; set; }
-    public List<SolutionSubmissionDto> TestCaseResults { get; set; } = new();
 }
 

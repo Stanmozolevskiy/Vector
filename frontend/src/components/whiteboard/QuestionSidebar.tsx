@@ -7,6 +7,11 @@ interface QuestionSidebarProps {
   selectedQuestion: QuestionList | null;
   onSelectQuestion: (question: QuestionList) => void;
   onOpenQuestionModal: () => void;
+  // Optional timer and controls
+  showTimer?: boolean;
+  timerDisplay?: string;
+  onFinish?: () => void;
+  isFinishing?: boolean;
 }
 
 // Default system design questions
@@ -79,6 +84,10 @@ export const QuestionSidebar = ({
   selectedQuestion,
   onSelectQuestion,
   onOpenQuestionModal,
+  showTimer = false,
+  timerDisplay = '00:00',
+  onFinish,
+  isFinishing = false,
 }: QuestionSidebarProps) => {
   // Combine default questions with selected question (remove duplicates)
   const allQuestions = selectedQuestion
@@ -98,16 +107,37 @@ export const QuestionSidebar = ({
       
       {isOpen && (
         <div className="sidebar-content">
-          <div className="sidebar-header">
-            <h3>System Design Questions</h3>
-            <button 
-              className="add-question-button" 
-              onClick={onOpenQuestionModal}
-              title="Select a question"
-            >
-              <i className="fas fa-plus"></i>
-            </button>
-          </div>
+          {/* Show timer and finish button instead of header if showTimer is true */}
+          {showTimer ? (
+            <div className="sidebar-session-controls">
+              <div className="sidebar-timer">
+                <i className="fas fa-clock"></i>
+                <span>{timerDisplay}</span>
+              </div>
+              {onFinish && (
+                <button 
+                  className="sidebar-finish-btn"
+                  onClick={onFinish}
+                  disabled={isFinishing}
+                  title="Finish Interview"
+                >
+                  <i className={`fas ${isFinishing ? 'fa-spinner fa-spin' : 'fa-stop'}`}></i>
+                  {isFinishing ? 'Ending...' : 'Finish'}
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="sidebar-header">
+              <h3>System Design Questions</h3>
+              <button 
+                className="add-question-button" 
+                onClick={onOpenQuestionModal}
+                title="Select a question"
+              >
+                <i className="fas fa-plus"></i>
+              </button>
+            </div>
+          )}
           
           <div className="questions-list">
             {questions.length === 0 ? (

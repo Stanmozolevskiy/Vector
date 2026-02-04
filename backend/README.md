@@ -120,7 +120,6 @@ The API will be available at:
 - Npgsql.EntityFrameworkCore.PostgreSQL (8.0.0)
 - Microsoft.AspNetCore.Authentication.JwtBearer (8.0.0)
 - BCrypt.Net-Next (4.0.3)
-- Stripe.net (50.0.0)
 - SendGrid (9.29.3)
 - AWSSDK.S3 (4.0.13.1)
 - StackExchange.Redis (2.10.1)

@@ -7,6 +7,7 @@ public interface IQuestionService
 {
     Task<InterviewQuestion?> GetQuestionByIdAsync(Guid questionId);
     Task<IEnumerable<InterviewQuestion>> GetQuestionsAsync(QuestionFilterDto? filter = null);
+    Task<List<RelatedQuestionDto>> GetRelatedQuestionsAsync(IEnumerable<Guid> questionIds);
     Task<InterviewQuestion> CreateQuestionAsync(CreateQuestionDto dto, Guid createdBy);
     Task<InterviewQuestion?> UpdateQuestionAsync(Guid questionId, UpdateQuestionDto dto, Guid updatedBy);
     Task<bool> DeleteQuestionAsync(Guid questionId);

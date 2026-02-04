@@ -62,8 +62,5 @@ public class UserSolution
     public DateTime SubmittedAt { get; set; } = DateTime.UtcNow;
     
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-    
-    // Navigation property for test case results
-    public ICollection<SolutionSubmission> TestCaseResults { get; set; } = new List<SolutionSubmission>();
 }
 

@@ -116,6 +116,20 @@ export const PendingQuestionsPage = () => {
                         {question.title}
                       </Link>
                     </h3>
+                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '0.75rem' }}>
+                      <Link
+                        to={`${ROUTES.EDIT_QUESTION}/${question.id}`}
+                        style={{ color: '#6366f1', textDecoration: 'none', fontSize: '0.875rem', fontWeight: 600 }}
+                      >
+                        <i className="fas fa-edit"></i> Edit
+                      </Link>
+                      <Link
+                        to={`${ROUTES.QUESTIONS}/${question.id}`}
+                        style={{ color: '#6b7280', textDecoration: 'none', fontSize: '0.875rem', fontWeight: 600 }}
+                      >
+                        View
+                      </Link>
+                    </div>
                     <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
                       <span style={{ 
                         padding: '0.25rem 0.75rem', 

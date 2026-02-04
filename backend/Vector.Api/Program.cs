@@ -162,7 +162,6 @@ builder.Services.AddHttpClient(nameof(CodeExecutionService), (serviceProvider, c
     }
 });
 builder.Services.AddScoped<ICodeExecutionService, CodeExecutionService>();
-// builder.Services.AddScoped<IStripeService, StripeService>();
 
 // CORS
 builder.Services.AddCors(options =>
@@ -226,18 +225,6 @@ app.MapHub<Vector.Api.Hubs.CollaborationHub>("/api/collaboration");
 
 // Health check endpoints are handled by HealthController
 // Removed duplicate MapGet endpoints to avoid conflicts
-
-// API root endpoint
-app.MapGet("/api", () => Results.Ok(new { 
-    message = "Vector API", 
-    version = "1.0.0",
-    endpoints = new {
-        health = "/api/health",
-        swagger = "/swagger"
-    }
-}))
-    .WithName("ApiRoot")
-    .WithTags("API");
 
 // Run database migrations and seed data automatically on startup
 // This works for all environments (dev, staging, prod) when running in containers

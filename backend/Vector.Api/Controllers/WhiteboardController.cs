@@ -30,12 +30,11 @@ public class WhiteboardController : ControllerBase
     /// </summary>
     /// <param name="questionId">Optional question ID to get whiteboard for a specific question</param>
     /// <param name="sessionId">Optional session ID to get whiteboard for a session</param>
-    /// <param name="partnerUserId">Optional partner user ID to get their whiteboard</param>
     /// <returns>Whiteboard data</returns>
     [HttpGet]
     [ProducesResponseType(typeof(WhiteboardDataDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetWhiteboardData([FromQuery] string? questionId = null, [FromQuery] string? sessionId = null, [FromQuery] string? partnerUserId = null)
+    public async Task<IActionResult> GetWhiteboardData([FromQuery] string? questionId = null, [FromQuery] string? sessionId = null)
     {
         try
         {
@@ -87,59 +86,6 @@ public class WhiteboardController : ControllerBase
                 };
 
                 return Ok(dto);
-            }
-
-            // Check if questionId is a session-based identifier (starts with "session-")
-            if (!string.IsNullOrWhiteSpace(questionId) && questionId.StartsWith("session-", StringComparison.OrdinalIgnoreCase))
-            {
-                var sessionIdStr = questionId.Substring("session-".Length);
-                if (Guid.TryParse(sessionIdStr, out var sessionIdFromQuestion))
-                {
-                    // If partnerUserId is provided, get partner's whiteboard for this session
-                    if (!string.IsNullOrWhiteSpace(partnerUserId) && Guid.TryParse(partnerUserId, out var partnerId))
-                    {
-                        var partnerWhiteboardData = await _whiteboardService.GetWhiteboardDataBySessionAndUserAsync(sessionIdFromQuestion, partnerId);
-                        
-                        if (partnerWhiteboardData == null)
-                        {
-                            return NotFound(new { error = "Partner whiteboard data not found for session" });
-                        }
-
-                        var partnerDto = new WhiteboardDataDto
-                        {
-                            Id = partnerWhiteboardData.Id.ToString(),
-                            QuestionId = partnerWhiteboardData.QuestionId?.ToString(),
-                            Elements = partnerWhiteboardData.Elements,
-                            AppState = partnerWhiteboardData.AppState,
-                            Files = partnerWhiteboardData.Files,
-                            CreatedAt = partnerWhiteboardData.CreatedAt,
-                            UpdatedAt = partnerWhiteboardData.UpdatedAt,
-                        };
-
-                        return Ok(partnerDto);
-                    }
-                    
-                    // Otherwise, get session-based whiteboard (shared)
-                    var whiteboardData = await _whiteboardService.GetWhiteboardDataBySessionAsync(sessionIdFromQuestion);
-                    
-                    if (whiteboardData == null)
-                    {
-                        return NotFound(new { error = "Whiteboard data not found for session" });
-                    }
-
-                    var dto = new WhiteboardDataDto
-                    {
-                        Id = whiteboardData.Id.ToString(),
-                        QuestionId = whiteboardData.QuestionId?.ToString(),
-                        Elements = whiteboardData.Elements,
-                        AppState = whiteboardData.AppState,
-                        Files = whiteboardData.Files,
-                        CreatedAt = whiteboardData.CreatedAt,
-                        UpdatedAt = whiteboardData.UpdatedAt,
-                    };
-
-                    return Ok(dto);
-                }
             }
 
             // Otherwise, get user-based whiteboard
@@ -230,25 +176,8 @@ public class WhiteboardController : ControllerBase
                 });
             }
 
-            // Check if this is a session-based whiteboard (questionId starts with "session-")
             WhiteboardData whiteboardData;
-            if (!string.IsNullOrWhiteSpace(dto.QuestionId) && dto.QuestionId.StartsWith("session-", StringComparison.OrdinalIgnoreCase))
-            {
-                var sessionIdStr = dto.QuestionId.Substring("session-".Length);
-                if (Guid.TryParse(sessionIdStr, out var parsedSessionIdFromQuestionId))
-                {
-                    // Save to user-specific whiteboard for this session
-                    whiteboardData = await _whiteboardService.SaveWhiteboardDataAsync(targetUserId, dto);
-                }
-                else
-                {
-                    return BadRequest(new { error = "Invalid session ID format" });
-                }
-            }
-            else
-            {
-                whiteboardData = await _whiteboardService.SaveWhiteboardDataAsync(targetUserId, dto);
-            }
+            whiteboardData = await _whiteboardService.SaveWhiteboardDataAsync(targetUserId, dto);
 
             var responseDto = new WhiteboardDataDto
             {

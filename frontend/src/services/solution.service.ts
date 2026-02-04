@@ -19,19 +19,6 @@ export interface UserSolution {
   testCasesPassed: number;
   totalTestCases: number;
   submittedAt: string;
-  testCaseResults: SolutionSubmission[];
-}
-
-export interface SolutionSubmission {
-  id: string;
-  testCaseId: string;
-  testCaseNumber: number;
-  status: string;
-  output?: string;
-  expectedOutput?: string;
-  errorMessage?: string;
-  executionTime: number;
-  memoryUsed: number;
 }
 
 export interface SolutionFilter {

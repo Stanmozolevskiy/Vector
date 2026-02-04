@@ -99,6 +99,64 @@
   color: #fff;
 }
 
+/* Sidebar session controls (timer + finish button) */
+.sidebar-session-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+}
+
+.sidebar-timer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: white;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+  border: 1px solid #e5e7eb;
+}
+
+.sidebar-timer i {
+  color: #6366f1;
+}
+
+.sidebar-timer span {
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.5px;
+}
+
+.sidebar-finish-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background: #ef4444;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.sidebar-finish-btn:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+.sidebar-finish-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .questions-list {
   flex: 1;
   overflow-y: auto;

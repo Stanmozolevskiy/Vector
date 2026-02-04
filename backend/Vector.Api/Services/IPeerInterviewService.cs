@@ -14,6 +14,10 @@ public interface IPeerInterviewService
     Task<ScheduledInterviewSessionDto?> GetScheduledSessionByIdAsync(Guid sessionId, Guid userId);
     Task<bool> CancelScheduledSessionAsync(Guid sessionId, Guid userId);
     
+    // Practice with a friend (no scheduling / no queue)
+    Task<(Guid LiveSessionId, Guid CreatorScheduledSessionId, string InterviewType, Guid? ActiveQuestionId)> CreateFriendInterviewAsync(Guid userId, CreateFriendInterviewDto dto);
+    Task<LiveInterviewSessionDto> JoinFriendInterviewAsync(Guid liveSessionId, Guid userId);
+
     // Live Sessions
     Task<LiveInterviewSessionDto?> GetLiveSessionByIdAsync(Guid sessionId, Guid userId);
     Task<SwitchRolesResponseDto> SwitchRolesAsync(Guid sessionId, Guid userId);

@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import type { CreateQuestionDto, Example, QuestionTestCase } from '../../services/question.service';
+import { questionService } from '../../services/question.service';
 
 const DIFFICULTIES = ['Easy', 'Medium', 'Hard'];
-const QUESTION_TYPES = ['Coding', 'System Design', 'Behavioral'];
+const QUESTION_TYPES = ['Coding', 'System Design', 'Behavioral', 'Product Management', 'SQL'];
 const CATEGORIES = [
   'Arrays', 'Strings', 'Trees', 'Graphs', 'Dynamic Programming',
   'Greedy', 'Backtracking', 'Math', 'Bit Manipulation', 'Sorting',
   'Searching', 'Hash Tables', 'Linked Lists', 'Stacks', 'Queues',
-  'Heaps', 'System Design', 'Behavioral'
+  'Heaps', 'System Design', 'Behavioral', 'Product Management', 'Database'
 ];
 
 interface QuestionFormProps {
@@ -28,6 +29,9 @@ export const QuestionForm = ({
   loading = false,
 }: QuestionFormProps) => {
   const [error, setError] = useState('');
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+  const [uploadedVideoUrl, setUploadedVideoUrl] = useState<string>(() => initialData?.videoUrl || '');
   
   const [formData, setFormData] = useState<CreateQuestionDto>({
     title: initialData?.title || '',
@@ -40,6 +44,10 @@ export const QuestionForm = ({
     constraints: initialData?.constraints || '',
     examples: initialData?.examples || [],
     hints: initialData?.hints || [],
+    videoUrl: initialData?.videoUrl || '',
+    roleTags: initialData?.roleTags || [],
+    relatedQuestionIds: initialData?.relatedQuestionIds || [],
+    relatedCourseIds: initialData?.relatedCourseIds || [],
     timeComplexityHint: initialData?.timeComplexityHint || '',
     spaceComplexityHint: initialData?.spaceComplexityHint || '',
   });
@@ -64,7 +72,18 @@ export const QuestionForm = ({
     }
 
     try {
-      await onSubmit(formData, testCases);
+      let finalVideoUrl = uploadedVideoUrl;
+      if (videoFile && !finalVideoUrl) {
+        setIsUploadingVideo(true);
+        try {
+          finalVideoUrl = await questionService.uploadQuestionVideo(videoFile);
+          setUploadedVideoUrl(finalVideoUrl);
+        } finally {
+          setIsUploadingVideo(false);
+        }
+      }
+
+      await onSubmit({ ...formData, videoUrl: finalVideoUrl || undefined }, testCases);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to save question');
     }
@@ -116,6 +135,39 @@ export const QuestionForm = ({
       ...formData,
       hints: [...(formData.hints || []), ''],
     });
+  };
+
+  const parseCommaSeparated = (value: string): string[] => {
+    return value
+      .split(',')
+      .map((v) => v.trim())
+      .filter(Boolean);
+  };
+
+  const isCodingType = (formData.questionType || '').toLowerCase() === 'coding' || (formData.questionType || '').toLowerCase() === 'sql';
+
+  const handleSelectVideo = (file: File | null) => {
+    setVideoFile(file);
+    // If user selects a new file, treat as needing a new upload
+    if (file) {
+      setUploadedVideoUrl('');
+    }
+  };
+
+  const handleUploadVideo = async () => {
+    if (!videoFile) return;
+    if (isUploadingVideo) return;
+
+    setIsUploadingVideo(true);
+    setError('');
+    try {
+      const url = await questionService.uploadQuestionVideo(videoFile);
+      setUploadedVideoUrl(url);
+    } catch (e: any) {
+      setError(e?.response?.data?.error || 'Failed to upload video');
+    } finally {
+      setIsUploadingVideo(false);
+    }
   };
 
   const updateHint = (index: number, value: string) => {
@@ -173,6 +225,60 @@ export const QuestionForm = ({
             rows={10}
             style={{ width: '100%', padding: '0.75rem', border: '1px solid #e5e7eb', borderRadius: '6px', fontFamily: 'inherit' }}
           />
+        </div>
+
+        <div style={{ marginBottom: '1rem' }}>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>
+            Video (optional)
+          </label>
+          {uploadedVideoUrl ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <video controls style={{ width: '100%', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                <source src={uploadedVideoUrl} />
+              </video>
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUploadedVideoUrl('');
+                    setVideoFile(null);
+                  }}
+                  style={{ padding: '0.5rem 1rem', background: 'white', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '6px', cursor: 'pointer' }}
+                >
+                  Remove video
+                </button>
+                <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>Upload a new file to replace it.</span>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <input
+                type="file"
+                accept="video/mp4,video/webm,video/quicktime,video/*"
+                onChange={(e) => handleSelectVideo(e.target.files?.[0] || null)}
+              />
+              <button
+                type="button"
+                onClick={handleUploadVideo}
+                disabled={!videoFile || isUploadingVideo}
+                style={{
+                  padding: '0.5rem 1rem',
+                  background: '#6366f1',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: !videoFile || isUploadingVideo ? 'not-allowed' : 'pointer',
+                  opacity: !videoFile || isUploadingVideo ? 0.6 : 1,
+                  fontWeight: 600,
+                }}
+              >
+                {isUploadingVideo ? 'Uploading...' : 'Upload'}
+              </button>
+              {videoFile ? (
+                <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>{videoFile.name}</span>
+              ) : null}
+            </div>
+          )}
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
@@ -238,6 +344,20 @@ export const QuestionForm = ({
             style={{ width: '100%', padding: '0.75rem', border: '1px solid #e5e7eb', borderRadius: '6px', fontFamily: 'inherit' }}
           />
         </div>
+
+        <div style={{ marginBottom: '1rem' }}>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>
+            Role tags (optional)
+          </label>
+          <input
+            type="text"
+            value={(formData.roleTags || []).join(', ')}
+            onChange={(e) => setFormData({ ...formData, roleTags: parseCommaSeparated(e.target.value) })}
+            placeholder="e.g., Product Manager, Technical Program Manager"
+            style={{ width: '100%', padding: '0.75rem', border: '1px solid #e5e7eb', borderRadius: '6px' }}
+          />
+          <small style={{ color: '#6b7280' }}>Comma-separated</small>
+        </div>
       </div>
 
       {/* Examples */}
@@ -287,7 +407,8 @@ export const QuestionForm = ({
         ))}
       </div>
 
-      {/* Test Cases */}
+      {/* Test Cases (coding only) */}
+      {isCodingType ? (
       <div style={{ marginBottom: '2rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <h2>Test Cases (Judge0 Compatible)</h2>
@@ -373,6 +494,7 @@ export const QuestionForm = ({
           </button>
         </div>
       </div>
+      ) : null}
 
       {/* Hints */}
       <div style={{ marginBottom: '2rem' }}>
@@ -398,7 +520,8 @@ export const QuestionForm = ({
         ))}
       </div>
 
-      {/* Complexity Hints */}
+      {/* Complexity Hints (coding only) */}
+      {isCodingType ? (
       <div style={{ marginBottom: '2rem' }}>
         <h2 style={{ marginBottom: '1rem' }}>Complexity Hints</h2>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
@@ -424,6 +547,7 @@ export const QuestionForm = ({
           </div>
         </div>
       </div>
+      ) : null}
 
       {/* Submit Buttons */}
       <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
@@ -438,10 +562,10 @@ export const QuestionForm = ({
         )}
         <button
           type="submit"
-          disabled={loading}
-          style={{ padding: '0.75rem 1.5rem', background: '#6366f1', color: 'white', border: 'none', borderRadius: '6px', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1 }}
+          disabled={loading || isUploadingVideo}
+          style={{ padding: '0.75rem 1.5rem', background: '#6366f1', color: 'white', border: 'none', borderRadius: '6px', cursor: loading || isUploadingVideo ? 'not-allowed' : 'pointer', opacity: loading || isUploadingVideo ? 0.6 : 1 }}
         >
-          {loading ? 'Saving...' : submitLabel}
+          {loading ? 'Saving...' : isUploadingVideo ? 'Uploading video...' : submitLabel}
         </button>
       </div>
     </form>

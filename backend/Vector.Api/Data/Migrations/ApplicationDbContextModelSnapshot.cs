@@ -322,6 +322,15 @@ namespace Vector.Api.Data.Migrations
                     b.Property<string>("RejectionReason")
                         .HasColumnType("text");
 
+                    b.Property<string>("RelatedCourseIds")
+                        .HasColumnType("text");
+
+                    b.Property<string>("RelatedQuestionIds")
+                        .HasColumnType("text");
+
+                    b.Property<string>("RoleTags")
+                        .HasColumnType("text");
+
                     b.Property<string>("SpaceComplexityHint")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
@@ -341,6 +350,9 @@ namespace Vector.Api.Data.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("VideoUrl")
+                        .HasColumnType("text");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ApprovalStatus");
@@ -358,6 +370,63 @@ namespace Vector.Api.Data.Migrations
                     b.HasIndex("QuestionType");
 
                     b.ToTable("InterviewQuestions");
+                });
+
+            modelBuilder.Entity("Vector.Api.Models.InterviewQuestionComment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ParentCommentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("QuestionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("ParentCommentId");
+
+                    b.HasIndex("QuestionId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("InterviewQuestionComments");
+                });
+
+            modelBuilder.Entity("Vector.Api.Models.InterviewQuestionCommentVote", b =>
+                {
+                    b.Property<Guid>("CommentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("CommentId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("InterviewQuestionCommentVotes");
                 });
 
             modelBuilder.Entity("Vector.Api.Models.LearningAnalytics", b =>
@@ -797,53 +866,6 @@ namespace Vector.Api.Data.Migrations
                     b.ToTable("ScheduledInterviewSessions");
                 });
 
-            modelBuilder.Entity("Vector.Api.Models.SolutionSubmission", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ErrorMessage")
-                        .HasColumnType("text");
-
-                    b.Property<decimal>("ExecutionTime")
-                        .HasColumnType("numeric");
-
-                    b.Property<string>("ExpectedOutput")
-                        .HasColumnType("text");
-
-                    b.Property<long>("MemoryUsed")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("Output")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<Guid>("TestCaseId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("TestCaseNumber")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("UserSolutionId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TestCaseId");
-
-                    b.HasIndex("UserSolutionId");
-
-                    b.ToTable("SolutionSubmissions");
-                });
-
             modelBuilder.Entity("Vector.Api.Models.Subscription", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1242,6 +1264,51 @@ namespace Vector.Api.Data.Migrations
                     b.Navigation("Creator");
                 });
 
+            modelBuilder.Entity("Vector.Api.Models.InterviewQuestionComment", b =>
+                {
+                    b.HasOne("Vector.Api.Models.InterviewQuestionComment", "ParentComment")
+                        .WithMany("Replies")
+                        .HasForeignKey("ParentCommentId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Vector.Api.Models.InterviewQuestion", "Question")
+                        .WithMany()
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Vector.Api.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ParentComment");
+
+                    b.Navigation("Question");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Vector.Api.Models.InterviewQuestionCommentVote", b =>
+                {
+                    b.HasOne("Vector.Api.Models.InterviewQuestionComment", "Comment")
+                        .WithMany("Votes")
+                        .HasForeignKey("CommentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Vector.Api.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Comment");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Vector.Api.Models.LearningAnalytics", b =>
                 {
                     b.HasOne("Vector.Api.Models.User", "User")
@@ -1382,25 +1449,6 @@ namespace Vector.Api.Data.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Vector.Api.Models.SolutionSubmission", b =>
-                {
-                    b.HasOne("Vector.Api.Models.QuestionTestCase", "TestCase")
-                        .WithMany()
-                        .HasForeignKey("TestCaseId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Vector.Api.Models.UserSolution", "UserSolution")
-                        .WithMany("TestCaseResults")
-                        .HasForeignKey("UserSolutionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("TestCase");
-
-                    b.Navigation("UserSolution");
-                });
-
             modelBuilder.Entity("Vector.Api.Models.Subscription", b =>
                 {
                     b.HasOne("Vector.Api.Models.User", "User")
@@ -1493,6 +1541,13 @@ namespace Vector.Api.Data.Migrations
                     b.Navigation("TestCases");
                 });
 
+            modelBuilder.Entity("Vector.Api.Models.InterviewQuestionComment", b =>
+                {
+                    b.Navigation("Replies");
+
+                    b.Navigation("Votes");
+                });
+
             modelBuilder.Entity("Vector.Api.Models.LiveInterviewSession", b =>
                 {
                     b.Navigation("Feedbacks");
@@ -1503,11 +1558,6 @@ namespace Vector.Api.Data.Migrations
             modelBuilder.Entity("Vector.Api.Models.ScheduledInterviewSession", b =>
                 {
                     b.Navigation("LiveSession");
-                });
-
-            modelBuilder.Entity("Vector.Api.Models.UserSolution", b =>
-                {
-                    b.Navigation("TestCaseResults");
                 });
 #pragma warning restore 612, 618
         }

@@ -13,6 +13,16 @@ interface FeedbackFormProps {
   onCancel: () => void;
 }
 
+// Determine if this is a non-coding interview (Behavioral, Product Management, System Design)
+const isNonCodingInterview = (type?: string): boolean => {
+  if (!type) return false;
+  const normalized = type.toLowerCase().trim();
+  return normalized.includes('behavioral') || 
+         normalized.includes('product') || 
+         normalized.includes('system design') ||
+         normalized.includes('whiteboard');
+};
+
 const StarRatingInput: React.FC<{
   rating: number;
   onRatingChange: (rating: number) => void;
@@ -72,11 +82,13 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
   liveSessionId,
   opponentId,
   opponentName: _opponentName,
-  interviewType: _interviewType = 'Data Structures & Algorithms',
+  interviewType = 'Data Structures & Algorithms',
   date,
   onComplete,
   onCancel,
 }) => {
+  const isNonCoding = isNonCodingInterview(interviewType);
+  
   const [didSessionHappen, setDidSessionHappen] = useState<string | null>(null);
   const [formData, setFormData] = useState<SubmitFeedbackRequest>({
     liveSessionId,
@@ -110,12 +122,18 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
 
     // If session happened, partner feedback fields are required
     if (didSessionHappen === 'yes') {
+      // For non-coding interviews, skip coding skills rating
+      if (!isNonCoding) {
+        if (!formData.codingSkillsRating || formData.codingSkillsRating < 1) {
+          newErrors.codingSkillsRating = 'Coding skills rating is required';
+        }
+      }
+      
+      // Problem solving is required for all interview types
       if (!formData.problemSolvingRating || formData.problemSolvingRating < 1) {
-        newErrors.problemSolvingRating = 'Problem solving rating is required';
+        newErrors.problemSolvingRating = isNonCoding ? 'Response quality rating is required' : 'Problem solving rating is required';
       }
-      if (!formData.codingSkillsRating || formData.codingSkillsRating < 1) {
-        newErrors.codingSkillsRating = 'Coding skills rating is required';
-      }
+      
       if (!formData.communicationRating || formData.communicationRating < 1) {
         newErrors.communicationRating = 'Communication rating is required';
       }
@@ -159,6 +177,11 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
           areasForImprovement: '',
           interviewerPerformanceRating: undefined,
           interviewerPerformanceDescription: '',
+        } : {}),
+        // For non-coding interviews, set coding skills to undefined
+        ...(isNonCoding ? {
+          codingSkillsRating: undefined,
+          codingSkillsDescription: '',
         } : {}),
       };
       
@@ -216,10 +239,12 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
           {/* Partner Feedback - Only show if session happened */}
           {didSessionHappen === 'yes' && (
             <>
-              {/* Problem Solving */}
+              {/* Response Quality / Problem Solving */}
               <div className="feedback-form-section">
                 <label className="feedback-form-label">
-                  How were your partner's problem solving skills? <span className="required">*</span>
+                  {isNonCoding 
+                    ? "How were your partner's response quality and depth?" 
+                    : "How were your partner's problem solving skills?"} <span className="required">*</span>
                 </label>
                 <StarRatingInput
                   rating={formData.problemSolvingRating || 0}
@@ -233,22 +258,24 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
                 )}
               </div>
 
-              {/* Coding Skills */}
-              <div className="feedback-form-section">
-                <label className="feedback-form-label">
-                  How were your partner's coding skills? <span className="required">*</span>
-                </label>
-                <StarRatingInput
-                  rating={formData.codingSkillsRating || 0}
-                  onRatingChange={(rating) =>
-                    setFormData({ ...formData, codingSkillsRating: rating })
-                  }
-                  required
-                />
-                {errors.codingSkillsRating && (
-                  <span className="error-message">{errors.codingSkillsRating}</span>
-                )}
-              </div>
+              {/* Coding Skills - Only show for coding interviews */}
+              {!isNonCoding && (
+                <div className="feedback-form-section">
+                  <label className="feedback-form-label">
+                    How were your partner's coding skills? <span className="required">*</span>
+                  </label>
+                  <StarRatingInput
+                    rating={formData.codingSkillsRating || 0}
+                    onRatingChange={(rating) =>
+                      setFormData({ ...formData, codingSkillsRating: rating })
+                    }
+                    required
+                  />
+                  {errors.codingSkillsRating && (
+                    <span className="error-message">{errors.codingSkillsRating}</span>
+                  )}
+                </div>
+              )}
 
               {/* Communication */}
               <div className="feedback-form-section">
@@ -339,23 +366,25 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
             />
           </div>
 
-          {/* Code Editor Issues - Always show */}
-          <div className="feedback-form-section">
-            <label className="feedback-form-label">
-              Did you experience any issues with the code editor during today's session?
-            </label>
-            <YesNoButton
-              value={formData.codeEditorIssues || null}
-              onChange={(value) =>
-                setFormData({ ...formData, codeEditorIssues: value })
-              }
-            />
-          </div>
+          {/* Code Editor Issues - Only show for coding interviews */}
+          {!isNonCoding && (
+            <div className="feedback-form-section">
+              <label className="feedback-form-label">
+                Did you experience any issues with the code editor during today's session?
+              </label>
+              <YesNoButton
+                value={formData.codeEditorIssues || null}
+                onChange={(value) =>
+                  setFormData({ ...formData, codeEditorIssues: value })
+                }
+              />
+            </div>
+          )}
 
-          {/* Additional Feedback for Exponent - Always show */}
+          {/* Additional Feedback for Vector - Always show */}
           <div className="feedback-form-section">
             <label className="feedback-form-label">
-              Any additional feedback for Exponent?
+              Any additional feedback for Vector?
             </label>
             <textarea
               className="feedback-form-textarea"
@@ -392,7 +421,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
           </div>
 
           <div className="feedback-form-footer">
-            <p>Got more to say? Let us know at <a href="mailto:practice@tryexponent.com">practice@tryexponent.com</a></p>
+            <p>Want to share more context? Email us at <a href="mailto:practice@vecotr.com">practice@vecotr.com</a></p>
           </div>
         </form>
       </div>

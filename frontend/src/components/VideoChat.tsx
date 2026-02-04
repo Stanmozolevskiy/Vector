@@ -1,7 +1,19 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useImperativeHandle, useRef, useState } from 'react';
 import * as signalR from '@microsoft/signalr';
 import './VideoChat.css';
 import api from '../services/api';
+
+export type VideoChatState = {
+  isVideoEnabled: boolean;
+  isAudioEnabled: boolean;
+  hasRemoteStream: boolean;
+};
+
+export type VideoChatHandle = {
+  toggleVideo: () => Promise<void>;
+  toggleAudio: () => Promise<void>;
+  getState: () => VideoChatState;
+};
 
 interface VideoChatProps {
   sessionId: string;
@@ -11,19 +23,24 @@ interface VideoChatProps {
   showLocalVideo?: boolean; // Show local video as main video
   showLocalPreview?: boolean; // Option to show small local video preview (for floating windows)
   overlayControls?: boolean; // Option to overlay controls on video instead of below
+  hideControls?: boolean; // Allow parent to render custom controls
+  onStateChange?: (state: VideoChatState) => void;
 }
 
-export const VideoChat: React.FC<VideoChatProps> = ({
+export const VideoChat = React.forwardRef<VideoChatHandle, VideoChatProps>(({
   sessionId,
   userId,
-  peerUserId: _peerUserId, // Reserved for future use (e.g., peer identification)
+  peerUserId,
   onError,
   showLocalVideo = true, // Default to showing local video
   showLocalPreview = false, // Default to no local preview
   overlayControls = false, // Default to controls below video
-}) => {
+  hideControls = false,
+  onStateChange,
+}, ref) => {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const localPreviewRef = useRef<HTMLDivElement>(null);
   // Load saved state from localStorage
   const getSavedVideoState = (): boolean => {
     const saved = localStorage.getItem(`video_enabled_${sessionId}`);
@@ -40,25 +57,200 @@ export const VideoChat: React.FC<VideoChatProps> = ({
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const [hasRemoteVideoTrack, setHasRemoteVideoTrack] = useState(false);
+  const [isRemoteVideoMuted, setIsRemoteVideoMuted] = useState(false);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const signalRConnectionRef = useRef<signalR.HubConnection | null>(null);
   const isOfferSentRef = useRef<boolean>(false);
   const screenStreamRef = useRef<MediaStream | null>(null);
+
+  type PreviewRect = { x: number; y: number; width: number; height: number };
+
+  const getDefaultPreviewRect = (): PreviewRect => {
+    const width = 140;
+    const height = 105;
+    const right = 18;
+    const top = 18;
+    const vw = typeof window !== 'undefined' ? window.innerWidth : 1280;
+    const x = Math.max(8, vw - right - width);
+    const y = top;
+    return { x, y, width, height };
+  };
+
+  const previewStorageKey = `local_preview_rect_${sessionId}`;
+  const [previewRect, setPreviewRect] = useState<PreviewRect>(() => {
+    try {
+      const raw = localStorage.getItem(previewStorageKey);
+      if (!raw) return getDefaultPreviewRect();
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return getDefaultPreviewRect();
+      const x = Number(parsed.x);
+      const y = Number(parsed.y);
+      const width = Number(parsed.width);
+      const height = Number(parsed.height);
+      if (![x, y, width, height].every(Number.isFinite)) return getDefaultPreviewRect();
+      return { x, y, width, height };
+    } catch {
+      return getDefaultPreviewRect();
+    }
+  });
+
+  const interactionRef = useRef<
+    | null
+    | { mode: 'move'; startX: number; startY: number; originX: number; originY: number }
+    | { mode: 'resize'; startX: number; startY: number; originW: number; originH: number }
+  >(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(previewStorageKey, JSON.stringify(previewRect));
+    } catch {
+      // ignore
+    }
+  }, [previewRect, previewStorageKey]);
+
+  useEffect(() => {
+    const onWindowResize = () => {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      setPreviewRect((r) => {
+        const minW = 120;
+        const minH = 90;
+        const width = Math.max(minW, Math.min(r.width, vw - 8));
+        const height = Math.max(minH, Math.min(r.height, vh - 8));
+        const x = Math.max(8, Math.min(r.x, vw - width - 8));
+        const y = Math.max(8, Math.min(r.y, vh - height - 8));
+        return { x, y, width, height };
+      });
+    };
+    window.addEventListener('resize', onWindowResize);
+    return () => window.removeEventListener('resize', onWindowResize);
+  }, []);
+
+  const clampPreviewRect = (next: PreviewRect): PreviewRect => {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const minW = 120;
+    const minH = 90;
+    const width = Math.max(minW, Math.min(next.width, vw - 8));
+    const height = Math.max(minH, Math.min(next.height, vh - 8));
+    const x = Math.max(8, Math.min(next.x, vw - width - 8));
+    const y = Math.max(8, Math.min(next.y, vh - height - 8));
+    return { x, y, width, height };
+  };
+
+  const handlePreviewPointerDown = (e: React.PointerEvent) => {
+    if (!showLocalPreview) return;
+    if (!localStream) return;
+    if ((e.target as HTMLElement | null)?.closest?.('.local-preview-resize-handle')) return;
+
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    interactionRef.current = {
+      mode: 'move',
+      startX: e.clientX,
+      startY: e.clientY,
+      originX: previewRect.x,
+      originY: previewRect.y,
+    };
+  };
+
+  const handleResizePointerDown = (e: React.PointerEvent) => {
+    if (!showLocalPreview) return;
+    if (!localStream) return;
+
+    e.stopPropagation();
+    (localPreviewRef.current as HTMLElement | null)?.setPointerCapture?.(e.pointerId);
+    interactionRef.current = {
+      mode: 'resize',
+      startX: e.clientX,
+      startY: e.clientY,
+      originW: previewRect.width,
+      originH: previewRect.height,
+    };
+  };
+
+  const handlePreviewPointerMove = (e: React.PointerEvent) => {
+    const state = interactionRef.current;
+    if (!state) return;
+
+    if (state.mode === 'move') {
+      const dx = e.clientX - state.startX;
+      const dy = e.clientY - state.startY;
+      setPreviewRect((r) => clampPreviewRect({ ...r, x: state.originX + dx, y: state.originY + dy }));
+      return;
+    }
+
+    const dx = e.clientX - state.startX;
+    const dy = e.clientY - state.startY;
+    setPreviewRect((r) => clampPreviewRect({ ...r, width: state.originW + dx, height: state.originH + dy }));
+  };
+
+  const handlePreviewPointerUp = () => {
+    interactionRef.current = null;
+  };
 
   useEffect(() => {
     initializeVideoAndSignaling();
     return () => {
       cleanup();
     };
-  }, [sessionId]);
+    // Re-init when peerUserId becomes available so we can deterministically pick an offerer.
+  }, [sessionId, peerUserId]);
 
-  const initializeSignalR = async (): Promise<signalR.HubConnection> => {
-    // Get access token for authentication
-    const accessToken = localStorage.getItem('accessToken');
-    if (!accessToken) {
-      throw new Error('Authentication required');
+  // Ensure the local <video> element always receives the latest local stream.
+  // In remote-only layouts (showLocalVideo=false), the preview video mounts only
+  // after localStream is set, so we must attach srcObject in an effect.
+  useEffect(() => {
+    if (!localStream) return;
+    if (!localVideoRef.current) return;
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (localVideoRef.current as any).srcObject = localStream;
+      localVideoRef.current.play?.().catch(() => {});
+    } catch {
+      // ignore
+    }
+  }, [localStream]);
+
+  // Track remote video availability (for "camera off" placeholder).
+  useEffect(() => {
+    if (!remoteStream) {
+      setHasRemoteVideoTrack(false);
+      setIsRemoteVideoMuted(false);
+      return;
     }
 
+    const track = remoteStream.getVideoTracks()[0];
+    if (!track) {
+      setHasRemoteVideoTrack(false);
+      setIsRemoteVideoMuted(false);
+      return;
+    }
+
+    setHasRemoteVideoTrack(true);
+    setIsRemoteVideoMuted(track.muted);
+
+    const onMute = () => setIsRemoteVideoMuted(true);
+    const onUnmute = () => setIsRemoteVideoMuted(false);
+    track.addEventListener('mute', onMute);
+    track.addEventListener('unmute', onUnmute);
+
+    return () => {
+      track.removeEventListener('mute', onMute);
+      track.removeEventListener('unmute', onUnmute);
+    };
+  }, [remoteStream]);
+
+  useEffect(() => {
+    onStateChange?.({
+      isVideoEnabled,
+      isAudioEnabled,
+      hasRemoteStream: Boolean(remoteStream),
+    });
+  }, [isAudioEnabled, isVideoEnabled, onStateChange, remoteStream]);
+
+  const initializeSignalR = async (): Promise<signalR.HubConnection> => {
     // Get base URL without /api suffix
     const baseUrl = (api.defaults.baseURL && typeof api.defaults.baseURL === 'string') 
       ? api.defaults.baseURL.replace('/api', '') 
@@ -66,8 +258,9 @@ export const VideoChat: React.FC<VideoChatProps> = ({
     
     // Create SignalR connection
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl(`${baseUrl}/api/collaboration?access_token=${accessToken}`, {
+      .withUrl(`${baseUrl}/api/collaboration`, {
         transport: signalR.HttpTransportType.WebSockets,
+        accessTokenFactory: () => localStorage.getItem('accessToken') || '',
       })
       .withAutomaticReconnect({
         nextRetryDelayInMilliseconds: (retryContext) => {
@@ -112,6 +305,10 @@ export const VideoChat: React.FC<VideoChatProps> = ({
 
   const initializeVideoAndSignaling = async () => {
     try {
+      const shouldInitiateOffer = peerUserId
+        ? String(userId).localeCompare(String(peerUserId)) < 0
+        : true; // fallback if peerUserId isn't known yet
+
       // Initialize SignalR connection first
       const connection = await initializeSignalR();
       signalRConnectionRef.current = connection;
@@ -207,8 +404,9 @@ export const VideoChat: React.FC<VideoChatProps> = ({
       };
 
       // Create and send offer if we're first to join
-      // Wait a bit to see if another user sends an offer first
+      // Wait a bit for the other user to join; only one side should initiate.
       setTimeout(async () => {
+        if (!shouldInitiateOffer) return;
         if (!isOfferSentRef.current && peerConnectionRef.current && signalRConnectionRef.current) {
           await createAndSendOffer();
         }
@@ -242,6 +440,10 @@ export const VideoChat: React.FC<VideoChatProps> = ({
   const handleOffer = async (offerString: string) => {
     try {
       if (!peerConnectionRef.current || !signalRConnectionRef.current || !sessionId) return;
+
+      // If we deterministically chose this client as the offerer but we received an offer anyway,
+      // we still accept it to avoid "glare" failures (common in WebRTC).
+      isOfferSentRef.current = true;
 
       const offer = JSON.parse(offerString);
       await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(offer));
@@ -322,97 +524,40 @@ export const VideoChat: React.FC<VideoChatProps> = ({
 
   const toggleVideo = async () => {
     const newState = !isVideoEnabled;
-    
-    if (localStream) {
-      const videoTrack = localStream.getVideoTracks()[0];
-      if (videoTrack) {
-        if (newState) {
-          // Enable video - get new stream with video
-          try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-              video: {
-                width: { ideal: 1280 },
-                height: { ideal: 720 },
-                facingMode: 'user'
-              },
-              audio: isAudioEnabled ? {
-                echoCancellation: true,
-                noiseSuppression: true,
-                autoGainControl: true
-              } : false,
-            });
-            
-            // Replace video track in peer connection
-            const newVideoTrack = stream.getVideoTracks()[0];
-            const sender = peerConnectionRef.current?.getSenders()
-              .find((s) => s.track && s.track.kind === 'video');
-            
-            if (sender && newVideoTrack) {
-              await sender.replaceTrack(newVideoTrack);
-            }
-            
-            // Replace video track in local stream
-            localStream.removeTrack(videoTrack);
-            localStream.addTrack(newVideoTrack);
-            
-            // Update video element
-            if (localVideoRef.current) {
-              localVideoRef.current.srcObject = stream;
-            }
-            
-            // Stop old track
-            videoTrack.stop();
-            stream.getVideoTracks().forEach(track => {
-              if (track !== newVideoTrack) track.stop();
-            });
-          } catch (error) {
-            console.error('Failed to enable video:', error);
-            onError?.('Failed to enable camera');
-            return;
-          }
-        } else {
-          // Disable video - stop the track
-          videoTrack.enabled = false;
-          videoTrack.stop();
-          localStream.removeTrack(videoTrack);
-          
-          // Remove video track from peer connection
-          const sender = peerConnectionRef.current?.getSenders()
-            .find((s) => s.track && s.track.kind === 'video');
+
+    if (!localStream) {
+      setIsVideoEnabled(newState);
+      localStorage.setItem(`video_enabled_${sessionId}`, String(newState));
+      return;
+    }
+
+    const videoTrack = localStream.getVideoTracks()[0];
+    if (videoTrack) {
+      videoTrack.enabled = newState;
+    } else if (newState) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            facingMode: 'user',
+          },
+          audio: false,
+        });
+        const newVideoTrack = stream.getVideoTracks()[0];
+        if (newVideoTrack) {
+          localStream.addTrack(newVideoTrack);
+          const sender = peerConnectionRef.current?.getSenders().find((s) => s.track?.kind === 'video');
           if (sender) {
-            await sender.replaceTrack(null);
+            await sender.replaceTrack(newVideoTrack);
+          } else {
+            peerConnectionRef.current?.addTrack(newVideoTrack, localStream);
           }
         }
-      } else if (newState) {
-        // No video track exists, create new stream
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              width: { ideal: 1280 },
-              height: { ideal: 720 },
-              facingMode: 'user'
-            },
-            audio: isAudioEnabled ? {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true
-            } : false,
-          });
-          
-          if (localVideoRef.current) {
-            localVideoRef.current.srcObject = stream;
-          }
-          
-          stream.getTracks().forEach((track) => {
-            peerConnectionRef.current?.addTrack(track, stream);
-          });
-          
-          setLocalStream(stream);
-        } catch (error) {
-          console.error('Failed to enable video:', error);
-          onError?.('Failed to enable camera');
-          return;
-        }
+      } catch (error) {
+        console.error('Failed to enable video:', error);
+        onError?.('Failed to enable camera');
+        return;
       }
     }
     
@@ -422,80 +567,40 @@ export const VideoChat: React.FC<VideoChatProps> = ({
 
   const toggleAudio = async () => {
     const newState = !isAudioEnabled;
-    
-    if (localStream) {
-      const audioTrack = localStream.getAudioTracks()[0];
-      if (audioTrack) {
-        if (newState) {
-          // Enable audio - get new stream with audio
-          try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-              video: isVideoEnabled ? {
-                width: { ideal: 1280 },
-                height: { ideal: 720 },
-                facingMode: 'user'
-              } : false,
-              audio: {
-                echoCancellation: true,
-                noiseSuppression: true,
-                autoGainControl: true
-              },
-            });
-            
-            // Replace audio track in peer connection
-            const newAudioTrack = stream.getAudioTracks()[0];
-            const sender = peerConnectionRef.current?.getSenders()
-              .find((s) => s.track && s.track.kind === 'audio');
-            
-            if (sender && newAudioTrack) {
-              await sender.replaceTrack(newAudioTrack);
-            }
-            
-            // Replace audio track in local stream
-            localStream.removeTrack(audioTrack);
-            localStream.addTrack(newAudioTrack);
-            
-            // Stop old track
-            audioTrack.stop();
-            stream.getAudioTracks().forEach(track => {
-              if (track !== newAudioTrack) track.stop();
-            });
-            stream.getVideoTracks().forEach(track => track.stop());
-          } catch (error) {
-            console.error('Failed to enable audio:', error);
-            onError?.('Failed to enable microphone');
-            return;
+
+    if (!localStream) {
+      setIsAudioEnabled(newState);
+      localStorage.setItem(`audio_enabled_${sessionId}`, String(newState));
+      return;
+    }
+
+    const audioTrack = localStream.getAudioTracks()[0];
+    if (audioTrack) {
+      audioTrack.enabled = newState;
+    } else if (newState) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: false,
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        });
+        const newAudioTrack = stream.getAudioTracks()[0];
+        if (newAudioTrack) {
+          localStream.addTrack(newAudioTrack);
+          const sender = peerConnectionRef.current?.getSenders().find((s) => s.track?.kind === 'audio');
+          if (sender) {
+            await sender.replaceTrack(newAudioTrack);
+          } else {
+            peerConnectionRef.current?.addTrack(newAudioTrack, localStream);
           }
-        } else {
-          // Disable audio - mute the track
-          audioTrack.enabled = false;
         }
-      } else if (newState) {
-        // No audio track exists, create new stream
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: isVideoEnabled ? {
-              width: { ideal: 1280 },
-              height: { ideal: 720 },
-              facingMode: 'user'
-            } : false,
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true
-            },
-          });
-          
-          stream.getTracks().forEach((track) => {
-            peerConnectionRef.current?.addTrack(track, stream);
-          });
-          
-          setLocalStream(stream);
-        } catch (error) {
-          console.error('Failed to enable audio:', error);
-          onError?.('Failed to enable microphone');
-          return;
-        }
+      } catch (error) {
+        console.error('Failed to enable audio:', error);
+        onError?.('Failed to enable microphone');
+        return;
       }
     }
     
@@ -582,6 +687,16 @@ export const VideoChat: React.FC<VideoChatProps> = ({
     }
   };
 
+  useImperativeHandle(ref, () => ({
+    toggleVideo,
+    toggleAudio,
+    getState: () => ({
+      isVideoEnabled,
+      isAudioEnabled,
+      hasRemoteStream: Boolean(remoteStream),
+    }),
+  }), [isAudioEnabled, isVideoEnabled, remoteStream]);
+
   return (
     <div className="video-chat-container">
       <div className={`video-chat-grid ${!showLocalVideo ? 'single-video' : ''}`}>
@@ -616,8 +731,31 @@ export const VideoChat: React.FC<VideoChatProps> = ({
                 <span>Waiting for partner...</span>
               </div>
             )}
+            {remoteStream && (!hasRemoteVideoTrack || isRemoteVideoMuted) && (
+              <div className="video-overlay">
+                <i className="fas fa-video-slash"></i>
+                <span>Partner camera is off</span>
+              </div>
+            )}
             {showLocalPreview && localStream && (
-              <div className="local-video-preview">
+              <div
+                ref={localPreviewRef}
+                className="local-video-preview"
+                style={{
+                  left: `${previewRect.x}px`,
+                  top: `${previewRect.y}px`,
+                  width: `${previewRect.width}px`,
+                  height: `${previewRect.height}px`,
+                  right: 'auto',
+                  bottom: 'auto',
+                }}
+                onPointerDown={handlePreviewPointerDown}
+                onPointerMove={handlePreviewPointerMove}
+                onPointerUp={handlePreviewPointerUp}
+                onPointerCancel={handlePreviewPointerUp}
+                aria-label="Your camera preview"
+                role="group"
+              >
                 <video
                   ref={localVideoRef}
                   autoPlay
@@ -625,9 +763,26 @@ export const VideoChat: React.FC<VideoChatProps> = ({
                   playsInline
                   className="preview-video-element"
                 />
+                {!isVideoEnabled ? (
+                  <div className="video-overlay">
+                    <i className="fas fa-video-slash"></i>
+                  </div>
+                ) : null}
+                <div
+                  className="local-preview-resize-handle"
+                  role="button"
+                  aria-label="Resize preview"
+                  tabIndex={0}
+                  onPointerDown={handleResizePointerDown}
+                  onKeyDown={(ev) => {
+                    if (ev.key === 'Enter' || ev.key === ' ') {
+                      ev.preventDefault();
+                    }
+                  }}
+                />
               </div>
             )}
-            {overlayControls && (
+            {!hideControls && overlayControls && (
               <div className="video-controls-overlay">
                 <button
                   className={`control-btn ${isVideoEnabled ? 'active' : ''}`}
@@ -648,7 +803,7 @@ export const VideoChat: React.FC<VideoChatProps> = ({
           </div>
         )}
       </div>
-      {!overlayControls && (
+      {!hideControls && !overlayControls && (
         <div className="video-controls">
           <button
             className={`control-btn ${isVideoEnabled ? 'active' : ''}`}
@@ -675,4 +830,6 @@ export const VideoChat: React.FC<VideoChatProps> = ({
       )}
     </div>
   );
-};
+});
+
+VideoChat.displayName = 'VideoChat';

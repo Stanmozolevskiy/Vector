@@ -48,6 +48,10 @@ export const EditQuestionPage = () => {
           constraints: question.constraints || '',
           examples: question.examples || [],
           hints: question.hints || [],
+          videoUrl: question.videoUrl || '',
+          roleTags: question.roleTags || [],
+          relatedQuestionIds: question.relatedQuestionIds || [],
+          relatedCourseIds: question.relatedCourseIds || [],
           timeComplexityHint: question.timeComplexityHint || '',
           spaceComplexityHint: question.spaceComplexityHint || '',
         });

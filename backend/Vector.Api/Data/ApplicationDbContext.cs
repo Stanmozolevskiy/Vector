@@ -18,10 +18,11 @@ public class ApplicationDbContext : DbContext
     public DbSet<RefreshToken> RefreshTokens { get; set; }
     public DbSet<CoachApplication> CoachApplications { get; set; }
     public DbSet<InterviewQuestion> InterviewQuestions { get; set; }
+    public DbSet<InterviewQuestionComment> InterviewQuestionComments { get; set; }
+    public DbSet<InterviewQuestionCommentVote> InterviewQuestionCommentVotes { get; set; }
     public DbSet<QuestionTestCase> QuestionTestCases { get; set; }
     public DbSet<QuestionSolution> QuestionSolutions { get; set; }
     public DbSet<UserSolution> UserSolutions { get; set; }
-    public DbSet<SolutionSubmission> SolutionSubmissions { get; set; }
     public DbSet<UserCodeDraft> UserCodeDrafts { get; set; }
     public DbSet<LearningAnalytics> LearningAnalytics { get; set; }
     public DbSet<UserSolvedQuestion> UserSolvedQuestions { get; set; }
@@ -157,6 +158,43 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(e => e.IsActive); // For filtering active questions
         });
 
+        // Configure InterviewQuestionComment entity
+        modelBuilder.Entity<InterviewQuestionComment>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.Question)
+                .WithMany()
+                .HasForeignKey(e => e.QuestionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.ParentComment)
+                .WithMany(e => e.Replies)
+                .HasForeignKey(e => e.ParentCommentId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.Content).IsRequired().HasMaxLength(2000);
+            entity.HasIndex(e => e.QuestionId);
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => e.ParentCommentId);
+        });
+
+        // Configure InterviewQuestionCommentVote entity
+        modelBuilder.Entity<InterviewQuestionCommentVote>(entity =>
+        {
+            entity.HasKey(e => new { e.CommentId, e.UserId });
+            entity.HasOne(e => e.Comment)
+                .WithMany(c => c.Votes)
+                .HasForeignKey(e => e.CommentId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(e => e.UserId);
+        });
+
         // Configure QuestionTestCase entity
         modelBuilder.Entity<QuestionTestCase>(entity =>
         {
@@ -210,23 +248,6 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(e => new { e.UserId, e.QuestionId }); // Composite index for user-question queries
             entity.HasIndex(e => e.Status); // For filtering by status
             entity.HasIndex(e => e.SubmittedAt); // For sorting by submission date
-        });
-
-        // Configure SolutionSubmission entity
-        modelBuilder.Entity<SolutionSubmission>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.HasOne(e => e.UserSolution)
-                .WithMany(s => s.TestCaseResults)
-                .HasForeignKey(e => e.UserSolutionId)
-                .OnDelete(DeleteBehavior.Cascade);
-            entity.HasOne(e => e.TestCase)
-                .WithMany()
-                .HasForeignKey(e => e.TestCaseId)
-                .OnDelete(DeleteBehavior.Restrict); // Don't delete test case if submission exists
-            entity.Property(e => e.Status).IsRequired().HasMaxLength(20);
-            entity.HasIndex(e => e.UserSolutionId); // For querying test case results
-            entity.HasIndex(e => e.TestCaseId); // For querying by test case
         });
 
         // Configure LearningAnalytics entity

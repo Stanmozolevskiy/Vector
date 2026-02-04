@@ -6,17 +6,26 @@ import type { QuestionList, QuestionFilter } from '../../services/question.servi
 import { solutionService } from '../../services/solution.service';
 import { useAuth } from '../../hooks/useAuth';
 import { ROUTES } from '../../utils/constants';
+import { CompanyIcon } from '../../components/common/CompanyIcon';
 import '../../styles/questions.css';
 
 const ROLES = ['Software Engineer', 'Product Manager', 'Data Engineer', 'Data Scientist', 'Technical Program Manager'];
 const COMPANIES = ['Google', 'Meta', 'Amazon', 'Microsoft', 'Apple', 'Netflix'];
-const CATEGORIES = ['Arrays', 'Strings', 'Trees', 'Graphs', 'Dynamic Programming', 'Backtracking', 'Greedy', 'Math', 'Bit Manipulation', 'Sorting', 'Searching', 'Hash Tables', 'Linked Lists', 'Stacks', 'Queues', 'Heaps', 'Database'];
+const CATEGORIES = ['Arrays', 'Strings', 'Trees', 'Graphs', 'Dynamic Programming', 'Backtracking', 'Greedy', 'Math', 'Bit Manipulation', 'Sorting', 'Searching', 'Hash Tables', 'Linked Lists', 'Stacks', 'Queues', 'Heaps', 'Database', 'Behavioral', 'Product Management', 'System Design'];
 const DIFFICULTIES = ['Easy', 'Medium', 'Hard'];
 const FILTER_OPTIONS = ['Expert Answers', 'Videos', 'Code Editor', 'Saved'];
 const HOT_OPTIONS = ['Hot', 'Top', 'New'];
 
 export const QuestionsPage = () => {
   const { user } = useAuth();
+  const [initialQuestionType] = useState<string>(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('questionType') || '';
+    } catch {
+      return '';
+    }
+  });
   const [questions, setQuestions] = useState<QuestionList[]>([]);
   const [solvedQuestionIds, setSolvedQuestionIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -43,6 +52,7 @@ export const QuestionsPage = () => {
       
       const filter: QuestionFilter = {
         search: searchTerm || undefined,
+        questionType: initialQuestionType || undefined,
         categories: selectedCategories.length > 0 ? selectedCategories : undefined,
         difficulties: selectedDifficulties.length > 0 ? selectedDifficulties : undefined,
         companies: selectedCompanies.length > 0 ? selectedCompanies : undefined,
@@ -83,8 +93,10 @@ export const QuestionsPage = () => {
 
   const handleRoleToggle = (role: string) => {
     if (role === 'all') {
+      setCurrentPage(1);
       setSelectedRoles([]);
     } else {
+      setCurrentPage(1);
       setSelectedRoles(prev =>
         prev.includes(role)
           ? prev.filter(r => r !== role)
@@ -95,8 +107,10 @@ export const QuestionsPage = () => {
 
   const handleCompanyToggle = (company: string) => {
     if (company === 'all') {
+      setCurrentPage(1);
       setSelectedCompanies([]);
     } else {
+      setCurrentPage(1);
       // Normalize company name for comparison (use original case from COMPANIES array)
       const normalizedCompany = COMPANIES.find(c => c.toLowerCase() === company.toLowerCase()) || company;
       setSelectedCompanies(prev =>
@@ -395,7 +409,7 @@ export const QuestionsPage = () => {
                           <div className="question-source">
                           {question.companyTags && question.companyTags.length > 0 && (
                             <div className="company-logo-placeholder">
-                              <span className="company-initial">{question.companyTags[0].charAt(0).toUpperCase()}</span>
+                              <CompanyIcon company={question.companyTags[0]} size={16} />
                             </div>
                           )}
                             <span>
@@ -481,7 +495,15 @@ export const QuestionsPage = () => {
                 <h3>Popular roles</h3>
                 <div className="role-tags">
                   {ROLES.map(role => (
-                    <a key={role} href="#" className="role-tag">{role}</a>
+                    <button
+                      key={role}
+                      type="button"
+                      className={`role-tag ${selectedRoles.includes(role) ? 'is-active' : ''}`}
+                      onClick={() => handleRoleToggle(role)}
+                      aria-label={`Filter by role ${role}`}
+                    >
+                      {role}
+                    </button>
                   ))}
                 </div>
               </div>
@@ -489,7 +511,14 @@ export const QuestionsPage = () => {
               <div className="sidebar-section">
                 <h3>Interviewed recently?</h3>
                 <p className="section-description">Help improve our question database (and earn karma) by telling us about your experience</p>
-                <button className="btn-share">
+                <button
+                  type="button"
+                  className="btn-share"
+                  onClick={() => {
+                    window.location.href = user ? ROUTES.ADD_QUESTION : ROUTES.LOGIN;
+                  }}
+                  aria-label="Share interview experience"
+                >
                   <i className="fas fa-plus"></i>
                   Share interview experience
                 </button>
@@ -499,12 +528,18 @@ export const QuestionsPage = () => {
                 <h3>Trending companies</h3>
                 <div className="company-list">
                   {COMPANIES.slice(0, 4).map(company => (
-                    <a key={company} href="#" className="company-item">
+                    <button
+                      key={company}
+                      type="button"
+                      className={`company-item ${selectedCompanies.includes(company) ? 'is-active' : ''}`}
+                      onClick={() => handleCompanyToggle(company)}
+                      aria-label={`Filter by company ${company}`}
+                    >
                       <div className="company-logo-placeholder">
-                        <span className="company-initial">{company.charAt(0).toUpperCase()}</span>
+                        <CompanyIcon company={company} size={18} />
                       </div>
                       <span>{company}</span>
-                    </a>
+                    </button>
                   ))}
                 </div>
               </div>

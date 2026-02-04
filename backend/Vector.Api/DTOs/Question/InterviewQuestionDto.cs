@@ -13,6 +13,11 @@ public class InterviewQuestionDto
     public string? Constraints { get; set; }
     public List<ExampleDto>? Examples { get; set; }
     public List<string>? Hints { get; set; }
+    public string? VideoUrl { get; set; }
+    public List<string>? RoleTags { get; set; }
+    public List<Guid>? RelatedQuestionIds { get; set; }
+    public List<Guid>? RelatedCourseIds { get; set; }
+    public List<RelatedQuestionDto>? RelatedQuestions { get; set; }
     public string? TimeComplexityHint { get; set; }
     public string? SpaceComplexityHint { get; set; }
     public double? AcceptanceRate { get; set; }

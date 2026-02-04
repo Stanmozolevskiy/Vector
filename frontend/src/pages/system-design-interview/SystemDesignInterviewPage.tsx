@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import * as signalR from '@microsoft/signalr';
 import { Navbar } from '../../components/layout/Navbar';
@@ -47,6 +47,7 @@ export const SystemDesignInterviewPage = () => {
   const [isEndingSession, setIsEndingSession] = useState(false);
   const [showRejoinModal, setShowRejoinModal] = useState(false);
   const [showFeedbackForm, setShowFeedbackForm] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(true);
   const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [showPartnerVideo, setShowPartnerVideo] = useState(false);
@@ -130,7 +131,9 @@ export const SystemDesignInterviewPage = () => {
       }
 
       // Show video if both users are in session
-      if (session.interviewerId && session.intervieweeId && session.status === 'InProgress') {
+      // For friend interviews, show video immediately even with one participant
+      const isFriendInterview = session.practiceType === 'friend';
+      if (session.status === 'InProgress' && (isFriendInterview || (session.interviewerId && session.intervieweeId))) {
         setShowPartnerVideo(true);
       }
     } catch (error) {
@@ -224,19 +227,23 @@ export const SystemDesignInterviewPage = () => {
 
   // Initialize SignalR for session events
   useEffect(() => {
-    if (!activeSession || !activeSession.interviewerId || !activeSession.intervieweeId || !user?.id) {
+    if (!activeSession || !user?.id) {
+      return;
+    }
+
+    // Only initialize SignalR if both users joined OR it's a friend interview (single user can start)
+    const isFriendInterview = activeSession.practiceType === 'friend';
+    if (!(isFriendInterview || (activeSession.interviewerId && activeSession.intervieweeId))) {
       return;
     }
 
     const initializeSessionHub = async () => {
       try {
-        const accessToken = localStorage.getItem('accessToken');
-        if (!accessToken) return;
-
         const baseUrl = (api.defaults.baseURL?.replace('/api', '') || 'http://localhost:5000');
         const connection = new signalR.HubConnectionBuilder()
-          .withUrl(`${baseUrl}/api/collaboration?access_token=${accessToken}`, {
+          .withUrl(`${baseUrl}/api/collaboration`, {
             transport: signalR.HttpTransportType.WebSockets,
+            accessTokenFactory: () => localStorage.getItem('accessToken') || '',
           })
           .withAutomaticReconnect()
           .build();
@@ -263,6 +270,28 @@ export const SystemDesignInterviewPage = () => {
               }
             } catch (error) {
               console.error('Failed to load changed question:', error);
+            }
+          }
+        });
+
+        // Listen for participant joined (to update session with both users)
+        connection.on('ParticipantJoined', async (data: { sessionId: string }) => {
+          if (data.sessionId === activeSession.id) {
+            try {
+              // Reload session to get updated participants
+              const updatedSession = await peerInterviewService.getSession(data.sessionId);
+              setActiveSession(updatedSession);
+              
+              // Synchronize timer with backend
+              if (updatedSession.startedAt) {
+                const backendStartTime = new Date(updatedSession.startedAt);
+                setSessionStartTime(backendStartTime);
+                localStorage.setItem(`session_start_${data.sessionId}`, backendStartTime.toISOString());
+              }
+              
+              setShowPartnerVideo(true);
+            } catch (error) {
+              console.error('Error handling participant joined:', error);
             }
           }
         });
@@ -373,6 +402,43 @@ export const SystemDesignInterviewPage = () => {
     return () => clearInterval(interval);
   }, [sessionStartTime]);
 
+  // Polling backup: Check for session updates every 3 seconds if waiting for second user
+  useEffect(() => {
+    if (!activeSession || !user?.id) return;
+    
+    // Only poll if we're in a friend interview and waiting for the second user
+    const isFriendInterview = activeSession.practiceType === 'friend';
+    const hasOnlyOneUser = activeSession.interviewerId && !activeSession.intervieweeId;
+    
+    if (!isFriendInterview || !hasOnlyOneUser) return;
+    
+    const intervalId = setInterval(async () => {
+      try {
+        const updatedSession = await peerInterviewService.getSession(activeSession.id);
+        
+        // Check if second user has joined
+        if (updatedSession.interviewerId && updatedSession.intervieweeId) {
+          setActiveSession(updatedSession);
+          
+          // Synchronize timer - use updatedSession.id for localStorage key
+          if (updatedSession.startedAt) {
+            const backendStartTime = new Date(updatedSession.startedAt);
+            setSessionStartTime(backendStartTime);
+            localStorage.setItem(`session_start_${updatedSession.id}`, backendStartTime.toISOString());
+          }
+          
+          setShowPartnerVideo(true);
+          // Stop polling once second user is found
+          clearInterval(intervalId);
+        }
+      } catch (error) {
+        // Polling error - will retry on next interval
+      }
+    }, 3000); // Poll every 3 seconds
+    
+    return () => clearInterval(intervalId);
+  }, [activeSession, user?.id]);
+
   // Load session on mount
   useEffect(() => {
     if (sessionId && user?.id) {
@@ -422,6 +488,11 @@ export const SystemDesignInterviewPage = () => {
 
     try {
       setIsEndingSession(true);
+      
+      // First, reload session to get latest participant data
+      const latestSession = await peerInterviewService.getSession(activeSession.id);
+      setActiveSession(latestSession);
+      
       await peerInterviewService.endInterview(activeSession.id);
       
       if (activeSession.id) {
@@ -438,10 +509,23 @@ export const SystemDesignInterviewPage = () => {
     }
   }, [activeSession, user?.id, isEndingSession]);
 
+  // Calculate partner user
+  const partner = useMemo(() => {
+    if (!activeSession || !user?.id) return null;
+    return activeSession.interviewerId === user.id
+      ? activeSession.interviewee
+      : activeSession.interviewer;
+  }, [activeSession, user?.id]);
+
+  // Determine if both users joined the session (for feedback logic)
+  const hasBothUsers = useMemo(() => {
+    return !!(activeSession?.interviewerId && activeSession?.intervieweeId);
+  }, [activeSession?.interviewerId, activeSession?.intervieweeId]);
+
   // Handle feedback complete
   const handleFeedbackComplete = useCallback(() => {
     setShowFeedbackForm(false);
-    navigate(ROUTES.FIND_PEER);
+    navigate(ROUTES.FIND_PEER, { replace: true });
   }, [navigate]);
 
   // Handle rejoin
@@ -499,6 +583,40 @@ export const SystemDesignInterviewPage = () => {
     <div className="system-design-interview-page">
       <Navbar />
       
+      {/* Instructions Popup */}
+      {showInstructions && (
+        <div className="system-design-instructions-overlay">
+          <div className="system-design-instructions-modal">
+            <button 
+              className="instructions-close-btn"
+              onClick={() => setShowInstructions(false)}
+              aria-label="Close instructions"
+            >
+              <i className="fas fa-times"></i>
+            </button>
+            <h2>System Design Interview</h2>
+            <div className="instructions-content">
+              <p><strong>Take turns interviewing each other</strong></p>
+              <ul>
+                <li>Select a system design question from the sidebar</li>
+                <li>Sketch your design on the shared whiteboard</li>
+                <li>Discuss trade-offs and architectural decisions</li>
+                <li>Ask clarifying questions about requirements</li>
+              </ul>
+              <p className="instructions-note">
+                <i className="fas fa-info-circle"></i> Both participants can draw on the whiteboard simultaneously
+              </p>
+            </div>
+            <button 
+              className="instructions-got-it-btn"
+              onClick={() => setShowInstructions(false)}
+            >
+              Got it!
+            </button>
+          </div>
+        </div>
+      )}
+      
       {/* Session Header */}
       <div className="system-design-interview-header">
         <div className="session-info">
@@ -541,13 +659,17 @@ export const SystemDesignInterviewPage = () => {
 
       {/* Main Content - Similar to WhiteboardPage */}
       <div className="system-design-interview-content">
-        {/* Question Sidebar */}
+        {/* Question Sidebar with Timer and Finish Button */}
         <QuestionSidebar
           isOpen={isSidebarOpen}
           onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
           selectedQuestion={selectedQuestion}
           onSelectQuestion={handleSelectQuestion}
           onOpenQuestionModal={() => setShowQuestionModal(true)}
+          showTimer={true}
+          timerDisplay={formatTime(elapsedTime)}
+          onFinish={handleEndSession}
+          isFinishing={isEndingSession}
         />
 
         {/* Whiteboard Area */}
@@ -560,7 +682,10 @@ export const SystemDesignInterviewPage = () => {
       </div>
 
       {/* Video Chat */}
-      {showPartnerVideo && activeSession.interviewerId && activeSession.intervieweeId && activeSession.status === 'InProgress' && (
+      {/* Partner Video - Show for friend interviews or when both users joined */}
+      {showPartnerVideo && activeSession.status === 'InProgress' && (
+        activeSession.practiceType === 'friend' || (activeSession.interviewerId && activeSession.intervieweeId)
+      ) && (
         <DraggableVideoChat
           sessionId={activeSession.id}
           userId={user.id}
@@ -591,29 +716,34 @@ export const SystemDesignInterviewPage = () => {
         />
       )}
 
-      {/* Feedback Form */}
-      {showFeedbackForm && activeSession && user?.id && (
-        <FeedbackForm
-          liveSessionId={activeSession.liveSessionId || activeSession.id}
-          opponentId={
-            activeSession.intervieweeId === user.id 
-              ? activeSession.interviewerId || '' 
-              : activeSession.intervieweeId || ''
-          }
-          opponentName={
-            activeSession.intervieweeId === user.id
-              ? activeSession.interviewer 
-                ? `${activeSession.interviewer.firstName} ${activeSession.interviewer.lastName}`
-                : undefined
-              : activeSession.interviewee
-                ? `${activeSession.interviewee.firstName} ${activeSession.interviewee.lastName}`
-                : undefined
-          }
-          interviewType={activeSession.interviewType || 'System Design'}
-          date={activeSession.scheduledTime}
-          onComplete={handleFeedbackComplete}
-          onCancel={handleFeedbackComplete}
-        />
+      {/* Feedback Form or No Partner Message */}
+      {showFeedbackForm && (
+        <div className="feedback-overlay">
+          <div className="feedback-modal-card">
+            {hasBothUsers && partner?.id ? (
+              <FeedbackForm
+                liveSessionId={activeSession.id}
+                opponentId={partner.id}
+                opponentName={partner.firstName || partner.email}
+                interviewType="System Design"
+                date={activeSession.createdAt}
+                onComplete={handleFeedbackComplete}
+                onCancel={handleFeedbackComplete}
+              />
+            ) : (
+              <div className="feedback-no-partner">
+                <div className="feedback-no-partner-content">
+                  <i className="fas fa-info-circle"></i>
+                  <h3>Interview Ended</h3>
+                  <p>Your practice partner didn't join this session, so there's no feedback to provide.</p>
+                  <button onClick={handleFeedbackComplete} className="btn-primary">
+                    Continue
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

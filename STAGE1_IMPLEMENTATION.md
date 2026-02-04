@@ -42,9 +42,9 @@ Before starting, ensure you have:
 - [x] Initialize .NET 8.0 Web API project
 - [x] Create solution file
 - [x] Set up project directories (Controllers, Services, Models, Data, DTOs, Middleware, Helpers)
-- [x] Create all controller files (AuthController, UserController, SubscriptionController, StripeController)
-- [x] Create all service interface files (IAuthService, IUserService, IJwtService, IEmailService, IS3Service, IStripeService)
-- [x] Create all service implementation files (AuthService, UserService, JwtService, EmailService, S3Service, StripeService)
+- [x] Create all controller files (AuthController, UserController, SubscriptionController)
+- [x] Create all service interface files (IAuthService, IUserService, IJwtService, IEmailService, IS3Service)
+- [x] Create all service implementation files (AuthService, UserService, JwtService, EmailService, S3Service)
 - [x] Create model files (User, Subscription, Payment, EmailVerification)
 - [x] Create ApplicationDbContext
 - [x] Create DbInitializer
@@ -747,7 +747,7 @@ Before starting, ensure you have:
 - `AuthService.cs` - Authentication logic
 - `JwtService.cs` - JWT token management
 - `EmailService.cs` - Email sending
-- `StripeService.cs` - Payment processing
+- Payment processing integration removed (not currently used)
 
 **Frontend:**
 - `App.tsx` - Main app component with routing

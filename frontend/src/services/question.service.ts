@@ -12,6 +12,11 @@ export interface InterviewQuestion {
   constraints?: string;
   examples?: Example[];
   hints?: string[];
+  videoUrl?: string;
+  roleTags?: string[];
+  relatedQuestions?: RelatedQuestion[];
+  relatedQuestionIds?: string[];
+  relatedCourseIds?: string[];
   timeComplexityHint?: string;
   spaceComplexityHint?: string;
   acceptanceRate?: number;
@@ -42,6 +47,25 @@ export interface QuestionList {
   acceptanceRate?: number;
   isActive: boolean;
   approvalStatus?: string;
+}
+
+export interface RelatedQuestion {
+  id: string;
+  title: string;
+}
+
+export interface QuestionComment {
+  id: string;
+  questionId: string;
+  userId: string;
+  userName: string;
+  userProfilePictureUrl?: string;
+  content: string;
+  createdAt: string;
+  parentCommentId?: string;
+  upvoteCount: number;
+  hasUpvoted: boolean;
+  replies: QuestionComment[];
 }
 
 export interface QuestionFilter {
@@ -90,6 +114,10 @@ export interface CreateQuestionDto {
   constraints?: string;
   examples?: Example[];
   hints?: string[];
+  videoUrl?: string;
+  roleTags?: string[];
+  relatedQuestionIds?: string[];
+  relatedCourseIds?: string[];
   timeComplexityHint?: string;
   spaceComplexityHint?: string;
   acceptanceRate?: number;
@@ -109,6 +137,22 @@ export const questionService = {
   async createQuestion(dto: CreateQuestionDto): Promise<InterviewQuestion> {
     const response = await api.post<InterviewQuestion>('/question', dto);
     return response.data;
+  },
+
+  async submitQuestion(dto: CreateQuestionDto): Promise<InterviewQuestion> {
+    const response = await api.post<InterviewQuestion>('/question/submit', dto);
+    return response.data;
+  },
+
+  async uploadQuestionVideo(file: File): Promise<string> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post<{ videoUrl: string }>('/question/upload-video', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data.videoUrl;
   },
 
   async updateQuestion(id: string, dto: Partial<CreateQuestionDto>): Promise<InterviewQuestion> {
@@ -156,6 +200,23 @@ export const questionService = {
 
   async rejectQuestion(questionId: string, rejectionReason?: string): Promise<InterviewQuestion> {
     const response = await api.post<InterviewQuestion>(`/question/${questionId}/reject`, { rejectionReason });
+    return response.data;
+  },
+
+  async getQuestionComments(questionId: string, page = 1, pageSize = 25, sort: 'hot' | 'top' | 'new' = 'hot'): Promise<QuestionComment[]> {
+    const response = await api.get<QuestionComment[]>(`/question/${questionId}/comments`, {
+      params: { page, pageSize, sort },
+    });
+    return response.data;
+  },
+
+  async addQuestionComment(questionId: string, content: string, parentCommentId?: string): Promise<QuestionComment> {
+    const response = await api.post<QuestionComment>(`/question/${questionId}/comments`, { content, parentCommentId });
+    return response.data;
+  },
+
+  async toggleCommentUpvote(questionId: string, commentId: string): Promise<{ commentId: string; upvoteCount: number; hasUpvoted: boolean }> {
+    const response = await api.post<{ commentId: string; upvoteCount: number; hasUpvoted: boolean }>(`/question/${questionId}/comments/${commentId}/upvote`);
     return response.data;
   },
 };

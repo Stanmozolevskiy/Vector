@@ -42,13 +42,6 @@ export const CollaborativeCodeEditor: React.FC<CollaborativeCodeEditorProps> = (
 
   const initializeSignalR = async () => {
     try {
-      // Get access token for authentication
-      const accessToken = localStorage.getItem('accessToken');
-      if (!accessToken) {
-        onError?.('Authentication required');
-        return;
-      }
-
       // Get base URL without /api suffix
       const baseUrl = (api.defaults.baseURL && typeof api.defaults.baseURL === 'string') 
         ? api.defaults.baseURL.replace('/api', '') 
@@ -56,8 +49,9 @@ export const CollaborativeCodeEditor: React.FC<CollaborativeCodeEditorProps> = (
       
       // Create SignalR connection
       const connection = new signalR.HubConnectionBuilder()
-        .withUrl(`${baseUrl}/api/collaboration?access_token=${accessToken}`, {
+        .withUrl(`${baseUrl}/api/collaboration`, {
           transport: signalR.HttpTransportType.WebSockets,
+          accessTokenFactory: () => localStorage.getItem('accessToken') || '',
         })
         .withAutomaticReconnect({
           nextRetryDelayInMilliseconds: (retryContext) => {

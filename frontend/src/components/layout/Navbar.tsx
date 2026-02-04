@@ -36,9 +36,9 @@ export const Navbar = () => {
           <Link to={ROUTES.QUESTIONS}>Questions</Link>
           <Link to={ROUTES.WHITEBOARD}>Whiteboard</Link>
           <Link to={ROUTES.FIND_PEER}>Mock Interviews</Link>
-          {(user?.role === 'admin' || user?.role === 'coach') && (
+          {user && (user.role === 'admin' || user.role === 'coach') ? (
             <Link to={ROUTES.ADD_QUESTION}>Add Question</Link>
-          )}
+          ) : null}
           <div className="user-menu">
             <div className="user-avatar">
               {user?.profilePictureUrl ? (

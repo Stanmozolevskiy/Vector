@@ -38,6 +38,22 @@ public class QuestionServiceCRUDTests : IDisposable
     {
         // Arrange
         var userId = Guid.NewGuid();
+        
+        // Create admin user in database
+        var adminUser = new User
+        {
+            Id = userId,
+            Email = "admin@test.com",
+            FirstName = "Admin",
+            LastName = "User",
+            PasswordHash = "hashedpassword",
+            Role = "Admin",
+            EmailVerified = true,
+            CreatedAt = DateTime.UtcNow
+        };
+        await _context.Users.AddAsync(adminUser);
+        await _context.SaveChangesAsync();
+        
         var dto = new CreateQuestionDto
         {
             Title = "Test Question",
@@ -70,7 +86,7 @@ public class QuestionServiceCRUDTests : IDisposable
         Assert.Equal(dto.Difficulty, result.Difficulty);
         Assert.Equal(dto.QuestionType, result.QuestionType);
         Assert.Equal(dto.Category, result.Category);
-        Assert.Equal("Pending", result.ApprovalStatus);
+        Assert.Equal("Approved", result.ApprovalStatus); // Admin questions are auto-approved
         Assert.True(result.IsActive);
         Assert.Equal(userId, result.CreatedBy);
 

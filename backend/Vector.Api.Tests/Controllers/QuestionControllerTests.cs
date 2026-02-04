@@ -16,14 +16,19 @@ namespace Vector.Api.Tests.Controllers;
 public class QuestionControllerTests
 {
     private readonly Mock<IQuestionService> _questionServiceMock;
+    private readonly Mock<IS3Service> _s3ServiceMock;
     private readonly Mock<ILogger<QuestionController>> _loggerMock;
     private readonly QuestionController _controller;
 
     public QuestionControllerTests()
     {
         _questionServiceMock = new Mock<IQuestionService>();
+        _s3ServiceMock = new Mock<IS3Service>();
         _loggerMock = new Mock<ILogger<QuestionController>>();
-        _controller = new QuestionController(_questionServiceMock.Object, _loggerMock.Object);
+        _controller = new QuestionController(
+            _questionServiceMock.Object, 
+            _s3ServiceMock.Object,
+            _loggerMock.Object);
     }
 
     private void SetupControllerWithUser(Guid userId, string role = "admin")

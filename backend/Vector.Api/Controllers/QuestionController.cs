@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using System.Security.Claims;
 using System.Text.Json;
 using Vector.Api.Attributes;
@@ -14,11 +16,13 @@ namespace Vector.Api.Controllers;
 public class QuestionController : ControllerBase
 {
     private readonly IQuestionService _questionService;
+    private readonly IS3Service _s3Service;
     private readonly ILogger<QuestionController> _logger;
 
-    public QuestionController(IQuestionService questionService, ILogger<QuestionController> logger)
+    public QuestionController(IQuestionService questionService, IS3Service s3Service, ILogger<QuestionController> logger)
     {
         _questionService = questionService;
+        _s3Service = s3Service;
         _logger = logger;
     }
 
@@ -134,12 +138,281 @@ public class QuestionController : ControllerBase
             }
 
             var dto = MapToQuestionDto(question);
+
+            // Attach related questions (id + title) if configured
+            dto.RelatedQuestions = await GetRelatedQuestionsForQuestionAsync(question);
             return Ok(dto);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting question {QuestionId}", id);
             return StatusCode(500, new { error = "An error occurred while retrieving the question." });
+        }
+    }
+
+    /// <summary>
+    /// Get comments for a question (community answers / discussion)
+    /// </summary>
+    [HttpGet("{id}/comments")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetQuestionComments(
+        Guid id,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        [FromQuery] string sort = "hot")
+    {
+        try
+        {
+            if (page <= 0) page = 1;
+            if (pageSize <= 0) pageSize = 25;
+            if (pageSize > 100) pageSize = 100;
+
+            var userId = GetCurrentUserId();
+            if (userId == null)
+            {
+                return Unauthorized(new { error = "Invalid token" });
+            }
+
+            var exists = await _questionService.GetQuestionByIdAsync(id);
+            if (exists == null)
+            {
+                return NotFound(new { error = "Question not found." });
+            }
+
+            // Fallback to DB context via service scope (keeps controller simple and avoids a new service just for comments)
+            // NOTE: We use EF Core directly here because comment retrieval is presentation-specific (includes user name).
+            var context = HttpContext.RequestServices.GetRequiredService<Vector.Api.Data.ApplicationDbContext>();
+
+            var baseQuery = context.InterviewQuestionComments
+                .AsNoTracking()
+                .Where(c => c.QuestionId == id && c.ParentCommentId == null);
+
+            var normalizedSort = (sort ?? "hot").Trim().ToLowerInvariant();
+            if (normalizedSort is not ("hot" or "top" or "new"))
+            {
+                normalizedSort = "hot";
+            }
+
+            var projected = baseQuery
+                .Select(c => new
+                {
+                    Comment = c,
+                    User = c.User,
+                    UpvoteCount = c.Votes.Count(),
+                    HasUpvoted = c.Votes.Any(v => v.UserId == userId.Value)
+                });
+
+            projected = normalizedSort switch
+            {
+                "new" => projected.OrderByDescending(x => x.Comment.CreatedAt),
+                "top" => projected.OrderByDescending(x => x.UpvoteCount).ThenByDescending(x => x.Comment.CreatedAt),
+                _ => projected.OrderByDescending(x => x.UpvoteCount).ThenByDescending(x => x.Comment.CreatedAt),
+            };
+
+            var parents = await projected
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new QuestionCommentDto
+                {
+                    Id = x.Comment.Id,
+                    QuestionId = x.Comment.QuestionId,
+                    UserId = x.Comment.UserId,
+                    UserName = ((x.User.FirstName ?? "") + " " + (x.User.LastName ?? "")).Trim(),
+                    UserProfilePictureUrl = x.User.ProfilePictureUrl,
+                    Content = x.Comment.Content,
+                    CreatedAt = x.Comment.CreatedAt,
+                    ParentCommentId = x.Comment.ParentCommentId,
+                    UpvoteCount = x.UpvoteCount,
+                    HasUpvoted = x.HasUpvoted,
+                    Replies = new List<QuestionCommentDto>()
+                })
+                .ToListAsync();
+
+            var parentIds = parents.Select(p => p.Id).ToList();
+            if (!parentIds.Any())
+            {
+                return Ok(parents);
+            }
+
+            var replies = await context.InterviewQuestionComments
+                .AsNoTracking()
+                .Where(c => c.QuestionId == id && c.ParentCommentId != null && parentIds.Contains(c.ParentCommentId.Value))
+                .OrderBy(c => c.CreatedAt)
+                .Select(c => new QuestionCommentDto
+                {
+                    Id = c.Id,
+                    QuestionId = c.QuestionId,
+                    UserId = c.UserId,
+                    UserName = ((c.User.FirstName ?? "") + " " + (c.User.LastName ?? "")).Trim(),
+                    UserProfilePictureUrl = c.User.ProfilePictureUrl,
+                    Content = c.Content,
+                    CreatedAt = c.CreatedAt,
+                    ParentCommentId = c.ParentCommentId,
+                    UpvoteCount = c.Votes.Count(),
+                    HasUpvoted = c.Votes.Any(v => v.UserId == userId.Value),
+                    Replies = new List<QuestionCommentDto>()
+                })
+                .ToListAsync();
+
+            var repliesByParent = replies
+                .Where(r => r.ParentCommentId.HasValue)
+                .GroupBy(r => r.ParentCommentId!.Value)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            foreach (var parent in parents)
+            {
+                if (repliesByParent.TryGetValue(parent.Id, out var childReplies))
+                {
+                    parent.Replies = childReplies;
+                }
+            }
+
+            return Ok(parents);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting comments for question {QuestionId}", id);
+            return StatusCode(500, new { error = "An error occurred while retrieving comments." });
+        }
+    }
+
+    /// <summary>
+    /// Add a comment to a question
+    /// </summary>
+    [HttpPost("{id}/comments")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> AddQuestionComment(Guid id, [FromBody] CreateQuestionCommentDto dto)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null)
+            {
+                return Unauthorized(new { error = "Invalid token" });
+            }
+
+            if (string.IsNullOrWhiteSpace(dto.Content))
+            {
+                return BadRequest(new { error = "Comment content is required." });
+            }
+
+            var question = await _questionService.GetQuestionByIdAsync(id);
+            if (question == null)
+            {
+                return NotFound(new { error = "Question not found." });
+            }
+
+            var context = HttpContext.RequestServices.GetRequiredService<Vector.Api.Data.ApplicationDbContext>();
+            var user = await context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId.Value);
+            if (user == null)
+            {
+                return Unauthorized(new { error = "User not found." });
+            }
+
+            if (dto.ParentCommentId.HasValue)
+            {
+                var parentExists = await context.InterviewQuestionComments
+                    .AsNoTracking()
+                    .AnyAsync(c => c.Id == dto.ParentCommentId.Value && c.QuestionId == id);
+                if (!parentExists)
+                {
+                    return BadRequest(new { error = "Parent comment not found." });
+                }
+            }
+
+            var comment = new Vector.Api.Models.InterviewQuestionComment
+            {
+                Id = Guid.NewGuid(),
+                QuestionId = id,
+                UserId = userId.Value,
+                Content = dto.Content.Trim(),
+                ParentCommentId = dto.ParentCommentId,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            context.InterviewQuestionComments.Add(comment);
+            await context.SaveChangesAsync();
+
+            var result = new QuestionCommentDto
+            {
+                Id = comment.Id,
+                QuestionId = comment.QuestionId,
+                UserId = comment.UserId,
+                UserName = ((user.FirstName ?? "") + " " + (user.LastName ?? "")).Trim(),
+                UserProfilePictureUrl = user.ProfilePictureUrl,
+                Content = comment.Content,
+                CreatedAt = comment.CreatedAt,
+                ParentCommentId = comment.ParentCommentId,
+                UpvoteCount = 0,
+                HasUpvoted = false,
+                Replies = new List<QuestionCommentDto>()
+            };
+
+            return CreatedAtAction(nameof(GetQuestionComments), new { id }, result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding comment to question {QuestionId}", id);
+            return StatusCode(500, new { error = "An error occurred while adding the comment." });
+        }
+    }
+
+    /// <summary>
+    /// Toggle upvote for a comment
+    /// </summary>
+    [HttpPost("{id}/comments/{commentId}/upvote")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ToggleCommentUpvote(Guid id, Guid commentId)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null)
+            {
+                return Unauthorized(new { error = "Invalid token" });
+            }
+
+            var context = HttpContext.RequestServices.GetRequiredService<Vector.Api.Data.ApplicationDbContext>();
+            var commentExists = await context.InterviewQuestionComments
+                .AsNoTracking()
+                .AnyAsync(c => c.Id == commentId && c.QuestionId == id);
+            if (!commentExists)
+            {
+                return NotFound(new { error = "Comment not found." });
+            }
+
+            var existing = await context.InterviewQuestionCommentVotes
+                .FirstOrDefaultAsync(v => v.CommentId == commentId && v.UserId == userId.Value);
+
+            if (existing == null)
+            {
+                context.InterviewQuestionCommentVotes.Add(new Vector.Api.Models.InterviewQuestionCommentVote
+                {
+                    CommentId = commentId,
+                    UserId = userId.Value,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            else
+            {
+                context.InterviewQuestionCommentVotes.Remove(existing);
+            }
+
+            await context.SaveChangesAsync();
+
+            var upvoteCount = await context.InterviewQuestionCommentVotes.CountAsync(v => v.CommentId == commentId);
+            var hasUpvoted = await context.InterviewQuestionCommentVotes.AnyAsync(v => v.CommentId == commentId && v.UserId == userId.Value);
+
+            return Ok(new { commentId, upvoteCount, hasUpvoted });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error toggling upvote for comment {CommentId}", commentId);
+            return StatusCode(500, new { error = "An error occurred while updating the upvote." });
         }
     }
 
@@ -171,6 +444,82 @@ public class QuestionController : ControllerBase
         {
             _logger.LogError(ex, "Error creating question");
             return StatusCode(500, new { error = "An error occurred while creating the question." });
+        }
+    }
+
+    /// <summary>
+    /// Submit a new question for review (any authenticated user)
+    /// Non-admin submissions are created as Pending and will not be visible until approved.
+    /// </summary>
+    [HttpPost("submit")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> SubmitQuestion([FromBody] CreateQuestionDto dto)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null)
+            {
+                return Unauthorized(new { error = "Invalid token" });
+            }
+
+            var question = await _questionService.CreateQuestionAsync(dto, userId.Value);
+            var questionDto = MapToQuestionDto(question);
+
+            return CreatedAtAction(nameof(GetQuestion), new { id = question.Id }, questionDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error submitting question");
+            return StatusCode(500, new { error = "An error occurred while submitting the question." });
+        }
+    }
+
+    /// <summary>
+    /// Upload a question video (mp4/webm). Returns a public URL.
+    /// </summary>
+    [HttpPost("upload-video")]
+    [DisableRequestSizeLimit]
+    [RequestFormLimits(MultipartBodyLengthLimit = 250 * 1024 * 1024)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UploadQuestionVideo(IFormFile file)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null)
+            {
+                return Unauthorized(new { error = "Invalid token" });
+            }
+
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest(new { error = "No file uploaded" });
+            }
+
+            var allowedTypes = new[] { "video/mp4", "video/webm", "video/quicktime" };
+            if (!allowedTypes.Contains(file.ContentType.ToLowerInvariant()))
+            {
+                return BadRequest(new { error = "Invalid file type. Only MP4, WebM, and MOV are allowed" });
+            }
+
+            // 250MB max
+            if (file.Length > 250L * 1024 * 1024)
+            {
+                return BadRequest(new { error = "File size exceeds 250MB limit" });
+            }
+
+            using var stream = file.OpenReadStream();
+            var url = await _s3Service.UploadFileAsync(stream, file.FileName, file.ContentType, "question-videos");
+
+            return Ok(new { videoUrl = url });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to upload question video");
+            return StatusCode(500, new { error = "Failed to upload video" });
         }
     }
 
@@ -268,10 +617,10 @@ public class QuestionController : ControllerBase
     }
 
     /// <summary>
-    /// Add a test case to a question (admin only)
+    /// Add a test case to a question (admin or coach)
     /// </summary>
     [HttpPost("{id}/test-cases")]
-    [AuthorizeRole("admin")]
+    [AuthorizeRole("admin", "coach")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     public async Task<IActionResult> AddTestCase(Guid id, [FromBody] CreateTestCaseDto dto)
     {
@@ -413,6 +762,10 @@ public class QuestionController : ControllerBase
             Constraints = question.Constraints,
             Examples = question.Examples != null ? JsonSerializer.Deserialize<List<ExampleDto>>(question.Examples) : null,
             Hints = question.Hints != null ? JsonSerializer.Deserialize<List<string>>(question.Hints) : null,
+            VideoUrl = question.VideoUrl,
+            RoleTags = question.RoleTags != null ? JsonSerializer.Deserialize<List<string>>(question.RoleTags) : null,
+            RelatedQuestionIds = question.RelatedQuestionIds != null ? JsonSerializer.Deserialize<List<Guid>>(question.RelatedQuestionIds) : null,
+            RelatedCourseIds = question.RelatedCourseIds != null ? JsonSerializer.Deserialize<List<Guid>>(question.RelatedCourseIds) : null,
             TimeComplexityHint = question.TimeComplexityHint,
             SpaceComplexityHint = question.SpaceComplexityHint,
             AcceptanceRate = question.AcceptanceRate,
@@ -425,6 +778,29 @@ public class QuestionController : ControllerBase
             CreatedAt = question.CreatedAt,
             UpdatedAt = question.UpdatedAt
         };
+    }
+
+    private async Task<List<RelatedQuestionDto>> GetRelatedQuestionsForQuestionAsync(Models.InterviewQuestion question)
+    {
+        if (string.IsNullOrWhiteSpace(question.RelatedQuestionIds))
+        {
+            return new List<RelatedQuestionDto>();
+        }
+
+        try
+        {
+            var ids = JsonSerializer.Deserialize<List<Guid>>(question.RelatedQuestionIds) ?? new List<Guid>();
+            if (!ids.Any())
+            {
+                return new List<RelatedQuestionDto>();
+            }
+
+            return await _questionService.GetRelatedQuestionsAsync(ids);
+        }
+        catch
+        {
+            return new List<RelatedQuestionDto>();
+        }
     }
 
     /// <summary>

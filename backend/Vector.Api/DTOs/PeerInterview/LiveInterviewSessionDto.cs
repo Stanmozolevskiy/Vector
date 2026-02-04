@@ -7,6 +7,7 @@ public class LiveInterviewSessionDto
 {
     public Guid Id { get; set; }
     public Guid? ScheduledSessionId { get; set; }
+    public string? InterviewType { get; set; }
     public Guid? FirstQuestionId { get; set; }
     public Guid? SecondQuestionId { get; set; }
     public Guid? ActiveQuestionId { get; set; }

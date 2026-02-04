@@ -307,17 +307,26 @@
     width: 20px;
     height: 20px;
     border-radius: 4px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #fff;
+    border: 1px solid #e5e7eb;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: #111827;
     font-weight: 600;
     font-size: 0.75rem;
 }
 
 .company-initial {
     line-height: 1;
+}
+
+.company-logo-placeholder svg {
+    display: block;
+}
+
+.company-logo-placeholder img {
+    display: block;
 }
 
 .time-ago {
@@ -627,10 +636,18 @@
     color: #374151;
     text-decoration: none;
     transition: all 0.2s;
+    border: 1px solid transparent;
+    cursor: pointer;
 }
 
 .role-tag:hover {
     background: rgba(99, 102, 241, 0.1);
+    color: var(--primary-color);
+}
+
+.role-tag.is-active {
+    background: rgba(99, 102, 241, 0.12);
+    border-color: rgba(99, 102, 241, 0.35);
     color: var(--primary-color);
 }
 
@@ -669,10 +686,18 @@
     text-decoration: none;
     color: #374151;
     transition: background 0.2s;
+    border: 1px solid transparent;
+    background: transparent;
+    cursor: pointer;
 }
 
 .company-item:hover {
     background: #f9fafb;
+}
+
+.company-item.is-active {
+    background: rgba(99, 102, 241, 0.06);
+    border-color: rgba(99, 102, 241, 0.25);
 }
 
 .company-item img {

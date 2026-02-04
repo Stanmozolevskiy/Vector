@@ -61,6 +61,26 @@ public class InterviewQuestion
     /// Hints (JSON array of strings)
     /// </summary>
     public string? Hints { get; set; }
+
+    /// <summary>
+    /// Optional video URL (mp4 or embeddable URL) for the interview question
+    /// </summary>
+    public string? VideoUrl { get; set; }
+
+    /// <summary>
+    /// Role tags (JSON array): ["Product Manager", "Engineering Manager"]
+    /// </summary>
+    public string? RoleTags { get; set; }
+
+    /// <summary>
+    /// Related question IDs (JSON array of GUID strings)
+    /// </summary>
+    public string? RelatedQuestionIds { get; set; }
+
+    /// <summary>
+    /// Related course IDs (JSON array of GUID strings) - reserved for future use
+    /// </summary>
+    public string? RelatedCourseIds { get; set; }
     
     /// <summary>
     /// Time complexity hint (e.g., "O(n)")

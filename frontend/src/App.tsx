@@ -23,6 +23,8 @@ import { EditQuestionPage } from './pages/questions/EditQuestionPage';
 import { SolutionHistoryPage } from './pages/solutions/SolutionHistoryPage';
 import { ProgressPage } from './pages/progress/ProgressPage';
 import FindPeerPage from './pages/peer-interviews/FindPeerPage';
+import PeerInterviewSessionPage from './pages/peer-interviews/PeerInterviewSessionPage';
+import { FriendInvitePage } from './pages/peer-interviews/FriendInvitePage';
 import { lazy, Suspense } from 'react';
 
 // Lazy load WhiteboardPage to avoid breaking the app if Excalidraw fails
@@ -80,6 +82,7 @@ function App() {
         {/* Public routes - no protection */}
         <Route path={ROUTES.HOME} element={<IndexPage />} />
         <Route path={ROUTES.VERIFY_EMAIL} element={<VerifyEmailPage />} />
+        <Route path="/friend-invite/:liveSessionId" element={<FriendInvitePage />} />
         
         {/* Auth routes - accessible to everyone, but redirect if already logged in */}
         <Route path={ROUTES.LOGIN} element={<LoginPage />} />
@@ -129,6 +132,11 @@ function App() {
             <FindPeerPage />
           </ProtectedRoute>
         } />
+        <Route path={ROUTES.PEER_INTERVIEW_SESSION} element={
+          <ProtectedRoute requireAuth>
+            <PeerInterviewSessionPage />
+          </ProtectedRoute>
+        } />
         <Route path={ROUTES.WHITEBOARD} element={
           <ProtectedRoute requireAuth>
             <Suspense fallback={<div style={{ padding: '20px', textAlign: 'center' }}>Loading whiteboard...</div>}>
@@ -149,7 +157,7 @@ function App() {
           </ProtectedRoute>
         } />
         <Route path={ROUTES.ADD_QUESTION} element={
-          <ProtectedRoute requireAuth requiredRole={['admin', 'coach']}>
+          <ProtectedRoute requireAuth>
             <AddQuestionPage />
           </ProtectedRoute>
         } />

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System;
@@ -19,6 +20,8 @@ public class PeerInterviewControllerTests
     private readonly Mock<IPeerInterviewService> _peerInterviewServiceMock;
     private readonly Mock<ILogger<PeerInterviewController>> _loggerMock;
     private readonly Mock<IHubContext<CollaborationHub>> _hubContextMock;
+    private readonly Mock<IConfiguration> _configurationMock;
+    private readonly Mock<IEmailService> _emailServiceMock;
     private readonly PeerInterviewController _controller;
 
     public PeerInterviewControllerTests()
@@ -26,10 +29,18 @@ public class PeerInterviewControllerTests
         _peerInterviewServiceMock = new Mock<IPeerInterviewService>();
         _loggerMock = new Mock<ILogger<PeerInterviewController>>();
         _hubContextMock = new Mock<IHubContext<CollaborationHub>>();
+        _configurationMock = new Mock<IConfiguration>();
+        _emailServiceMock = new Mock<IEmailService>();
+        
+        // Setup configuration for frontend URL
+        _configurationMock.Setup(c => c["FrontendUrl"]).Returns("http://localhost:3000");
+        
         _controller = new PeerInterviewController(
             _peerInterviewServiceMock.Object,
             _loggerMock.Object,
-            _hubContextMock.Object);
+            _hubContextMock.Object,
+            _configurationMock.Object,
+            _emailServiceMock.Object);
     }
 
     private void SetupControllerWithUser(Guid userId)

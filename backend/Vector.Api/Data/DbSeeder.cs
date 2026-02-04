@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using Vector.Api.Helpers;
 using Vector.Api.Models;
 
@@ -535,17 +536,559 @@ public static class DbSeeder
                 questionIndex++;
             }
 
+            // Seed Behavioral + Product Management questions (Exponent-style)
+            var nonCodingQuestionsToAdd = BuildNonCodingSeedQuestions(createdBy, now, allExistingTitles);
+            if (nonCodingQuestionsToAdd.Any())
+            {
+                questions.AddRange(nonCodingQuestionsToAdd);
+            }
+
             context.InterviewQuestions.AddRange(questions);
             await context.SaveChangesAsync();
 
             // Now add test cases and solutions for each question
             await SeedQuestionTestCasesAndSolutions(context, logger, questions, createdBy);
 
+            // Seed a few default "how to answer" comments for non-coding questions
+            await SeedDefaultQuestionComments(context, logger, createdBy);
+
             logger.LogInformation("✅ Seeded {Count} interview questions", questions.Count);
         }
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Failed to seed interview questions, but this is non-critical. Continuing...");
+        }
+    }
+
+    private static List<InterviewQuestion> BuildNonCodingSeedQuestions(Guid? createdBy, DateTime now, List<string> allExistingTitles)
+    {
+        var seedVideoUrl = "https://dev-vector-user-uploads.s3.us-east-1.amazonaws.com/videos/mock-interviews/what-is-exponent.mp4";
+
+        var behavioral = new List<InterviewQuestion>
+        {
+            NewNonCodingQuestion("Tell me about a time when you made short-term sacrifices for long-term gains.", "Behavioral", "Behavioral",
+                roles: new[] { "Product Manager", "Software Engineer" },
+                companies: new[] { "Amazon", "Google" },
+                tags: new[] { "Ownership", "Long-Term Thinking" },
+                hints: new[] {
+                    "Use STAR: Situation, Task, Action, Result. Emphasize what you gave up and why it mattered.",
+                    "Quantify impact and explain trade-offs; close with what you learned."
+                },
+                videoUrl: seedVideoUrl),
+
+            NewNonCodingQuestion("Tell me about something you built end-to-end without relying on others.", "Behavioral", "Behavioral",
+                roles: new[] { "Product Manager", "Software Engineer" },
+                companies: new[] { "Google", "Meta" },
+                tags: new[] { "Bias for Action", "Deliver Results" },
+                hints: new[] {
+                    "Pick a scoped example where you owned requirements → execution → launch.",
+                    "Highlight how you unblocked yourself and validated outcomes."
+                }),
+
+            NewNonCodingQuestion("Tell me about a time when you handled a difficult stakeholder.", "Behavioral", "Behavioral",
+                roles: new[] { "Product Manager", "Customer Success Manager" },
+                companies: new[] { "Meta", "Amazon", "Stripe" },
+                tags: new[] { "Stakeholder Management", "Communication" },
+                hints: new[] {
+                    "Show how you aligned on goals, communicated trade-offs, and built trust.",
+                    "Mention how you handled pushback and kept decisions data-driven."
+                }),
+
+            NewNonCodingQuestion("Tell me about a time you dropped the ball on something.", "Behavioral", "Behavioral",
+                roles: new[] { "Product Manager", "Software Engineer" },
+                companies: new[] { "Google", "Microsoft" },
+                tags: new[] { "Accountability", "Learn and Be Curious" },
+                hints: new[] {
+                    "Own the mistake, explain what changed, and show the prevention mechanism you implemented."
+                }),
+
+            NewNonCodingQuestion("Tell me about a time you gained trust.", "Behavioral", "Behavioral",
+                roles: new[] { "Product Manager", "Engineering Manager" },
+                companies: new[] { "Amazon", "Apple" },
+                tags: new[] { "Trust", "Leadership" }),
+
+            NewNonCodingQuestion("Tell me about a time you had to solve a difficult problem.", "Behavioral", "Behavioral",
+                roles: new[] { "Software Engineer", "Product Manager" },
+                companies: new[] { "Amazon", "Stripe" },
+                tags: new[] { "Problem Solving", "Execution" }),
+
+            NewNonCodingQuestion("Tell me about a time you disagreed with your manager.", "Behavioral", "Behavioral",
+                roles: new[] { "Product Manager", "Software Engineer" },
+                companies: new[] { "Meta", "Netflix" },
+                tags: new[] { "Disagree and Commit", "Communication" }),
+
+            NewNonCodingQuestion("Tell me about a time you influenced without authority.", "Behavioral", "Behavioral",
+                roles: new[] { "Product Manager", "Technical Program Manager" },
+                companies: new[] { "Google", "Amazon" },
+                tags: new[] { "Influence", "Leadership" }),
+
+            NewNonCodingQuestion("Tell me about a time you improved a process.", "Behavioral", "Behavioral",
+                roles: new[] { "Product Manager", "Software Engineer" },
+                companies: new[] { "Microsoft", "Amazon" },
+                tags: new[] { "Operational Excellence", "Ownership" }),
+
+            NewNonCodingQuestion("Tell me about a time you received critical feedback.", "Behavioral", "Behavioral",
+                roles: new[] { "Product Manager", "Software Engineer" },
+                companies: new[] { "Google", "Apple" },
+                tags: new[] { "Growth Mindset", "Coachability" }),
+
+            NewNonCodingQuestion("Tell me about a time you had to make a decision with incomplete data.", "Behavioral", "Behavioral",
+                roles: new[] { "Product Manager" },
+                companies: new[] { "Amazon", "Meta" },
+                tags: new[] { "Decision Making", "Judgment" }),
+
+            NewNonCodingQuestion("Tell me about a time you managed a difficult customer.", "Behavioral", "Behavioral",
+                roles: new[] { "Customer Success Manager", "Product Manager" },
+                companies: new[] { "Amazon", "Stripe" },
+                tags: new[] { "Customer Obsession", "Communication" }),
+
+            // Role-specific behavioral questions (so the role filter is meaningfully populated)
+            NewNonCodingQuestion("Tell me about a time you debugged a production incident.", "Behavioral", "Behavioral",
+                roles: new[] { "Software Engineer" },
+                companies: new[] { "Amazon", "Meta", "Google" },
+                tags: new[] { "Incident Response", "Ownership" },
+                hints: new[] {
+                    "Set the scene (impact + urgency), then walk through your triage steps: isolate, mitigate, root-cause, prevent.",
+                    "Emphasize communication: who you updated, how often, and what you learned after the postmortem."
+                }),
+
+            NewNonCodingQuestion("Tell me about a time you improved data quality or reliability.", "Behavioral", "Behavioral",
+                roles: new[] { "Data Engineer" },
+                companies: new[] { "Stripe", "Netflix", "Amazon" },
+                tags: new[] { "Data Quality", "Operational Excellence" },
+                hints: new[] {
+                    "Describe the failure mode (bad schema, late data, broken pipeline) and how you detected it (alerts, checks, dashboards).",
+                    "Explain the fix (contracts, validations, backfills) and how you prevented regressions."
+                }),
+
+            NewNonCodingQuestion("Tell me about an experiment you designed and how you interpreted the results.", "Behavioral", "Behavioral",
+                roles: new[] { "Data Scientist" },
+                companies: new[] { "Meta", "Google", "Microsoft" },
+                tags: new[] { "Experimentation", "Decision Making" },
+                hints: new[] {
+                    "Start with the decision you needed to make, then define hypothesis, metrics, and guardrails.",
+                    "Call out pitfalls (sample ratio mismatch, novelty effects) and how you validated the readout."
+                }),
+
+            NewNonCodingQuestion("Tell me about a model you shipped to production and how you monitored it.", "Behavioral", "Behavioral",
+                roles: new[] { "Machine Learning Engineer" },
+                companies: new[] { "Google", "Amazon", "Netflix" },
+                tags: new[] { "ML in Production", "Monitoring" },
+                hints: new[] {
+                    "Cover the end-to-end path: data → training → evaluation → deployment → rollback plan.",
+                    "Mention monitoring signals (latency, drift, performance, bias) and how you closed the loop with retraining."
+                }),
+
+            NewNonCodingQuestion("Tell me about a time you managed conflict on your team.", "Behavioral", "Behavioral",
+                roles: new[] { "Engineering Manager" },
+                companies: new[] { "Amazon", "Microsoft", "Apple" },
+                tags: new[] { "People Leadership", "Communication" },
+                hints: new[] {
+                    "Focus on the root cause (goals, incentives, ambiguity), then describe how you facilitated alignment.",
+                    "Explain the decision, how you got commitment, and what changed afterwards."
+                }),
+
+            NewNonCodingQuestion("Tell me about a time you drove alignment across multiple teams with competing priorities.", "Behavioral", "Behavioral",
+                roles: new[] { "Technical Program Manager" },
+                companies: new[] { "Google", "Amazon", "Meta" },
+                tags: new[] { "Cross-Functional Leadership", "Program Management" },
+                hints: new[] {
+                    "Show your approach: clarify goals, map stakeholders, surface trade-offs, and write down decisions.",
+                    "Highlight how you tracked risks/dependencies and kept execs and teams unblocked."
+                }),
+
+            NewNonCodingQuestion("Why do you think we should not hire you?", "Behavioral", "Behavioral",
+                roles: new[] { "Software Engineer", "Data Engineer", "Data Scientist" },
+                companies: new[] { "Amazon", "Google", "Meta" },
+                tags: new[] { "Self-Awareness", "Growth Mindset" },
+                hints: new[] {
+                    "Pick one real weakness (not a humblebrag), then show what you’ve done to mitigate it.",
+                    "Keep it specific: what you changed, how you measure improvement, and why it won’t block success in this role."
+                }),
+
+            NewNonCodingQuestion("Design a document processing pipeline.", "Behavioral", "Behavioral",
+                roles: new[] { "Data Engineer" },
+                companies: new[] { "Amazon", "Google", "Microsoft" },
+                tags: new[] { "Pipeline Design", "Reliability" },
+                hints: new[] {
+                    "Clarify inputs/outputs, scale, SLAs, and failure modes before proposing architecture.",
+                    "Walk through ingestion → parsing/OCR → enrichment → storage/indexing → serving → monitoring (retries, idempotency, backfills)."
+                }),
+
+            NewNonCodingQuestion("Find the number of users who called three or more people in the last week.", "Behavioral", "Behavioral",
+                roles: new[] { "Data Scientist", "Data Engineer" },
+                companies: new[] { "Meta", "Google", "Amazon" },
+                tags: new[] { "Analytics", "Structured Thinking" },
+                hints: new[] {
+                    "Define the event schema (caller, callee, timestamp) and the time window (timezone, inclusive bounds).",
+                    "Count distinct callees per caller in the last 7 days, then count callers with >= 3. Call out edge cases (spam, self-calls)."
+                }),
+        };
+
+        var productManagement = new List<InterviewQuestion>
+        {
+            NewNonCodingQuestion("How do you decide what to build next?", "Product Management", "Product Management",
+                roles: new[] { "Product Manager" },
+                companies: new[] { "Google", "Meta", "Amazon" },
+                tags: new[] { "Prioritization", "Strategy" },
+                hints: new[] {
+                    "Discuss inputs (user research, data, strategy), then how you frame trade-offs (impact vs effort).",
+                    "Mention alignment (eng/design/stakeholders) and how you communicate decisions."
+                }),
+
+            NewNonCodingQuestion("Walk me through launching a new product from scratch.", "Product Management", "Product Management",
+                roles: new[] { "Product Manager" },
+                companies: new[] { "Amazon", "Microsoft" },
+                tags: new[] { "Go-To-Market", "Execution" },
+                videoUrl: seedVideoUrl),
+
+            NewNonCodingQuestion("How would you improve our search feature?", "Product Management", "Product Management",
+                roles: new[] { "Product Manager" },
+                companies: new[] { "Google", "Amazon" },
+                tags: new[] { "Product Sense", "Metrics" },
+                hints: new[] {
+                    "Start with goals and users, define success metrics, propose hypotheses, and outline experiments."
+                }),
+
+            NewNonCodingQuestion("How do you define and track success for a feature?", "Product Management", "Product Management",
+                roles: new[] { "Product Manager" },
+                companies: new[] { "Meta", "Stripe" },
+                tags: new[] { "Metrics", "Analytics" }),
+
+            NewNonCodingQuestion("How do you handle trade-offs between growth and retention?", "Product Management", "Product Management",
+                roles: new[] { "Product Manager" },
+                companies: new[] { "Netflix", "Meta" },
+                tags: new[] { "Strategy", "Experimentation" }),
+
+            NewNonCodingQuestion("Tell me about a product you love and how you’d improve it.", "Product Management", "Product Management",
+                roles: new[] { "Product Manager" },
+                companies: new[] { "Apple", "Google" },
+                tags: new[] { "Product Thinking", "User Empathy" }),
+
+            NewNonCodingQuestion("How do you prioritize bugs vs new features?", "Product Management", "Product Management",
+                roles: new[] { "Product Manager" },
+                companies: new[] { "Amazon", "Microsoft" },
+                tags: new[] { "Quality", "Prioritization" }),
+
+            NewNonCodingQuestion("How do you write a good PRD?", "Product Management", "Product Management",
+                roles: new[] { "Product Manager" },
+                companies: new[] { "Google", "Meta" },
+                tags: new[] { "Requirements", "Communication" }),
+
+            NewNonCodingQuestion("How would you measure and improve onboarding?", "Product Management", "Product Management",
+                roles: new[] { "Product Manager" },
+                companies: new[] { "Stripe", "Amazon" },
+                tags: new[] { "Funnels", "Activation" }),
+
+            NewNonCodingQuestion("How do you partner with engineering when timelines slip?", "Product Management", "Product Management",
+                roles: new[] { "Product Manager" },
+                companies: new[] { "Meta", "Google" },
+                tags: new[] { "Execution", "Stakeholder Management" },
+                hints: new[] {
+                    "Discuss re-scoping, sequencing, risk management, and stakeholder communication."
+                }),
+
+            NewNonCodingQuestion("How do you handle conflicting stakeholder requests?", "Product Management", "Product Management",
+                roles: new[] { "Product Manager" },
+                companies: new[] { "Amazon", "Google" },
+                tags: new[] { "Stakeholder Management", "Prioritization" }),
+
+            NewNonCodingQuestion("Design a product for busy parents to manage family scheduling.", "Product Management", "Product Management",
+                roles: new[] { "Product Manager" },
+                companies: new[] { "Google", "Meta" },
+                tags: new[] { "Product Design", "User Research" }),
+
+            NewNonCodingQuestion("As the PM for Lyft, what dashboard would you build to track the health of the app?", "Product Management", "Product Management",
+                roles: new[] { "Product Manager", "Data Scientist" },
+                companies: new[] { "Lyft", "Meta", "Google" },
+                tags: new[] { "Dashboards", "Metrics" },
+                hints: new[] {
+                    "Start by defining “health” for each user group (riders, drivers) and the business (revenue, reliability).",
+                    "Propose a layered dashboard: top-line KPIs, funnels, quality/reliability, geography/time breakdowns, and alerts."
+                }),
+        };
+
+        // Remove duplicates by title against existing DB state
+        behavioral = behavioral.Where(q => !allExistingTitles.Contains(q.Title)).ToList();
+        productManagement = productManagement.Where(q => !allExistingTitles.Contains(q.Title)).ToList();
+
+        // Related questions (2 per question, within the same type)
+        SetRelatedQuestions(behavioral);
+        SetRelatedQuestions(productManagement);
+
+        var all = behavioral.Concat(productManagement).ToList();
+
+        // Apply admin metadata
+        foreach (var q in all)
+        {
+            q.IsActive = true;
+            q.ApprovalStatus = "Approved";
+            q.ApprovedBy = createdBy;
+            q.ApprovedAt = createdBy != null ? now : (DateTime?)null;
+            q.CreatedBy = createdBy;
+            q.CreatedAt = now;
+            q.UpdatedAt = now;
+        }
+
+        return all;
+
+        InterviewQuestion NewNonCodingQuestion(
+            string title,
+            string questionType,
+            string category,
+            string[] roles,
+            string[] companies,
+            string[] tags,
+            string[]? hints = null,
+            string? videoUrl = null)
+        {
+            return new InterviewQuestion
+            {
+                Id = Guid.NewGuid(),
+                Title = title,
+                Description = title, // For non-coding questions we use Description as the question prompt
+                Difficulty = "Medium",
+                QuestionType = questionType,
+                Category = category,
+                CompanyTags = JsonSerializer.Serialize(companies),
+                Tags = JsonSerializer.Serialize(tags),
+                Hints = hints != null ? JsonSerializer.Serialize(hints) : null,
+                VideoUrl = videoUrl,
+                RoleTags = JsonSerializer.Serialize(roles),
+                Constraints = null,
+                Examples = null,
+                TimeComplexityHint = null,
+                SpaceComplexityHint = null,
+                AcceptanceRate = null
+            };
+        }
+
+        void SetRelatedQuestions(List<InterviewQuestion> group)
+        {
+            if (group.Count < 3) return;
+
+            for (int i = 0; i < group.Count; i++)
+            {
+                var related = new List<Guid>
+                {
+                    group[(i + 1) % group.Count].Id,
+                    group[(i + 2) % group.Count].Id
+                };
+                group[i].RelatedQuestionIds = JsonSerializer.Serialize(related);
+            }
+        }
+    }
+
+    private static async Task SeedDefaultQuestionComments(ApplicationDbContext context, ILogger logger, Guid? createdBy)
+    {
+        if (createdBy is null)
+        {
+            // If we don't have an admin user, skip seeding comments (comments require a user).
+            return;
+        }
+
+        try
+        {
+            var adminUserId = createdBy.Value;
+            var now = DateTime.UtcNow;
+            const string prefix = "Vector tip:";
+
+            var seeds = new[]
+            {
+                new
+                {
+                    Title = "Tell me about a time you debugged a production incident.",
+                    Content =
+                        $"{prefix} A strong incident story is about *process*, not heroics.\n\n" +
+                        "- Situation: what broke and who it affected\n" +
+                        "- Actions: triage → mitigate → root cause → follow-ups\n" +
+                        "- Result: measurable impact (time-to-mitigate, prevented recurrence)\n" +
+                        "- Communication: who you updated and how you coordinated"
+                },
+                new
+                {
+                    Title = "Tell me about a time you improved data quality or reliability.",
+                    Content =
+                        $"{prefix} Lead with the failure mode and detection, then prevention.\n\n" +
+                        "- What was wrong (schema drift, late data, bad joins, missing backfills)\n" +
+                        "- How you detected it (alerts, checks, SLAs)\n" +
+                        "- Fix + prevention (contracts, validations, ownership, runbooks)\n" +
+                        "- Outcome (reduced incidents, improved trust)"
+                },
+                new
+                {
+                    Title = "Tell me about an experiment you designed and how you interpreted the results.",
+                    Content =
+                        $"{prefix} Make the *decision* the star.\n\n" +
+                        "- Hypothesis + primary metric + guardrails\n" +
+                        "- Design details (unit of randomization, duration, power)\n" +
+                        "- Readout (confidence, segments, pitfalls)\n" +
+                        "- What you recommended and what shipped"
+                },
+                new
+                {
+                    Title = "Tell me about a model you shipped to production and how you monitored it.",
+                    Content =
+                        $"{prefix} Interviewers want to hear the full lifecycle.\n\n" +
+                        "- Data + labeling + evaluation\n" +
+                        "- Deployment (A/B, shadow, canary) + rollback plan\n" +
+                        "- Monitoring (latency, drift, performance, bias)\n" +
+                        "- Iteration loop (retraining, feature updates)"
+                },
+                new
+                {
+                    Title = "Tell me about a time you managed conflict on your team.",
+                    Content =
+                        $"{prefix} Show that you reduced ambiguity and rebuilt trust.\n\n" +
+                        "- Diagnose the root cause (goals, roles, incentives)\n" +
+                        "- Facilitate alignment (1:1s, shared doc, clear decision owner)\n" +
+                        "- Set expectations and follow up\n" +
+                        "- Outcome (better delivery, healthier collaboration)"
+                },
+                new
+                {
+                    Title = "Tell me about a time you drove alignment across multiple teams with competing priorities.",
+                    Content =
+                        $"{prefix} Anchor on clarity, trade-offs, and a durable plan.\n\n" +
+                        "- North star + scope boundaries\n" +
+                        "- Stakeholder map + decision log\n" +
+                        "- Dependency/risk tracking + escalation path\n" +
+                        "- Outcome (launch, de-risked timeline, avoided churn)"
+                },
+                new
+                {
+                    Title = "Why do you think we should not hire you?",
+                    Content =
+                        $"{prefix} This question is about *judgment* and *self-awareness*.\n\n" +
+                        "- Choose one real gap that matters (skill, behavior, experience)\n" +
+                        "- Give a concrete example of when it showed up\n" +
+                        "- Explain what you changed (systems, habits, training)\n" +
+                        "- Close with why you’re still a strong fit for this role"
+                },
+                new
+                {
+                    Title = "Design a document processing pipeline.",
+                    Content =
+                        $"{prefix} Don’t jump to tech—start with requirements and failure modes.\n\n" +
+                        "- Inputs (PDFs, images), volume, latency, accuracy targets\n" +
+                        "- Ingestion + queue + workers (idempotency, retries, DLQ)\n" +
+                        "- Parsing/OCR + enrichment + validation\n" +
+                        "- Storage/index + serving layer\n" +
+                        "- Monitoring, backfills, and data quality checks"
+                },
+                new
+                {
+                    Title = "Find the number of users who called three or more people in the last week.",
+                    Content =
+                        $"{prefix} Even if you don’t write SQL, narrate the plan clearly.\n\n" +
+                        "- Define the event table (caller_id, callee_id, timestamp)\n" +
+                        "- Filter to last 7 days (timezone + boundaries)\n" +
+                        "- Count *distinct* callees per caller\n" +
+                        "- Count callers where distinct_callees >= 3\n" +
+                        "- Mention edge cases (duplicates, spam, self-calls)"
+                },
+                new
+                {
+                    Title = "As the PM for Lyft, what dashboard would you build to track the health of the app?",
+                    Content =
+                        $"{prefix} Great dashboards answer: “Are we healthy?” and “Where is it broken?”\n\n" +
+                        "- Pick personas (rider, driver, ops) and define “health” for each\n" +
+                        "- Top-line KPIs + funnels + reliability/quality metrics\n" +
+                        "- Breakdowns (geo, platform, time) and alert thresholds\n" +
+                        "- Call out what you would *not* include to keep it focused"
+                },
+                new
+                {
+                    Title = "Design a product for busy parents to manage family scheduling.",
+                    Content =
+                        $"{prefix} Start with a sharp user + problem, then explore constraints.\n\n" +
+                        "- Who: single parent vs two-parent household vs caregivers\n" +
+                        "- Jobs-to-be-done: coordination, reminders, handoffs, visibility\n" +
+                        "- MVP: shared calendar + roles + smart reminders\n" +
+                        "- Differentiators: conflict resolution, routines, integrations, privacy\n" +
+                        "- Metrics: weekly active families, tasks completed, missed events"
+                },
+            };
+
+            var titles = seeds.Select(s => s.Title).ToList();
+            var questionRows = await context.InterviewQuestions
+                .Where(q => titles.Contains(q.Title))
+                .Select(q => new { q.Id, q.Title })
+                .ToListAsync();
+
+            var questionIdByTitle = questionRows.ToDictionary(q => q.Title, q => q.Id);
+            var questionIds = questionRows.Select(q => q.Id).ToList();
+
+            if (!questionIds.Any())
+            {
+                return;
+            }
+
+            var alreadySeededQuestionIds = await context.InterviewQuestionComments
+                .Where(c => c.UserId == adminUserId && questionIds.Contains(c.QuestionId))
+                .Select(c => c.QuestionId)
+                .Distinct()
+                .ToListAsync();
+
+            var alreadySeededSet = alreadySeededQuestionIds.ToHashSet();
+            var toAdd = new List<InterviewQuestionComment>();
+
+            foreach (var seed in seeds)
+            {
+                if (!questionIdByTitle.TryGetValue(seed.Title, out var qid)) continue;
+                if (alreadySeededSet.Contains(qid)) continue;
+
+                toAdd.Add(new InterviewQuestionComment
+                {
+                    Id = Guid.NewGuid(),
+                    QuestionId = qid,
+                    UserId = adminUserId,
+                    Content = seed.Content,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                });
+            }
+
+            // Add one example reply thread (optional) to demonstrate structure
+            var incidentParent = toAdd.FirstOrDefault(c => questionIdByTitle.TryGetValue("Tell me about a time you debugged a production incident.", out var qid) && c.QuestionId == qid);
+            if (incidentParent != null)
+            {
+                toAdd.Add(new InterviewQuestionComment
+                {
+                    Id = Guid.NewGuid(),
+                    QuestionId = incidentParent.QuestionId,
+                    UserId = adminUserId,
+                    ParentCommentId = incidentParent.Id,
+                    Content = $"{prefix} Common pitfall: skipping the *prevention* step. Always end with what you changed so it won’t happen again.",
+                    CreatedAt = now,
+                    UpdatedAt = now
+                });
+            }
+
+            var whyNotHireParent = toAdd.FirstOrDefault(c => questionIdByTitle.TryGetValue("Why do you think we should not hire you?", out var qid) && c.QuestionId == qid);
+            if (whyNotHireParent != null)
+            {
+                toAdd.Add(new InterviewQuestionComment
+                {
+                    Id = Guid.NewGuid(),
+                    QuestionId = whyNotHireParent.QuestionId,
+                    UserId = adminUserId,
+                    ParentCommentId = whyNotHireParent.Id,
+                    Content = $"{prefix} Avoid “I’m a perfectionist.” Pick something real, keep it bounded, and show your mitigation strategy.",
+                    CreatedAt = now,
+                    UpdatedAt = now
+                });
+            }
+
+            if (toAdd.Any())
+            {
+                context.InterviewQuestionComments.AddRange(toAdd);
+                await context.SaveChangesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to seed default question comments (non-critical). Continuing...");
         }
     }
 

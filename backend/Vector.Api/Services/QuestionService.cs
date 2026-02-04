@@ -60,19 +60,21 @@ public class QuestionService : IQuestionService
             if (!string.IsNullOrEmpty(filter.Role) && string.IsNullOrEmpty(filter.QuestionType))
             {
                 var roleLower = filter.Role.Trim().ToLowerInvariant();
-                var questionType = roleLower switch
+                var mappedTypes = roleLower switch
                 {
-                    "data-engineer" or "data engineer" or "de" => "SQL",
-                    "software-engineer" or "software engineer" or "swe" or "developer" => "Coding",
-                    "system-designer" or "system designer" or "architect" => "System Design",
-                    "product-manager" or "product manager" or "pm" => "Behavioral",
-                    "engineering-manager" or "engineering manager" or "em" => "Behavioral",
-                    _ => null
+                    "data-engineer" or "data engineer" or "de" => new[] { "SQL" },
+                    "software-engineer" or "software engineer" or "swe" or "developer" => new[] { "Coding" },
+                    "system-designer" or "system designer" or "architect" => new[] { "System Design" },
+                    // PM roles can include both Product Management and Behavioral questions
+                    "product-manager" or "product manager" or "pm" => new[] { "Product Management", "Behavioral" },
+                    "engineering-manager" or "engineering manager" or "em" => new[] { "Behavioral" },
+                    "technical-program-manager" or "technical program manager" or "tpm" => new[] { "Product Management", "Behavioral" },
+                    _ => Array.Empty<string>()
                 };
-                
-                if (!string.IsNullOrEmpty(questionType))
+
+                if (mappedTypes.Length > 0)
                 {
-                    query = query.Where(q => q.QuestionType == questionType);
+                    query = query.Where(q => mappedTypes.Contains(q.QuestionType));
                 }
             }
             else if (!string.IsNullOrEmpty(filter.QuestionType))
@@ -184,10 +186,14 @@ public class QuestionService : IQuestionService
             Constraints = dto.Constraints,
             Examples = dto.Examples != null ? JsonSerializer.Serialize(dto.Examples) : null,
             Hints = dto.Hints != null ? JsonSerializer.Serialize(dto.Hints) : null,
+            VideoUrl = dto.VideoUrl,
+            RoleTags = dto.RoleTags != null ? JsonSerializer.Serialize(dto.RoleTags) : null,
+            RelatedQuestionIds = dto.RelatedQuestionIds != null ? JsonSerializer.Serialize(dto.RelatedQuestionIds) : null,
+            RelatedCourseIds = dto.RelatedCourseIds != null ? JsonSerializer.Serialize(dto.RelatedCourseIds) : null,
             TimeComplexityHint = dto.TimeComplexityHint,
             SpaceComplexityHint = dto.SpaceComplexityHint,
             AcceptanceRate = dto.AcceptanceRate,
-            IsActive = true,
+            IsActive = isAdmin,
             ApprovalStatus = approvalStatus,
             ApprovedBy = approvedBy,
             ApprovedAt = approvedAt,
@@ -212,7 +218,7 @@ public class QuestionService : IQuestionService
         }
 
         // Validate question type
-        var validQuestionTypes = new[] { "Coding", "System Design", "Behavioral", "SQL" };
+        var validQuestionTypes = new[] { "Coding", "System Design", "Behavioral", "SQL", "Product Management" };
         if (!validQuestionTypes.Contains(dto.QuestionType, StringComparer.OrdinalIgnoreCase))
         {
             throw new ArgumentException($"Invalid question type. Must be one of: {string.Join(", ", validQuestionTypes)}");
@@ -234,9 +240,10 @@ public class QuestionService : IQuestionService
             return null;
         }
 
-        // Check if user is authorized to update (must be the creator or admin)
-        // Note: Admin check would typically be done at controller level, but we check creator here
-        if (question.CreatedBy != updatedBy)
+        // Allow admin to update any question; otherwise only the creator can update
+        var updater = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == updatedBy);
+        var isAdmin = updater?.Role?.ToLower() == "admin";
+        if (!isAdmin && question.CreatedBy != updatedBy)
         {
             return null;
         }
@@ -261,6 +268,14 @@ public class QuestionService : IQuestionService
             question.Examples = JsonSerializer.Serialize(dto.Examples);
         if (dto.Hints != null)
             question.Hints = JsonSerializer.Serialize(dto.Hints);
+        if (dto.VideoUrl != null)
+            question.VideoUrl = dto.VideoUrl;
+        if (dto.RoleTags != null)
+            question.RoleTags = JsonSerializer.Serialize(dto.RoleTags);
+        if (dto.RelatedQuestionIds != null)
+            question.RelatedQuestionIds = JsonSerializer.Serialize(dto.RelatedQuestionIds);
+        if (dto.RelatedCourseIds != null)
+            question.RelatedCourseIds = JsonSerializer.Serialize(dto.RelatedCourseIds);
         if (dto.TimeComplexityHint != null)
             question.TimeComplexityHint = dto.TimeComplexityHint;
         if (dto.SpaceComplexityHint != null)
@@ -274,6 +289,28 @@ public class QuestionService : IQuestionService
 
         await _context.SaveChangesAsync();
         return question;
+    }
+
+    public async Task<List<RelatedQuestionDto>> GetRelatedQuestionsAsync(IEnumerable<Guid> questionIds)
+    {
+        var ids = questionIds
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        if (!ids.Any())
+        {
+            return new List<RelatedQuestionDto>();
+        }
+
+        return await _context.InterviewQuestions
+            .Where(q => ids.Contains(q.Id) && q.IsActive)
+            .Select(q => new RelatedQuestionDto
+            {
+                Id = q.Id,
+                Title = q.Title
+            })
+            .ToListAsync();
     }
 
     public async Task<bool> DeleteQuestionAsync(Guid questionId)
@@ -405,6 +442,7 @@ public class QuestionService : IQuestionService
         question.ApprovedBy = approvedBy;
         question.ApprovedAt = DateTime.UtcNow;
         question.RejectionReason = null;
+        question.IsActive = true;
         question.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
@@ -423,6 +461,7 @@ public class QuestionService : IQuestionService
         question.ApprovedBy = rejectedBy;
         question.ApprovedAt = DateTime.UtcNow;
         question.RejectionReason = rejectionReason;
+        question.IsActive = false;
         question.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();

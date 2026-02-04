@@ -16,15 +16,21 @@ public class PeerInterviewController : ControllerBase
     private readonly IPeerInterviewService _peerInterviewService;
     private readonly ILogger<PeerInterviewController> _logger;
     private readonly IHubContext<CollaborationHub> _hubContext;
+    private readonly IConfiguration _configuration;
+    private readonly IEmailService _emailService;
 
     public PeerInterviewController(
         IPeerInterviewService peerInterviewService,
         ILogger<PeerInterviewController> logger,
-        IHubContext<CollaborationHub> hubContext)
+        IHubContext<CollaborationHub> hubContext,
+        IConfiguration configuration,
+        IEmailService emailService)
     {
         _peerInterviewService = peerInterviewService;
         _logger = logger;
         _hubContext = hubContext;
+        _configuration = configuration;
+        _emailService = emailService;
     }
 
     private Guid GetCurrentUserId()
@@ -35,6 +41,27 @@ public class PeerInterviewController : ControllerBase
             throw new UnauthorizedAccessException("Invalid user ID in token");
         }
         return userId;
+    }
+
+    private static string GetRedirectUrlForInterviewType(string interviewType, Guid liveSessionId, Guid? activeQuestionId)
+    {
+        var t = (interviewType ?? string.Empty).Trim().ToLowerInvariant();
+        if (t == "system-design")
+        {
+            return $"/system-design-interview/{liveSessionId}";
+        }
+
+        if (t == "behavioral" || t == "product-management")
+        {
+            return $"/peer-interviews/sessions/{liveSessionId}?type={Uri.EscapeDataString(t)}";
+        }
+
+        // Coding / SQL (QuestionDetailPage)
+        if (activeQuestionId.HasValue)
+        {
+            return $"/questions/{activeQuestionId.Value}?session={liveSessionId}";
+        }
+        return $"/questions?session={liveSessionId}";
     }
 
     /// <summary>
@@ -447,6 +474,133 @@ public class PeerInterviewController : ControllerBase
         {
             _logger.LogError(ex, "Error getting feedback status");
             return StatusCode(500, new { message = "Failed to get feedback status", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Create a "practice with a friend" interview immediately (no schedule / no queue).
+    /// </summary>
+    [HttpPost("friend")]
+    [ProducesResponseType(typeof(FriendInterviewCreatedDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CreateFriendInterview([FromBody] CreateFriendInterviewDto dto)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            var userId = GetCurrentUserId();
+            var (liveSessionId, creatorScheduledSessionId, interviewType, activeQuestionId) =
+                await _peerInterviewService.CreateFriendInterviewAsync(userId, dto);
+
+            var redirectUrl = GetRedirectUrlForInterviewType(interviewType, liveSessionId, activeQuestionId);
+            var frontendUrl = (_configuration["Frontend:Url"] ?? "http://localhost:3000").TrimEnd('/');
+            // Use a dedicated invite landing page so unauthenticated users don't get stuck in auth loops.
+            // The landing page will prompt login (returnUrl) and auto-join the session after authentication.
+            var inviteUrl = $"{frontendUrl}/friend-invite/{liveSessionId}";
+
+            var emailSent = false;
+            var emailDeliveryMode = "disabled";
+            var partnerEmail = (dto.PartnerEmail ?? string.Empty).Trim();
+
+            // Only attempt delivery when SendGrid is configured (avoid claiming "sent" when disabled).
+            var sendGridApiKey = _configuration["SendGrid:ApiKey"]
+                ?? Environment.GetEnvironmentVariable("SendGrid__ApiKey")
+                ?? _configuration["SendGrid__ApiKey"];
+            var isSendGridEnabled =
+                !string.IsNullOrWhiteSpace(sendGridApiKey)
+                && sendGridApiKey != "your_sendgrid_api_key"
+                && sendGridApiKey != "your_sendgrid_api_key_here";
+
+            if (isSendGridEnabled)
+            {
+                emailDeliveryMode = "sendgrid";
+            }
+
+            if (!string.IsNullOrWhiteSpace(partnerEmail) && isSendGridEnabled)
+            {
+                try
+                {
+                    var subject = "Vector interview invite: practice with a friend";
+                    var bodyHtml = $@"
+<h2>You've been invited to practice an interview on Vector</h2>
+<p><strong>Interview type:</strong> {System.Net.WebUtility.HtmlEncode(interviewType)}</p>
+<p>Click the link below to join the session:</p>
+<p><a href=""{inviteUrl}"">Join the interview session</a></p>
+<p>If the link doesn't work, copy and paste this URL into your browser:</p>
+<p>{System.Net.WebUtility.HtmlEncode(inviteUrl)}</p>
+";
+
+                    await _emailService.SendEmailAsync(partnerEmail, subject, bodyHtml);
+                    emailSent = true;
+                }
+                catch (Exception ex)
+                {
+                    // Don't fail creation if email sending fails
+                    _logger.LogError(ex, "Failed to send friend invite email to {Email}", partnerEmail);
+                }
+            }
+
+            var response = new FriendInterviewCreatedDto
+            {
+                LiveSessionId = liveSessionId,
+                CreatorScheduledSessionId = creatorScheduledSessionId,
+                InterviewType = interviewType,
+                ActiveQuestionId = activeQuestionId,
+                RedirectUrl = redirectUrl,
+                InviteUrl = inviteUrl,
+                EmailSent = emailSent,
+                EmailDeliveryMode = emailDeliveryMode
+            };
+
+            return StatusCode(201, response);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating friend interview");
+            return StatusCode(500, new { message = "Failed to create friend interview", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Join a "practice with a friend" live session (by link).
+    /// When the second user joins, the system creates the matching records so the session shows up in both users' history.
+    /// </summary>
+    [HttpPost("friend/sessions/{liveSessionId}/join")]
+    [ProducesResponseType(typeof(JoinFriendInterviewResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> JoinFriendInterview(Guid liveSessionId)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            var session = await _peerInterviewService.JoinFriendInterviewAsync(liveSessionId, userId);
+            return Ok(new JoinFriendInterviewResponseDto
+            {
+                Joined = true,
+                Session = session
+            });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error joining friend interview");
+            return StatusCode(500, new { message = "Failed to join friend interview", error = ex.Message });
         }
     }
 }

@@ -61,9 +61,7 @@ See `TESTING_PEER_INTERVIEW.md` for detailed instructions on how to test the rea
 
 **Tasks:**
 1. **Create Signaling Endpoint**
-   - POST `/api/video-sessions/{id}/offer` - Handle WebRTC offer
-   - POST `/api/video-sessions/{id}/answer` - Handle WebRTC answer
-   - POST `/api/video-sessions/{id}/ice-candidate` - Handle ICE candidates
+   - Video sessions REST endpoints removed; signaling handled via SignalR hub.
 
 2. **Update VideoSessionService**
    - Store signaling data (offers, answers, ICE candidates)

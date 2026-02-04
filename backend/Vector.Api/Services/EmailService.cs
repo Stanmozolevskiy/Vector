@@ -306,12 +306,18 @@ public class EmailService : IEmailService
                     ?? _configuration["SendGrid__FromName"]
                     ?? "Vector";
 
+        // If caller passes HTML, preserve it. Also include a usable plain-text fallback.
+        var isLikelyHtml = body.Contains('<') && body.Contains('>');
+        var plainText = isLikelyHtml
+            ? System.Text.RegularExpressions.Regex.Replace(body, "<.*?>", string.Empty)
+            : body;
+
         var msg = new SendGridMessage
         {
             From = new EmailAddress(fromEmail, fromName),
             Subject = subject,
-            PlainTextContent = body,
-            HtmlContent = $"<p>{body.Replace("\n", "<br>")}</p>"
+            PlainTextContent = plainText,
+            HtmlContent = isLikelyHtml ? body : $"<p>{System.Net.WebUtility.HtmlEncode(body).Replace("\n", "<br>")}</p>"
         };
         msg.AddTo(new EmailAddress(email));
 

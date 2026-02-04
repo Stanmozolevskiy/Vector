@@ -18,12 +18,9 @@ export interface SaveWhiteboardDataDto {
 }
 
 export const whiteboardService = {
-  async getWhiteboardData(questionId?: string, partnerUserId?: string): Promise<WhiteboardData | null> {
+  async getWhiteboardData(questionId?: string): Promise<WhiteboardData | null> {
     try {
       const params: any = questionId ? { questionId } : {};
-      if (partnerUserId) {
-        params.partnerUserId = partnerUserId;
-      }
       const response = await api.get<WhiteboardData>('/whiteboard', { params });
       return response.data;
     } catch (error: any) {

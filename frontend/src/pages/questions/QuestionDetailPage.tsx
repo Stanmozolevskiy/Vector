@@ -1,8 +1,8 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
 import * as signalR from '@microsoft/signalr';
 import { questionService } from '../../services/question.service';
-import type { InterviewQuestion, QuestionTestCase, QuestionSolution } from '../../services/question.service';
+import type { InterviewQuestion, QuestionComment, QuestionTestCase, QuestionSolution } from '../../services/question.service';
 import { codeExecutionService, type RunResult } from '../../services/codeExecution.service';
 import { solutionService } from '../../services/solution.service';
 import { ROUTES } from '../../utils/constants';
@@ -12,6 +12,9 @@ import { DraggableVideoChat } from '../../components/DraggableVideoChat';
 import { useAuth } from '../../hooks/useAuth';
 import { getQuestionTemplate } from '../../utils/questionTemplates';
 import { ToastContainer } from '../../components/Toast';
+import { MarkdownEditor } from '../../components/common/MarkdownEditor';
+import { MarkdownRenderer } from '../../components/common/MarkdownRenderer';
+import { CompanyIcon } from '../../components/common/CompanyIcon';
 import { codeDraftService } from '../../services/codeDraft.service';
 import { peerInterviewService } from '../../services/peerInterview.service';
 import type { PeerInterviewSession } from '../../services/peerInterview.service';
@@ -88,6 +91,21 @@ export const QuestionDetailPage = () => {
   const [isEndingSession, setIsEndingSession] = useState(false);
   const connectionLostRef = useRef<boolean>(false);
 
+  // Non-coding question: comments (community answers/discussion)
+  const [comments, setComments] = useState<QuestionComment[]>(() => []);
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
+  const [commentDraft, setCommentDraft] = useState('');
+  const [isPostingComment, setIsPostingComment] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [wasAsked, setWasAsked] = useState(false);
+  const [videoHelpfulRating, setVideoHelpfulRating] = useState<number>(0); // 0-5
+  const [answerSort, setAnswerSort] = useState<'Hot' | 'Top' | 'New'>('Hot');
+  const [isAnswerSortOpen, setIsAnswerSortOpen] = useState(false);
+  const [openReplyForCommentId, setOpenReplyForCommentId] = useState<string | null>(null);
+  const [replyDraftByCommentId, setReplyDraftByCommentId] = useState<Record<string, string>>({});
+  const [isPostingReplyForCommentId, setIsPostingReplyForCommentId] = useState<string | null>(null);
+  const [expandedRepliesByCommentId, setExpandedRepliesByCommentId] = useState<Record<string, boolean>>({});
+
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' | 'warning') => {
     const id = Date.now().toString();
     setToasts((prev) => [...prev, { id, message, type }]);
@@ -97,6 +115,11 @@ export const QuestionDetailPage = () => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
   const editorPanelRef = useRef<HTMLDivElement>(null);
+
+  // Determine if both users joined (for feedback form logic)
+  const hasBothUsers = useMemo(() => {
+    return !!(activeSession?.interviewerId && activeSession?.intervieweeId);
+  }, [activeSession?.interviewerId, activeSession?.intervieweeId]);
   const codeEditorRef = useRef<any>(null);
   const codeAreaRef = useRef<HTMLDivElement>(null);
   const testcasePanelRef = useRef<HTMLDivElement>(null);
@@ -120,6 +143,58 @@ export const QuestionDetailPage = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [searchParams, activeSession, navigate]);
 
+  // Close non-coding answer sort dropdown when clicking outside
+  useEffect(() => {
+    if (!isAnswerSortOpen) return;
+
+    const handleClick = (e: MouseEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (!el) return;
+      if (el.closest('.qa-sort')) return;
+      setIsAnswerSortOpen(false);
+    };
+
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [isAnswerSortOpen]);
+
+  // Polling backup: Check for session updates every 3 seconds if waiting for second user
+  useEffect(() => {
+    if (!activeSession || !user?.id) return;
+    
+    // Only poll if we're in a friend interview and waiting for the second user
+    const isFriendInterview = activeSession.practiceType === 'friend';
+    const hasOnlyOneUser = activeSession.interviewerId && !activeSession.intervieweeId;
+    
+    if (!isFriendInterview || !hasOnlyOneUser) return;
+    
+    const intervalId = setInterval(async () => {
+      try {
+        const updatedSession = await peerInterviewService.getSession(activeSession.id);
+        
+        // Check if second user has joined
+        if (updatedSession.interviewerId && updatedSession.intervieweeId) {
+          setActiveSession(updatedSession);
+          
+          // Synchronize timer - use updatedSession.id for localStorage key
+          if (updatedSession.startedAt) {
+            const backendStartTime = new Date(updatedSession.startedAt);
+            setSessionStartTime(backendStartTime);
+            localStorage.setItem(`session_start_${updatedSession.id}`, backendStartTime.toISOString());
+          }
+          
+          setShowPartnerVideo(true);
+          // Stop polling once second user is found
+          clearInterval(intervalId);
+        }
+      } catch (error) {
+        // Polling error - will retry on next interval
+      }
+    }, 3000); // Poll every 3 seconds
+    
+    return () => clearInterval(intervalId);
+  }, [activeSession, user?.id]);
+
   useEffect(() => {
     if (id && user?.id) {
       loadQuestion();
@@ -130,6 +205,52 @@ export const QuestionDetailPage = () => {
       }
     }
   }, [id, user?.id, searchParams]);
+
+  // Hydrate lightweight local UI state (non-coding actions)
+  useEffect(() => {
+    if (!id) return;
+    const timer = setTimeout(() => {
+      try {
+        setIsSaved(localStorage.getItem(`question:${id}:saved`) === '1');
+        setWasAsked(localStorage.getItem(`question:${id}:asked`) === '1');
+        setVideoHelpfulRating(Number(localStorage.getItem(`question:${id}:videoRating`) || '0') || 0);
+      } catch {
+        // ignore
+      }
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [id]);
+
+  // Load comments for non-coding questions (non-blocking)
+  useEffect(() => {
+    if (!id || !question) return;
+    const type = question.questionType?.toLowerCase();
+    if (type === 'coding' || type === 'sql') return;
+
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      setIsLoadingComments(true);
+      const sortParam = (answerSort || 'Hot').toLowerCase() as 'hot' | 'top' | 'new';
+      questionService.getQuestionComments(id, 1, 50, sortParam)
+        .then((data) => {
+          if (cancelled) return;
+          setComments(data);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setComments([]);
+        })
+        .finally(() => {
+          if (cancelled) return;
+          setIsLoadingComments(false);
+        });
+    }, 0);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [id, question, answerSort]);
 
   // Also check session when user becomes available
   // Session check removed - only checks when sessionId is in URL params
@@ -144,13 +265,11 @@ export const QuestionDetailPage = () => {
 
     const initializeSessionHub = async () => {
       try {
-        const accessToken = localStorage.getItem('accessToken');
-        if (!accessToken) return;
-
         const baseUrl = (api.defaults.baseURL?.replace('/api', '') || 'http://localhost:5000');
         const connection = new signalR.HubConnectionBuilder()
-          .withUrl(`${baseUrl}/api/collaboration?access_token=${accessToken}`, {
+          .withUrl(`${baseUrl}/api/collaboration`, {
             transport: signalR.HttpTransportType.WebSockets,
+            accessTokenFactory: () => localStorage.getItem('accessToken') || '',
           })
           .withAutomaticReconnect({
             nextRetryDelayInMilliseconds: (retryContext) => {
@@ -237,6 +356,26 @@ export const QuestionDetailPage = () => {
           }
         });
 
+        // Listen for participant joined (to synchronize timer when second user joins)
+        connection.on('ParticipantJoined', async (data: { sessionId: string }) => {
+          try {
+            // Reload session to get updated participants and ensure timer is synchronized
+            const updatedSession = await peerInterviewService.getSession(data.sessionId);
+            setActiveSession(updatedSession);
+            
+            // Synchronize timer with backend
+            if (updatedSession.startedAt) {
+              const backendStartTime = new Date(updatedSession.startedAt);
+              setSessionStartTime(backendStartTime);
+              localStorage.setItem(`session_start_${data.sessionId}`, backendStartTime.toISOString());
+            }
+            
+            setShowPartnerVideo(true);
+          } catch (error) {
+            console.error('Error handling participant joined:', error);
+          }
+        });
+
         // Listen for interview ended event
         connection.on('InterviewEnded', async (data: { sessionId: string }) => {
           try {
@@ -298,16 +437,30 @@ export const QuestionDetailPage = () => {
           setShowPartnerVideo(true);
           
           // Start timer ONLY if both users have joined (status is InProgress AND intervieweeId is set)
-          if (session.status === 'InProgress' && session.intervieweeId) {
-            // Get session start time from localStorage or use current time
-            const storedStartTime = localStorage.getItem(`session_start_${sessionIdFromUrl}`);
-            if (storedStartTime) {
-              setSessionStartTime(new Date(storedStartTime));
+          // Exception: For "practice with a friend", start timer immediately with 1 participant
+          const isFriendInterview = session.practiceType === 'friend';
+          const shouldStartTimer = session.status === 'InProgress' && (isFriendInterview || session.intervieweeId);
+          
+          if (shouldStartTimer) {
+            // Try to use the backend's startedAt time as the source of truth
+            if (session.startedAt) {
+              const backendStartTime = new Date(session.startedAt);
+              setSessionStartTime(backendStartTime);
+              const storedStartTime = localStorage.getItem(`session_start_${sessionIdFromUrl}`);
+              if (!storedStartTime) {
+                localStorage.setItem(`session_start_${sessionIdFromUrl}`, backendStartTime.toISOString());
+              }
             } else {
-              // Timer starts when both users join - set start time now
-              const startTime = new Date();
-              setSessionStartTime(startTime);
-              localStorage.setItem(`session_start_${sessionIdFromUrl}`, startTime.toISOString());
+              // Fallback: If backend didn't provide startedAt, check localStorage or use current time
+              const storedStartTime = localStorage.getItem(`session_start_${sessionIdFromUrl}`);
+              if (storedStartTime) {
+                setSessionStartTime(new Date(storedStartTime));
+              } else {
+                // No backend time and no stored time - start timer now
+                const now = new Date();
+                setSessionStartTime(now);
+                localStorage.setItem(`session_start_${sessionIdFromUrl}`, now.toISOString());
+              }
             }
           }
           
@@ -967,6 +1120,10 @@ export const QuestionDetailPage = () => {
     try {
       setIsEndingSession(true);
       
+      // First, reload session to get latest participant data
+      const latestSession = await peerInterviewService.getSession(activeSession.id);
+      setActiveSession(latestSession);
+      
       // End the interview session
       await peerInterviewService.endInterview(activeSession.id);
       
@@ -1019,7 +1176,12 @@ export const QuestionDetailPage = () => {
 
   // Timer effect - update elapsedTime every second
   useEffect(() => {
-    if (!sessionStartTime || !activeSession?.intervieweeId) {
+    // For friend interviews, start timer immediately
+    // For matched interviews, wait for both users
+    const isFriendInterview = activeSession?.practiceType === 'friend';
+    const shouldStartTimer = sessionStartTime && (isFriendInterview || activeSession?.intervieweeId);
+    
+    if (!shouldStartTimer) {
       setElapsedTime(0);
       return;
     }
@@ -1037,7 +1199,7 @@ export const QuestionDetailPage = () => {
     const intervalId = setInterval(updateTimer, 1000);
 
     return () => clearInterval(intervalId);
-  }, [sessionStartTime, activeSession?.intervieweeId]);
+  }, [sessionStartTime, activeSession?.intervieweeId, activeSession?.practiceType]);
 
   const loadQuestion = async () => {
     if (!id) return;
@@ -1411,24 +1573,558 @@ export const QuestionDetailPage = () => {
 
   // Show coding question layout for coding questions and SQL questions
   if (question.questionType?.toLowerCase() !== 'coding' && question.questionType?.toLowerCase() !== 'sql') {
-    // For non-coding questions, show a simpler layout
+    const getInitials = (name?: string) => {
+      const cleaned = (name || '').trim();
+      if (!cleaned) return 'U';
+      const parts = cleaned.split(/\s+/).filter(Boolean);
+      const first = parts[0]?.[0] ?? 'U';
+      const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '';
+      return (first + last).toUpperCase();
+    };
+
+    const currentUserName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
+
+    const handleToggleSaved = () => {
+      if (!id) return;
+      setIsSaved((prev) => {
+        const next = !prev;
+        try {
+          localStorage.setItem(`question:${id}:saved`, next ? '1' : '0');
+        } catch {
+          // ignore
+        }
+        return next;
+      });
+    };
+
+    const handleToggleWasAsked = () => {
+      if (!id) return;
+      setWasAsked((prev) => {
+        const next = !prev;
+        try {
+          localStorage.setItem(`question:${id}:asked`, next ? '1' : '0');
+        } catch {
+          // ignore
+        }
+        return next;
+      });
+    };
+
+    const handleShare = () => {
+      const url = window.location.href;
+      if (navigator.share) {
+        navigator.share({ title: question.title, url }).catch(() => {});
+        return;
+      }
+      navigator.clipboard?.writeText(url)
+        .then(() => showToast('Link copied to clipboard', 'success'))
+        .catch(() => showToast('Failed to copy link', 'error'));
+    };
+
+    const handleFlag = () => {
+      showToast("Thanks — we'll review this question.", 'info');
+    };
+
+    const handleSetVideoRating = (rating: number) => {
+      if (!id) return;
+      const next = Math.max(0, Math.min(5, rating));
+      setVideoHelpfulRating(next);
+      try {
+        localStorage.setItem(`question:${id}:videoRating`, String(next));
+      } catch {
+        // ignore
+      }
+    };
+
+    const handleAddComment = async () => {
+      if (!id) return;
+      const content = commentDraft.trim();
+      if (!content) return;
+      if (isPostingComment) return;
+
+      setIsPostingComment(true);
+      try {
+        const created = await questionService.addQuestionComment(id, content);
+        setComments((prev) => [created, ...prev]);
+        setCommentDraft('');
+      } catch (error) {
+        showToast('Failed to post comment. Please try again.', 'error');
+      } finally {
+        setIsPostingComment(false);
+      }
+    };
+
+    const updateCommentTree = (
+      list: QuestionComment[],
+      commentId: string,
+      updater: (c: QuestionComment) => QuestionComment
+    ): QuestionComment[] => {
+      return list.map((c) => {
+        if (c.id === commentId) return updater(c);
+        if (c.replies && c.replies.length > 0) {
+          return { ...c, replies: updateCommentTree(c.replies, commentId, updater) };
+        }
+        return c;
+      });
+    };
+
+    const handleToggleUpvote = (commentId: string) => {
+      if (!id) return;
+
+      // Optimistic UI
+      setComments((prev) =>
+        updateCommentTree(prev, commentId, (c) => {
+          const nextHasUpvoted = !c.hasUpvoted;
+          const nextCount = Math.max(0, (c.upvoteCount || 0) + (nextHasUpvoted ? 1 : -1));
+          return { ...c, hasUpvoted: nextHasUpvoted, upvoteCount: nextCount };
+        })
+      );
+
+      questionService
+        .toggleCommentUpvote(id, commentId)
+        .then((res) => {
+          setComments((prev) =>
+            updateCommentTree(prev, commentId, (c) => ({ ...c, hasUpvoted: res.hasUpvoted, upvoteCount: res.upvoteCount }))
+          );
+        })
+        .catch(() => {
+          // Revert on failure by reloading (non-blocking)
+          questionService.getQuestionComments(id, 1, 50, (answerSort || 'Hot').toLowerCase() as 'hot' | 'top' | 'new')
+            .then((data) => setComments(data))
+            .catch(() => {});
+          showToast('Failed to update upvote. Please try again.', 'error');
+        });
+    };
+
+    const handleOpenReply = (commentId: string) => {
+      setOpenReplyForCommentId((prev) => (prev === commentId ? null : commentId));
+      setReplyDraftByCommentId((prev) => ({ ...prev, [commentId]: prev[commentId] ?? '' }));
+    };
+
+    const handleToggleReplies = (commentId: string) => {
+      setExpandedRepliesByCommentId((prev) => ({ ...prev, [commentId]: !prev[commentId] }));
+    };
+
+    const handleAddReply = async (parentCommentId: string) => {
+      if (!id) return;
+      const content = (replyDraftByCommentId[parentCommentId] || '').trim();
+      if (!content) return;
+      if (isPostingReplyForCommentId) return;
+
+      setIsPostingReplyForCommentId(parentCommentId);
+      try {
+        const created = await questionService.addQuestionComment(id, content, parentCommentId);
+        setComments((prev) =>
+          updateCommentTree(prev, parentCommentId, (c) => ({ ...c, replies: [...(c.replies || []), created] }))
+        );
+        setReplyDraftByCommentId((prev) => ({ ...prev, [parentCommentId]: '' }));
+        setOpenReplyForCommentId(null);
+        setExpandedRepliesByCommentId((prev) => ({ ...prev, [parentCommentId]: true }));
+      } catch {
+        showToast('Failed to post reply. Please try again.', 'error');
+      } finally {
+        setIsPostingReplyForCommentId(null);
+      }
+    };
+
     return (
-      <div className="question-detail-page">
-        <nav className="question-navbar">
-          <div className="question-nav-left">
-            <Link to={ROUTES.QUESTIONS} className="back-btn">
-              <i className="fas fa-chevron-left"></i>
-            </Link>
-            <div className="question-nav-title">
-              <span className="nav-question-number">{question.title}</span>
+      <>
+        <ToastContainer toasts={toasts} onRemove={removeToast} />
+        <div className="question-detail-page noncoding-detail">
+          <nav className="question-navbar">
+            <div className="question-nav-left">
+              <Link to={ROUTES.QUESTIONS} className="back-btn" aria-label="Back to all questions">
+                <i className="fas fa-chevron-left"></i>
+              </Link>
+              <Link to={ROUTES.QUESTIONS} className="noncoding-breadcrumb">
+                All Questions
+              </Link>
+            </div>
+          </nav>
+
+          <div className="noncoding-container">
+            <div className="noncoding-layout">
+              <main className="noncoding-main">
+                <h1 className="noncoding-title">{question.title}</h1>
+                <div className="noncoding-actions-row">
+                  {user?.role === 'admin' && id ? (
+                    <Link
+                      to={`${ROUTES.EDIT_QUESTION}/${id}`}
+                      className="noncoding-action-btn"
+                      aria-label="Edit question"
+                    >
+                      <i className="fa-regular fa-pen-to-square"></i>
+                      <span>Edit</span>
+                    </Link>
+                  ) : null}
+                  <button
+                    type="button"
+                    className={`noncoding-action-btn ${isSaved ? 'is-active' : ''}`}
+                    onClick={handleToggleSaved}
+                    aria-label={isSaved ? 'Unsave question' : 'Save question'}
+                  >
+                    <i className={`fa-${isSaved ? 'solid' : 'regular'} fa-bookmark`}></i>
+                    <span>Save</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`noncoding-action-btn ${wasAsked ? 'is-active' : ''}`}
+                    onClick={handleToggleWasAsked}
+                    aria-label={wasAsked ? 'Remove “I was asked this”' : 'Mark “I was asked this”'}
+                  >
+                    <i className="fa-regular fa-circle-check"></i>
+                    <span>I was asked this</span>
+                  </button>
+                  <button type="button" className="noncoding-action-btn" onClick={handleShare} aria-label="Share question">
+                    <i className="fa-solid fa-share-nodes"></i>
+                    <span>Share</span>
+                  </button>
+                  <button type="button" className="noncoding-action-btn" onClick={handleFlag} aria-label="Flag question">
+                    <i className="fa-regular fa-flag"></i>
+                    <span>Flag</span>
+                  </button>
+                </div>
+
+                {question.videoUrl ? (
+                  <section className="noncoding-video">
+                    <video
+                      className="noncoding-video-player"
+                      controls
+                      preload="metadata"
+                      src={question.videoUrl}
+                    />
+                    <div className="noncoding-video-feedback">
+                      <div className="noncoding-video-feedback-label">Was this video helpful?</div>
+                      <div className="noncoding-stars" role="radiogroup" aria-label="Video helpful rating">
+                        {Array.from({ length: 5 }).map((_, idx) => {
+                          const star = idx + 1;
+                          const active = videoHelpfulRating >= star;
+                          return (
+                            <button
+                              key={star}
+                              type="button"
+                              className={`noncoding-star ${active ? 'is-on' : ''}`}
+                              onClick={() => handleSetVideoRating(star)}
+                              aria-label={`${star} star${star === 1 ? '' : 's'}`}
+                            >
+                              <i className={`fa-${active ? 'solid' : 'regular'} fa-star`}></i>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </section>
+                ) : null}
+
+                <section className="noncoding-section">
+                  <h2 className="noncoding-section-title">Question</h2>
+                  <div className="noncoding-question-body">{question.description}</div>
+
+                  {question.hints && question.hints.length > 0 ? (
+                    <>
+                      <div className="noncoding-divider" />
+                      <h3 className="noncoding-subsection-title">Hints</h3>
+                      <div className="noncoding-accordion">
+                        {question.hints.map((hint, idx) => {
+                          const isExpanded = expandedHints.has(idx);
+                          return (
+                            <div key={idx} className={`noncoding-accordion-item ${isExpanded ? 'is-open' : ''}`}>
+                              <button
+                                type="button"
+                                className="noncoding-accordion-trigger"
+                                onClick={() => {
+                                  const next = new Set(expandedHints);
+                                  if (isExpanded) next.delete(idx);
+                                  else next.add(idx);
+                                  setExpandedHints(next);
+                                }}
+                              >
+                                <span className="noncoding-accordion-title">
+                                  <i className="far fa-lightbulb"></i>
+                                  Hint {idx + 1}
+                                </span>
+                                <i className={`fas fa-chevron-${isExpanded ? 'down' : 'right'} noncoding-accordion-icon`}></i>
+                              </button>
+                              {isExpanded ? (
+                                <div className="noncoding-accordion-content">{hint}</div>
+                              ) : null}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  ) : null}
+                </section>
+
+                <section className="noncoding-section">
+                  <div className="noncoding-guidelines">
+                    <div className="noncoding-guidelines-title">Community guidelines</div>
+                    <ul className="noncoding-guidelines-list">
+                      <li>Stay on topic. Use this section for submitting solutions and providing feedback to others.</li>
+                      <li>Be inclusive. Please respect others&apos; opinions and beliefs.</li>
+                    </ul>
+                  </div>
+                </section>
+
+                <section className="noncoding-section">
+                  <div className="qa-editor">
+                    <div className="qa-editor-header">
+                      <div className="qa-avatar">
+                        {user?.profilePictureUrl ? (
+                          <img className="qa-avatar-img" src={user.profilePictureUrl} alt={currentUserName || 'User'} />
+                        ) : (
+                          <div className="qa-avatar-fallback">{getInitials(currentUserName)}</div>
+                        )}
+                      </div>
+                      <div className="qa-editor-author">
+                        <div className="qa-author-name">{currentUserName || 'User'}</div>
+                      </div>
+                    </div>
+
+                    <MarkdownEditor
+                      value={commentDraft}
+                      onChange={setCommentDraft}
+                      placeholder="Add your own answer to this question..."
+                      rows={6}
+                      ariaLabel="Add your own answer"
+                    />
+
+                    <div className="qa-editor-footer">
+                      <button
+                        type="button"
+                        className="qa-submit-btn"
+                        onClick={handleAddComment}
+                        disabled={isPostingComment || !commentDraft.trim()}
+                      >
+                        {isPostingComment ? 'Submitting...' : 'Submit'}
+                      </button>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="noncoding-section">
+                  <div className="qa-answers-bar">
+                    <div className="qa-answers-count">
+                      <i className="fa-regular fa-comment-dots"></i>
+                      <span>{comments.length}</span>
+                    </div>
+
+                    <div className="qa-sort">
+                      <button
+                        type="button"
+                        className="qa-sort-btn"
+                        onClick={() => setIsAnswerSortOpen((v) => !v)}
+                        aria-label="Sort answers"
+                      >
+                        <span>🔥 {answerSort}</span>
+                        <i className="fa-solid fa-chevron-down"></i>
+                      </button>
+                      {isAnswerSortOpen ? (
+                        <div className="qa-sort-menu" role="menu">
+                          {(['Hot', 'Top', 'New'] as const).map((opt) => (
+                            <button
+                              key={opt}
+                              type="button"
+                              className={`qa-sort-option ${answerSort === opt ? 'is-active' : ''}`}
+                              onClick={() => {
+                                setAnswerSort(opt);
+                                setIsAnswerSortOpen(false);
+                              }}
+                              role="menuitem"
+                            >
+                              {opt === 'Hot' ? '🔥 Hot' : opt === 'Top' ? '⬆️ Top' : '✨ New'}
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {isLoadingComments ? (
+                    <div className="noncoding-muted">Loading answers...</div>
+                  ) : comments.length > 0 ? (
+                    <div className="qa-answer-list">
+                      {comments.map((c) => (
+                        <div key={c.id} className="qa-answer-card">
+                          <div className="qa-answer-header">
+                            <div className="qa-avatar qa-avatar--sm">
+                              {c.userProfilePictureUrl ? (
+                                <img className="qa-avatar-img qa-avatar-img--sm" src={c.userProfilePictureUrl} alt={c.userName || 'User'} />
+                              ) : (
+                                <div className="qa-avatar-fallback qa-avatar-fallback--sm">{getInitials(c.userName)}</div>
+                              )}
+                            </div>
+                            <div className="qa-answer-meta">
+                              <div className="qa-author-name">{c.userName || 'User'}</div>
+                              <div className="qa-date">{new Date(c.createdAt).toLocaleDateString()}</div>
+                            </div>
+                          </div>
+                          <MarkdownRenderer content={c.content} className="qa-answer-body markdown-body" />
+
+                          <div className="qa-answer-actions">
+                            <button
+                              type="button"
+                              className={`qa-action-btn ${c.hasUpvoted ? 'is-active' : ''}`}
+                              onClick={() => handleToggleUpvote(c.id)}
+                              aria-label="Upvote"
+                            >
+                              <i className="fa-solid fa-arrow-up"></i>
+                              <span>{c.upvoteCount ?? 0}</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="qa-action-btn"
+                              onClick={() => handleOpenReply(c.id)}
+                              aria-label="Reply"
+                            >
+                              <i className="fa-regular fa-comment"></i>
+                              <span>Reply</span>
+                            </button>
+                            {c.replies && c.replies.length > 0 ? (
+                              <button
+                                type="button"
+                                className="qa-action-btn"
+                                onClick={() => handleToggleReplies(c.id)}
+                                aria-label="Toggle replies"
+                              >
+                                <i className={`fa-solid fa-chevron-${expandedRepliesByCommentId[c.id] ? 'up' : 'down'}`}></i>
+                                <span>{expandedRepliesByCommentId[c.id] ? 'Hide' : 'View'} {c.replies.length} {c.replies.length === 1 ? 'reply' : 'replies'}</span>
+                              </button>
+                            ) : null}
+                          </div>
+
+                          {openReplyForCommentId === c.id ? (
+                            <div className="qa-reply-editor">
+                              <div className="qa-reply-editor-inner">
+                                <MarkdownEditor
+                                  value={replyDraftByCommentId[c.id] || ''}
+                                  onChange={(next) => setReplyDraftByCommentId((prev) => ({ ...prev, [c.id]: next }))}
+                                  placeholder="Write a reply..."
+                                  rows={3}
+                                  ariaLabel="Write a reply"
+                                />
+                                <div className="qa-reply-actions">
+                                  <button
+                                    type="button"
+                                    className="qa-reply-cancel"
+                                    onClick={() => setOpenReplyForCommentId(null)}
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="qa-submit-btn"
+                                    onClick={() => handleAddReply(c.id)}
+                                    disabled={isPostingReplyForCommentId === c.id || !(replyDraftByCommentId[c.id] || '').trim()}
+                                  >
+                                    {isPostingReplyForCommentId === c.id ? 'Submitting...' : 'Reply'}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ) : null}
+
+                          {c.replies && c.replies.length > 0 && expandedRepliesByCommentId[c.id] ? (
+                            <div className="qa-replies">
+                              {c.replies.map((r) => (
+                                <div key={r.id} className="qa-reply-card">
+                                  <div className="qa-answer-header">
+                                    <div className="qa-avatar qa-avatar--sm">
+                                      {r.userProfilePictureUrl ? (
+                                        <img className="qa-avatar-img qa-avatar-img--sm" src={r.userProfilePictureUrl} alt={r.userName || 'User'} />
+                                      ) : (
+                                        <div className="qa-avatar-fallback qa-avatar-fallback--sm">{getInitials(r.userName)}</div>
+                                      )}
+                                    </div>
+                                    <div className="qa-answer-meta">
+                                      <div className="qa-author-name">{r.userName || 'User'}</div>
+                                      <div className="qa-date">{new Date(r.createdAt).toLocaleDateString()}</div>
+                                    </div>
+                                  </div>
+                                  <MarkdownRenderer content={r.content} className="qa-answer-body markdown-body" />
+                                  <div className="qa-answer-actions">
+                                    <button
+                                      type="button"
+                                      className={`qa-action-btn ${r.hasUpvoted ? 'is-active' : ''}`}
+                                      onClick={() => handleToggleUpvote(r.id)}
+                                      aria-label="Upvote reply"
+                                    >
+                                      <i className="fa-solid fa-arrow-up"></i>
+                                      <span>{r.upvoteCount ?? 0}</span>
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="noncoding-muted">No answers yet. Be the first to add one.</div>
+                  )}
+                </section>
+              </main>
+
+              <aside className="noncoding-sidebar">
+                <div className="noncoding-card">
+                  <h3 className="noncoding-card-title">Interview Details</h3>
+
+                  {question.roleTags && question.roleTags.length > 0 ? (
+                    <div className="noncoding-field">
+                      <div className="noncoding-field-label">Roles</div>
+                      <div className="noncoding-pill-row">
+                        {question.roleTags.map((role) => (
+                          <span key={role} className="noncoding-pill">{role}</span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {question.companyTags && question.companyTags.length > 0 ? (
+                    <div className="noncoding-field">
+                      <div className="noncoding-field-label">Companies</div>
+                      <div className="noncoding-pill-row">
+                        {question.companyTags.map((company) => (
+                          <span key={company} className="noncoding-pill">
+                            <CompanyIcon company={company} size={14} className="company-pill-icon" />
+                            {company}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="noncoding-field">
+                    <div className="noncoding-field-label">Categories</div>
+                    <div className="noncoding-pill-row">
+                      <span className="noncoding-pill">{question.category}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="noncoding-card noncoding-card-muted">
+                  <h3 className="noncoding-card-title">Related Courses</h3>
+                  <div className="noncoding-muted">Coming soon.</div>
+                </div>
+
+                {question.relatedQuestions && question.relatedQuestions.length > 0 ? (
+                  <div className="noncoding-card">
+                    <h3 className="noncoding-card-title">Related Questions</h3>
+                    <div className="related-question-list">
+                      {question.relatedQuestions.map((rq) => (
+                        <Link key={rq.id} to={`${ROUTES.QUESTIONS}/${rq.id}`} className="related-question-link">
+                          {rq.title}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </aside>
             </div>
           </div>
-        </nav>
-        <div className="container" style={{ paddingTop: '70px' }}>
-          <h1>{question.title}</h1>
-          <div dangerouslySetInnerHTML={{ __html: question.description.replace(/\n/g, '<br />') }} />
         </div>
-      </div>
+      </>
     );
   }
 
@@ -1507,39 +2203,24 @@ export const QuestionDetailPage = () => {
             </Link>
           )}
           {/* Show session controls once both users have joined (session exists with both participants) */}
-          {activeSession && activeSession.interviewerId && activeSession.intervieweeId && (
+          {/* For "practice with a friend", show controls immediately even with one participant */}
+          {activeSession && (activeSession.interviewerId || activeSession.intervieweeId) && (
+            // For friend interviews (practiceType="friend"), show controls with 1+ participants
+            // For matched interviews, require both participants
+            (activeSession.practiceType === 'friend' || (activeSession.interviewerId && activeSession.intervieweeId))
+          ) && (
             <>
-              {/* Show current role */}
-              <div className="role-indicator" style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '0.5rem',
-                padding: '0.5rem 1rem',
-                background: activeSession.interviewerId === user?.id ? '#7c3aed' : '#6b7280',
-                color: 'white',
-                borderRadius: '6px',
-                fontSize: '0.875rem',
-                fontWeight: 500
-              }}>
-                <i className={`fas ${activeSession.interviewerId === user?.id ? 'fa-user-tie' : 'fa-user'}`}></i>
+              {/* Show current role as plain text title */}
+              <div className="role-title">
                 {activeSession.interviewerId === user?.id ? 'Interviewer' : 'Interviewee'}
               </div>
               {/* Change Question button - only for interviewer */}
               {activeSession.interviewerId === user?.id && (
                 <button
-                  className="nav-icon-btn"
+                  className="session-control-btn session-control-change"
                   title="Change Question"
                   onClick={handleChangeQuestion}
                   disabled={isChangingQuestion}
-                  style={{ 
-                    background: isChangingQuestion ? '#9ca3af' : '#7c3aed',
-                    color: 'white',
-                    border: 'none',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    padding: '0.5rem 1rem'
-                  }}
                 >
                   {isChangingQuestion ? (
                     <i className="fas fa-spinner fa-spin"></i>
@@ -1551,19 +2232,10 @@ export const QuestionDetailPage = () => {
               )}
               {/* Switch Role button - for both */}
               <button
-                className="nav-icon-btn"
+                className="session-control-btn session-control-switch"
                 title="Switch Role"
                 onClick={handleSwitchRole}
                 disabled={isSwitchingRole}
-                style={{ 
-                  background: isSwitchingRole ? '#9ca3af' : '#10b981',
-                  color: 'white',
-                  border: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.5rem 1rem'
-                }}
               >
                 {isSwitchingRole ? (
                   <i className="fas fa-spinner fa-spin"></i>
@@ -1574,19 +2246,10 @@ export const QuestionDetailPage = () => {
               </button>
               {/* End Session button - for both */}
               <button
-                className="nav-icon-btn"
+                className="session-control-btn session-control-end"
                 title="End Session"
                 onClick={handleEndSession}
                 disabled={isEndingSession}
-                style={{ 
-                  background: isEndingSession ? '#9ca3af' : '#ef4444',
-                  color: 'white',
-                  border: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.5rem 1rem'
-                }}
               >
                 {isEndingSession ? (
                   <i className="fas fa-spinner fa-spin"></i>
@@ -1597,23 +2260,13 @@ export const QuestionDetailPage = () => {
               </button>
               {/* Timer display */}
               {sessionStartTime && (
-                <div className="nav-timer" style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '0.5rem',
-                  color: '#6b7280',
-                  fontSize: '0.875rem',
-                  fontWeight: '500'
-                }}>
+                <div className="nav-timer">
                   <i className="fas fa-clock"></i>
                   <span>{formatTime(elapsedTime)}</span>
                 </div>
               )}
             </>
           )}
-          <button className="nav-icon-btn" title="Settings">
-            <i className="fas fa-cog"></i>
-          </button>
         </div>
       </nav>
 
@@ -1632,7 +2285,7 @@ export const QuestionDetailPage = () => {
       )}
 
       {/* Feedback Form Modal */}
-      {showFeedbackForm && activeSession && user?.id && (
+      {showFeedbackForm && activeSession && user?.id && hasBothUsers && (
         <FeedbackForm
           liveSessionId={activeSession.liveSessionId || activeSession.id}
           opponentId={
@@ -1654,6 +2307,50 @@ export const QuestionDetailPage = () => {
           onComplete={handleFeedbackComplete}
           onCancel={handleFeedbackComplete}
         />
+      )}
+
+      {/* No partner - just redirect */}
+      {showFeedbackForm && activeSession && user?.id && !hasBothUsers && (
+        <div className="feedback-overlay" style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 10000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '12px',
+            padding: '2rem',
+            maxWidth: '400px',
+            textAlign: 'center'
+          }}>
+            <i className="fas fa-info-circle" style={{ fontSize: '3rem', color: '#6366f1', marginBottom: '1rem' }}></i>
+            <h3 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#111827', marginBottom: '0.5rem' }}>Interview Ended</h3>
+            <p style={{ color: '#6b7280', marginBottom: '1.5rem', lineHeight: 1.6 }}>
+              Your practice partner didn't join this session, so there's no feedback to provide.
+            </p>
+            <button 
+              onClick={handleFeedbackComplete}
+              style={{
+                background: '#6366f1',
+                color: 'white',
+                border: 'none',
+                padding: '0.75rem 2rem',
+                borderRadius: '8px',
+                fontWeight: 500,
+                cursor: 'pointer'
+              }}
+            >
+              Continue
+            </button>
+          </div>
+        </div>
       )}
 
       {showPartnerVideo && activeSession && activeSession.interviewerId && activeSession.intervieweeId && activeSession.status === 'InProgress' && (
@@ -1840,7 +2537,10 @@ export const QuestionDetailPage = () => {
                       {companiesExpanded && (
                         <div className="stat-tags">
                           {question.companyTags.map((company, idx) => (
-                            <button key={idx} className="stat-tag">{company}</button>
+                            <button key={idx} className="stat-tag">
+                              <CompanyIcon company={company} size={14} className="company-pill-icon" />
+                              {company}
+                            </button>
                           ))}
                         </div>
                       )}

@@ -110,6 +110,37 @@ public class CollaborationHub : Hub
     }
 
     /// <summary>
+    /// Send a chat message to other users in the session
+    /// </summary>
+    public async Task SendChatMessage(string sessionId, string message)
+    {
+        var userId = GetUserId();
+        if (!userId.HasValue)
+        {
+            _logger.LogWarning("Invalid userId in SendChatMessage");
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(sessionId))
+        {
+            _logger.LogWarning("Invalid sessionId in SendChatMessage. UserId: {UserId}", userId.Value);
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            return;
+        }
+
+        var sessionIdString = sessionId.ToString();
+        await Clients.Group(sessionIdString).SendAsync("ChatMessage", new
+        {
+            sessionId = sessionIdString,
+            userId = userId.Value.ToString(),
+            message = message.Trim(),
+            timestamp = DateTime.UtcNow.ToString("O")
+        });
+    }
+
+    /// <summary>
     /// Notify other users in the session that roles have been switched
     /// </summary>
     public async Task SendRoleSwitched(string sessionId)

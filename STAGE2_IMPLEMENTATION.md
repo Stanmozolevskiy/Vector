@@ -315,20 +315,20 @@ Before starting, ensure you have:
   - [x] Ensure all scope lines are visible
 
 #### Question Page Tabs Fixes
-- [ ] Fix Description, Editorial, and Solutions tabs
-  - [ ] Ensure proper tab switching functionality
-  - [ ] Fix content rendering in each tab
-  - [ ] Fix scrolling and layout issues
-  - [ ] Ensure proper styling and spacing
+- [x] Fix Description, Editorial, and Solutions tabs
+  - [x] Ensure proper tab switching functionality
+  - [x] Fix content rendering in each tab
+  - [x] Fix scrolling and layout issues
+  - [x] Ensure proper styling and spacing
 
 #### Question Page Formatting & CSS Fixes
-- [ ] Fix formatting and CSS of question page
-  - [ ] Align boxes and containers properly
-  - [ ] Fix gaps and spacing between elements
-  - [ ] Fix text formatting and code block formatting
-  - [ ] Ensure consistent styling across all sections
-  - [ ] Fix responsive design issues
-  - [ ] Improve overall visual consistency
+- [x] Fix formatting and CSS of question page
+  - [x] Align boxes and containers properly
+  - [x] Fix gaps and spacing between elements
+  - [x] Fix text formatting and code block formatting
+  - [x] Ensure consistent styling across all sections
+  - [x] Fix responsive design issues
+  - [x] Improve overall visual consistency
 
 ---
 
@@ -511,8 +511,7 @@ Before starting, ensure you have:
   - PUT /api/peer-interviews/match-preferences (update match preferences)
   - GET /api/peer-interviews/match-preferences (get match preferences)
 - [x] Create database migration ✅
-  - AddPeerInterviewSessions table
-  - AddPeerInterviewMatches table
+  - Legacy `PeerInterviewSessions` / `PeerInterviewMatches` tables removed (not used by the current implementation)
   - Indexes for InterviewerId, IntervieweeId, Status
   - Email confirmation on session creation (SendGrid integration)
 
@@ -570,13 +569,7 @@ Before starting, ensure you have:
   - Session cleanup ✅
 - [x] Implement screen sharing support ✅
 - [x] Create VideoSessionController ✅
-  - POST /api/video-sessions/create (create video session) ✅
-  - GET /api/video-sessions/{id}/token (get session token) ✅
-  - POST /api/video-sessions/{id}/end (end session) ✅
-  - POST /api/video-sessions/{id}/offer (handle WebRTC offer) ✅
-  - POST /api/video-sessions/{id}/answer (handle WebRTC answer) ✅
-  - POST /api/video-sessions/{id}/ice-candidate (handle ICE candidates) ✅
-  - GET /api/video-sessions/{id}/signaling (get signaling data) ✅
+  - Video session REST endpoints removed (not currently implemented/used). Video chat uses SignalR/WebRTC signaling.
 - [x] Install and configure SignalR ✅
   - Microsoft.AspNetCore.SignalR package installed ✅
   - CollaborationHub created ✅

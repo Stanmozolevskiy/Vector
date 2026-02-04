@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Navbar } from '../../components/layout/Navbar';
 import { QuestionForm } from '../../components/questions/QuestionForm';
@@ -13,35 +13,37 @@ export const AddQuestionPage = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
 
-  // Check authorization - admin or coach
-  if (user?.role !== 'admin' && user?.role !== 'coach') {
-    navigate(ROUTES.QUESTIONS);
-    return null;
-  }
+  useEffect(() => {
+    if (!user) return;
+    // Anyone logged in can submit a question for review; only admin/coach can create directly.
+  }, [user]);
 
   const handleSubmit = async (formData: CreateQuestionDto, testCases: Omit<QuestionTestCase, 'id'>[]) => {
     setLoading(true);
 
     try {
-      // Create question
-      const question = await questionService.createQuestion(formData);
+      const isAdmin = user?.role === 'admin';
+      const isCoach = user?.role === 'coach';
+
+      const question = isAdmin || isCoach
+        ? await questionService.createQuestion(formData)
+        : await questionService.submitQuestion(formData);
       
-      // Add test cases
-      if (testCases.length > 0) {
+      // Add test cases (admin/coach only)
+      if ((isAdmin || isCoach) && testCases.length > 0) {
         for (const testCase of testCases) {
           await questionService.addTestCase(question.id, testCase);
         }
       }
 
       // Show success message based on user role
-      const isAdmin = user?.role === 'admin';
       if (isAdmin) {
         navigate(`${ROUTES.QUESTIONS}/${question.id}`);
-      } else {
-        // Coach - show pending approval message
-        alert('Question submitted successfully! It will be reviewed by an admin before being published.');
-        navigate(ROUTES.QUESTIONS);
+        return;
       }
+
+      alert('Question submitted successfully! It will be reviewed by an admin before being published.');
+      navigate(ROUTES.QUESTIONS);
     } catch (err: any) {
       throw err; // Let QuestionForm handle the error
     } finally {
@@ -56,9 +58,9 @@ export const AddQuestionPage = () => {
         <div className="questions-header">
           <h1>Add New Question</h1>
           <p className="subtitle">
-            {user?.role === 'admin' 
+            {user?.role === 'admin'
               ? 'Create a new interview question for the platform (will be automatically approved)'
-              : 'Create a new interview question (will require admin approval before being published)'}
+              : 'Submit a new interview question for review (admin approval required before publishing)'}
           </p>
         </div>
 

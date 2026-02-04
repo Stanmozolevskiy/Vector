@@ -21,14 +21,13 @@ export interface ScheduledInterviewSession {
 export interface LiveInterviewSession {
   id: string;
   scheduledSessionId?: string;
+  interviewType?: string;
   firstQuestionId?: string;
   secondQuestionId?: string;
   activeQuestionId?: string;
   status: 'InProgress' | 'Completed' | 'Cancelled';
   startedAt?: string;
   endedAt?: string;
-  interviewerRoomId?: string;
-  intervieweeRoomId?: string;
   createdAt: string;
   updatedAt: string;
   firstQuestion?: QuestionSummary;
@@ -113,6 +112,8 @@ export interface PeerInterviewSession {
   questionId?: string;
   status: 'Scheduled' | 'InProgress' | 'Completed' | 'Cancelled';
   scheduledTime?: string;
+  startedAt?: string;
+  endedAt?: string;
   duration: number;
   sessionRecordingUrl?: string;
   interviewType?: string;
@@ -193,6 +194,28 @@ export interface FeedbackStatus {
   opponentFeedback?: InterviewFeedback;
 }
 
+export interface FriendInterviewCreated {
+  liveSessionId: string;
+  creatorScheduledSessionId: string;
+  interviewType: string;
+  activeQuestionId?: string;
+  redirectUrl: string;
+  inviteUrl: string;
+  emailSent: boolean;
+  emailDeliveryMode?: string;
+}
+
+export interface CreateFriendInterviewRequest {
+  interviewType: string;
+  interviewLevel: string;
+  partnerEmail?: string;
+}
+
+export interface JoinFriendInterviewResponse {
+  joined: boolean;
+  session: LiveInterviewSession;
+}
+
 // Legacy request interfaces (deprecated but kept for compatibility)
 export interface FindMatchRequest {
   preferredDifficulty?: string;
@@ -211,6 +234,22 @@ export interface CreateSessionRequest {
 }
 
 export const peerInterviewService = {
+  /**
+   * Create a "practice with a friend" live session immediately.
+   */
+  async createFriendInterview(request: CreateFriendInterviewRequest): Promise<FriendInterviewCreated> {
+    const response = await api.post<FriendInterviewCreated>('/peer-interviews/friend', request);
+    return response.data;
+  },
+
+  /**
+   * Join a "practice with a friend" session by liveSessionId (used when opening an invite link).
+   */
+  async joinFriendInterview(liveSessionId: string): Promise<JoinFriendInterviewResponse> {
+    const response = await api.post<JoinFriendInterviewResponse>(`/peer-interviews/friend/sessions/${liveSessionId}/join`);
+    return response.data;
+  },
+
   /**
    * Schedule a new interview session
    */
@@ -360,8 +399,52 @@ export const peerInterviewService = {
 
       return legacy;
     } catch (error: any) {
+      const status = error?.response?.status;
+
+      // If unauthorized, attempt to join as a friend-invite flow, then retry once.
+      // (For non-friend sessions, this will safely fail and we re-throw the original error.)
+      if (status === 401 || status === 403) {
+        try {
+          await this.joinFriendInterview(sessionId);
+          const retry = await api.get<LiveInterviewSession>(`/peer-interviews/sessions/${sessionId}`);
+          const session = retry.data;
+          const interviewer = session.participants?.find(p => p.role === 'Interviewer');
+          const interviewee = session.participants?.find(p => p.role === 'Interviewee');
+
+          const legacy: PeerInterviewSession = {
+            id: session.id,
+            status: session.status as any,
+            interviewerId: interviewer?.userId,
+            intervieweeId: interviewee?.userId,
+            questionId: session.activeQuestionId,
+            duration: 60,
+            createdAt: session.createdAt,
+            updatedAt: session.updatedAt,
+            interviewer: interviewer?.user,
+            interviewee: interviewee?.user,
+            question: session.activeQuestion,
+          };
+
+          if (session.scheduledSessionId) {
+            try {
+              const scheduled = await this.getScheduledSession(session.scheduledSessionId);
+              legacy.scheduledTime = scheduled.scheduledStartAt;
+              legacy.interviewType = scheduled.interviewType;
+              legacy.practiceType = scheduled.practiceType;
+              legacy.interviewLevel = scheduled.interviewLevel;
+            } catch {
+              // ignore
+            }
+          }
+
+          return legacy;
+        } catch {
+          // ignore and fall through
+        }
+      }
+
       // If not found as live session, try as scheduled session
-      if (error?.response?.status === 404) {
+      if (status === 404) {
         try {
           const scheduled = await this.getScheduledSession(sessionId);
           const legacy: PeerInterviewSession = {

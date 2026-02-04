@@ -55,55 +55,6 @@ public class WhiteboardService : IWhiteboardService
                 ? null 
                 : Guid.TryParse(dto.QuestionId, out var parsed) ? parsed : null;
 
-            // Check if this is a session-based whiteboard (questionId starts with "session-")
-            if (dto.QuestionId != null && dto.QuestionId.StartsWith("session-", StringComparison.OrdinalIgnoreCase))
-            {
-                // Extract session ID from questionId string like "session-{guid}"
-                var sessionIdStr = dto.QuestionId.Substring("session-".Length);
-                if (Guid.TryParse(sessionIdStr, out var sessionId))
-                {
-                    // Save as user-specific whiteboard for this session (not shared)
-                    var existingWhiteboard = await _context.WhiteboardData
-                        .FirstOrDefaultAsync(w => w.UserId == userId && w.SessionId == sessionId && w.QuestionId == null);
-
-                    if (existingWhiteboard != null)
-                    {
-                        // Update existing whiteboard
-                        existingWhiteboard.Elements = dto.Elements;
-                        existingWhiteboard.AppState = dto.AppState;
-                        existingWhiteboard.Files = dto.Files;
-                        existingWhiteboard.UpdatedAt = DateTime.UtcNow;
-                        
-                        await _context.SaveChangesAsync();
-                        _logger.LogInformation("Updated user whiteboard data for user {UserId} and session {SessionId}", userId, sessionId);
-                        
-                        return existingWhiteboard;
-                    }
-                    else
-                    {
-                        // Create new user-specific whiteboard for this session
-                        var whiteboardData = new WhiteboardData
-                        {
-                            Id = Guid.NewGuid(),
-                            UserId = userId,
-                            SessionId = sessionId,
-                            QuestionId = null,
-                            Elements = dto.Elements,
-                            AppState = dto.AppState,
-                            Files = dto.Files,
-                            CreatedAt = DateTime.UtcNow,
-                            UpdatedAt = DateTime.UtcNow,
-                        };
-
-                        _context.WhiteboardData.Add(whiteboardData);
-                        await _context.SaveChangesAsync();
-                        _logger.LogInformation("Created user whiteboard data for user {UserId} and session {SessionId}", userId, sessionId);
-                        
-                        return whiteboardData;
-                    }
-                }
-            }
-
             // Check if whiteboard data already exists for this user and question (not session-based)
             var existingUserWhiteboard = await _context.WhiteboardData
                 .FirstOrDefaultAsync(w => w.UserId == userId && w.QuestionId == questionId && w.SessionId == null);
@@ -165,26 +116,6 @@ public class WhiteboardService : IWhiteboardService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting whiteboard data for session {SessionId}", sessionId);
-            throw;
-        }
-    }
-
-    public async Task<WhiteboardData?> GetWhiteboardDataBySessionAndUserAsync(Guid sessionId, Guid userId)
-    {
-        try
-        {
-            // Get user-specific whiteboard for this session
-            var whiteboardData = await _context.WhiteboardData
-                .AsNoTracking()
-                .Where(w => w.SessionId == sessionId && w.UserId == userId)
-                .OrderByDescending(w => w.UpdatedAt)
-                .FirstOrDefaultAsync();
-
-            return whiteboardData;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting whiteboard data for session {SessionId} and user {UserId}", sessionId, userId);
             throw;
         }
     }

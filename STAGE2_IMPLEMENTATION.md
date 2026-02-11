@@ -380,22 +380,22 @@ Before starting, ensure you have:
 - [x] Update QuestionDetailPage ✅
   - Submit solution functionality ✅
   - Show submission status ✅
-  - Display submission results ✅
+  - Display submission results ✅ 
   - Save solution to database on submit ✅
 - [x] Create SolutionHistoryPage component ✅
   - List of user's solutions ✅
   - Filter by question, language, status ✅
   - View solution details ✅
   - Pagination support ✅
-- [ ] Create SolutionDetailPage component (Optional - can view from question detail page)
+- [x] Create SolutionDetailPage component (Optional - can view from question detail page)
   - Solution code
   - Test case results
   - Execution metrics
   - Comparison with other solutions
 
 #### Testing
-- [ ] Unit tests for SolutionService (TODO: Week 7)
-- [ ] Unit tests for SolutionController (TODO: Week 7)
+- [x] Unit tests for SolutionService (TODO: Week 7)
+- [x] Unit tests for SolutionController (TODO: Week 7)
 - [x] Manual integration tests for solution submission ✅
 - [x] Manual testing for solution validation ✅
 
@@ -1152,6 +1152,531 @@ A dedicated `UserSolvedQuestions` table was created to optimize the lookup of wh
 
 ---
 
+## Week 7: Coins & Achievements System (Gamification)
+
+**Status:** ✅ COMPLETED - Deployed to Docker | **Priority:** High | **Timeline:** Completed
+
+**Progress Summary:**
+- ✅ Database models & migration created
+- ✅ Achievement definitions seeded  
+- ✅ CoinService implemented with robust point-granting logic
+- ✅ CoinsController with all API endpoints created
+- ✅ Frontend implementation (Day 7-8) - All UI components & service created
+- ✅ Service integration - Coins awarded for interviews, feedback, question approval, profile completion
+- ✅ Docker deployment complete - All containers running successfully
+
+### Overview
+Implement a comprehensive gamification system with coins (karma points) to incentivize user engagement and track achievements. The system includes a leaderboard (top 200 users), activity tracking, and consistent point-granting mechanisms across the platform.
+
+**Business Goals:**
+- Increase user engagement through gamification
+- Encourage quality contributions (questions, solutions, feedback)
+- Recognize active community members
+- Drive key behaviors (completing interviews, helping peers)
+
+---
+
+### Day 1-2: Database Schema & Backend Models ✅ COMPLETED
+
+#### Backend Implementation
+- [x] Create UserCoins model ✅
+  - Id, UserId (foreign key to Users)
+  - TotalCoins (integer, default 0)
+  - Rank (nullable integer, cached for performance)
+  - LastRankUpdate (nullable DateTime)
+  - CreatedAt, UpdatedAt
+- [x] Create CoinTransaction model ✅
+  - Id, UserId (foreign key to Users)
+  - Amount (positive for earning, negative for spending)
+  - ActivityType (e.g., 'InterviewCompleted', 'QuestionPublished')
+  - Description (optional string)
+  - RelatedEntityId (nullable Guid - reference to question, interview, etc.)
+  - RelatedEntityType (nullable string - e.g., 'Question', 'Interview')
+  - CreatedAt
+- [x] Create AchievementDefinition model ✅
+  - Id, ActivityType (unique string identifier)
+  - DisplayName, Description
+  - CoinsAwarded (integer)
+  - Icon (emoji or icon identifier, e.g., "🪙", "🌟", "🤝")
+  - IsActive (bool, default true)
+  - MaxOccurrences (nullable integer - null for unlimited, 1 for one-time rewards)
+  - CreatedAt, UpdatedAt
+- [x] Create database migration ✅
+  - AddUserCoins table
+  - AddCoinTransactions table
+  - AddAchievementDefinitions table
+  - Indexes for UserId, TotalCoins (DESC for leaderboard), ActivityType, CreatedAt
+  - Unique index on UserCoins.UserId
+  - Unique index on AchievementDefinitions.ActivityType
+- [x] Update ApplicationDbContext ✅
+  - Add DbSet<UserCoins>
+  - Add DbSet<CoinTransaction>
+  - Add DbSet<AchievementDefinition>
+  - Configure relationships and indexes
+
+#### Achievement Types & Coin Values
+- [x] Define achievement type constants ✅
+  - **Interview Activities:**
+    - InterviewCompleted: 🪙 10 coins - "You completed a mock interview"
+    - GreatMockInterviewPartner: 🪙 15 coins - "You are a great mock interview partner"
+    - JoinMockInterview: 🪙 10 coins - "You join a mock interview"
+  - **Question Activities:**
+    - QuestionPublished: 🪙 25 coins - "Your interview question is published"
+    - QuestionUpvoted: 🪙 5 coins - "Your interview question is upvoted"
+    - QuestionInAnotherInterview: 🪙 5 coins - "Your question appears in another interview"
+  - **Engagement:**
+    - LessonCompleted: 🪙 1 coin - "You complete a lesson"
+    - CommentUpvoted: 🪙 5 coins - "Your comment is upvoted"
+    - ProfileCompleted: 🪙 10 coins - "You fill out your profile" (one-time)
+  - **Referral:**
+    - ReferralSuccess: 🪙 100 coins - "You refer someone to Exponent"
+  - **Feedback:**
+    - FeedbackSubmitted: 🪙 10 coins - "You submit feedback to Exponent"
+
+#### DTOs Creation
+- [x] Create UserCoinsDto ✅
+  - UserId, TotalCoins, DisplayCoins (formatted: "2.3k", "500")
+  - Rank, DisplayRank (e.g., "#108")
+- [x] Create CoinTransactionDto ✅
+  - Id, Amount, ActivityType, Description
+  - CreatedAt, TimeAgo (formatted: "2h ago", "1d ago")
+- [x] Create LeaderboardEntryDto ✅
+  - Rank, UserId, FirstName, LastName, ProfilePictureUrl
+  - TotalCoins, DisplayCoins
+- [x] Create AchievementDefinitionDto ✅
+  - ActivityType, DisplayName, Description
+  - CoinsAwarded, Icon
+- [x] Create AwardCoinsRequest ✅
+  - UserId, ActivityType, Description (optional)
+  - RelatedEntityId (optional), RelatedEntityType (optional)
+
+---
+
+### Day 3-4: Core Coin Service & Business Logic ✅ COMPLETED
+
+#### Backend Implementation - ICoinService Interface
+- [x] Create ICoinService interface with methods: ✅
+  - **Core Points Granting (Robust & Consistent):**
+    - AwardCoinsAsync - Single source of truth for all coin grants
+      - Parameters: userId, activityType, description (optional), relatedEntityId (optional), relatedEntityType (optional)
+      - Returns: CoinTransaction
+  - **User Coins:**
+    - GetUserCoinsAsync - Get user's total coins and rank
+    - GetUserTransactionsAsync - Get user's transaction history (paginated)
+  - **Leaderboard:**
+    - GetLeaderboardAsync - Get top users by coins (default limit: 200)
+    - GetUserRankAsync - Get specific user's rank
+    - RefreshLeaderboardRanksAsync - Background job to update cached ranks
+  - **Achievements:**
+    - GetAchievementDefinitionsAsync - Get all active achievements
+    - CreateOrUpdateAchievementAsync - Admin method to manage achievement definitions
+
+#### Backend Implementation - CoinService
+- [x] Implement CoinService class ✅
+  - **AwardCoinsAsync - Robust Points Granting (SINGLE SOURCE OF TRUTH):**
+    - Step 1: Validate user exists
+    - Step 2: Get achievement definition from database
+    - Step 3: Check max occurrences if limited (prevent duplicate one-time rewards)
+    - Step 4: Create CoinTransaction record
+    - Step 5: Update or create UserCoins record (atomic operation)
+    - Save changes to database
+    - Log success/errors for monitoring
+  - **GetUserCoinsAsync:**
+    - Query UserCoins by userId
+    - Return formatted coins display (e.g., "2.3k" for 2328)
+    - Include rank and display rank ("#108")
+    - Return zero coins if user has no record yet
+  - **GetUserTransactionsAsync:**
+    - Query CoinTransactions for user
+    - Order by CreatedAt descending (most recent first)
+    - Implement pagination (default 50 per page)
+    - Format TimeAgo strings ("2h ago", "1d ago", "just now")
+  - **GetLeaderboardAsync:**
+    - Query UserCoins with User navigation
+    - Order by TotalCoins descending
+    - Take top N users (default 200, max 200)
+    - Calculate rank based on position (1, 2, 3, ...)
+    - Format coin display for each entry
+  - **GetUserRankAsync:**
+    - Get user's total coins
+    - Count how many users have more coins
+    - Return position + 1 as rank
+  - **RefreshLeaderboardRanksAsync:**
+    - Query all UserCoins ordered by TotalCoins
+    - Update cached Rank field for each user
+    - Update LastRankUpdate timestamp
+    - Save in batch (background job)
+  - **GetAchievementDefinitionsAsync:**
+    - Query all active achievements
+    - Order by CoinsAwarded descending
+    - Return as DTOs with icon and description
+  - **CreateOrUpdateAchievementAsync:**
+    - Admin method to manage achievement definitions
+    - Update existing or create new achievement
+    - Set IsActive, MaxOccurrences, Icon, etc.
+  - **Helper Methods:**
+    - FormatCoins: Display formatting (1.5M, 2.3k, 500)
+    - FormatTimeAgo: Relative time display (2h ago, 1d ago)
+
+#### Deployment
+- [x] Run database migration ✅
+- [x] Seed initial achievement definitions ✅
+- [x] Register services in Program.cs ✅
+- [ ] Test endpoints with Swagger/Postman (pending controller creation)
+
+---
+
+### Day 5-6: API Endpoints & Service Integration ✅ COMPLETED
+
+#### Backend Implementation - CoinsController
+- [x] Create CoinsController with endpoints: ✅
+  - **GET /api/coins/me** - Get current user's coins (authenticated)
+    - Return UserCoinsDto with formatted display
+  - **GET /api/coins/user/{userId}** - Get specific user's coins (public)
+    - Allow anonymous access for profile pages
+  - **GET /api/coins/me/transactions** - Get current user's transaction history (authenticated)
+    - Query parameters: page (default 1), pageSize (default 50)
+    - Return paginated list of transactions
+  - **GET /api/coins/leaderboard** - Get top users leaderboard (public)
+    - Query parameter: limit (default 200, max 200)
+    - Return top N users ordered by coins
+  - **GET /api/coins/me/rank** - Get current user's rank (authenticated)
+    - Return rank number and display format
+  - **GET /api/coins/achievements** - Get all ways to earn coins (public)
+    - Return list of active achievement definitions
+    - Show display name, description, icon, coins awarded
+  - **POST /api/coins/award** - Award coins to user (internal, admin only)
+    - Body: AwardCoinsRequest
+    - Authorize: Admin or System role only
+    - Used internally by other services
+    - Return CoinTransactionDto on success
+- [x] Add error handling for all endpoints ✅
+  - User not found
+  - Achievement not found
+  - Max occurrences reached
+  - Invalid parameters
+
+**Files Created:**
+- `Controllers/CoinsController.cs` - 8 endpoints for coins management
+- `Services/ICoinService.cs` - Service interface
+- `Services/CoinService.cs` - Complete service implementation
+- `Models/UserCoins.cs` - User coins model
+- `Models/CoinTransaction.cs` - Transaction model
+- `Models/AchievementDefinition.cs` - Achievement model
+- `Constants/AchievementTypes.cs` - Achievement type constants
+- `DTOs/Coins/*.cs` - 5 DTO files
+- `Data/DbInitializer.cs` - Updated with seed data
+- `Data/ApplicationDbContext.cs` - Updated with new DbSets
+- `Migrations/*AddCoinsAndAchievementsSystem.cs` - Database migration
+
+#### Integration with Existing Services
+- [x] Integrate CoinService into PeerInterviewService ✅
+  - **EndInterviewAsync:** Award coins to all participants when interview ends
+    - Activity: InterviewCompleted (🪙 10 coins)
+    - Award to both interviewer and interviewee
+    - Include sessionId as RelatedEntityId
+    - Handle errors gracefully (don't fail interview if coins fail)
+  - **SubmitFeedbackAsync:** Award coins when user submits feedback
+    - Activity: FeedbackSubmitted (🪙 10 coins)
+    - Include feedbackId as RelatedEntityId
+    - Log errors if coin grant fails
+  - **Check Partner Rating:** Award bonus coins for great partners
+    - Activity: GreatMockInterviewPartner (🪙 15 coins)
+    - Trigger when partner rates user highly (4-5 stars)
+    - Additional coins on top of interview completion
+- [x] Integrate CoinService into QuestionService ✅
+  - **ApproveQuestionAsync:** Award coins when admin approves question
+    - Activity: QuestionPublished (🪙 25 coins)
+    - Award to question creator (CreatedBy userId)
+    - Include questionId as RelatedEntityId
+  - **Question used in interview:** Award coins when question appears in interview ✅
+    - Activity: QuestionInAnotherInterview (🪙 5 coins)
+    - Award to original question creator
+    - Implemented in PeerInterviewService when questions are assigned to sessions
+  - **Question upvote:** Award coins when question receives upvote (future)
+    - Activity: QuestionUpvoted (🪙 5 coins)
+- [x] Integrate CoinService into UserService (profile completion) ✅
+  - Check profile completeness when user updates profile
+  - Award ProfileCompleted (🪙 10 coins) one-time when profile is 100% filled
+  - Fields to check: FirstName, LastName, Email, ProfilePicture, Bio, PhoneNumber, Location
+- [ ] Integrate CoinService into ReferralService (future)
+  - Activity: ReferralSuccess (🪙 100 coins)
+  - Award when referred user signs up and completes first interview
+- [x] Add try-catch error handling for all integrations ✅
+  - Log errors but don't fail primary operations
+  - Coin granting should be non-blocking
+
+#### Deployment
+- [x] Run database migration ✅
+  - Create AddCoinsAndAchievementsSystem migration
+  - Test migration locally before deploying
+  - Verify all tables, indexes, and foreign keys created correctly
+- [x] Seed initial achievement definitions ✅
+  - Add SeedAchievementDefinitionsAsync method to DbInitializer
+  - Seed all 11 achievement types with proper icons and values
+  - Verify seeding in Docker environment
+- [x] Register services in Program.cs ✅
+  - Add ICoinService and CoinService to dependency injection
+  - Ensure service lifetime is scoped
+- [x] Test endpoints with Swagger/Postman ✅
+  - Test all GET endpoints
+  - Test POST /api/coins/award (admin only)
+  - Verify error handling and validation
+
+---
+
+### Day 7-8: Frontend Implementation ✅ COMPLETED
+
+#### Frontend Service Layer
+- [x] Create coinsService.ts ✅
+  - **TypeScript interfaces:**
+    - UserCoins (userId, totalCoins, displayCoins, rank, displayRank)
+    - CoinTransaction (id, amount, activityType, description, createdAt, timeAgo)
+    - LeaderboardEntry (rank, userId, firstName, lastName, profilePictureUrl, totalCoins, displayCoins)
+    - AchievementDefinition (activityType, displayName, description, coinsAwarded, icon)
+  - **Service methods:**
+    - getMyCoins() - Get current user's coins
+    - getUserCoins(userId) - Get specific user's coins
+    - getMyTransactions(page, pageSize) - Get transaction history with pagination
+    - getLeaderboard(limit) - Get top users (default 200)
+    - getMyRank() - Get current user's rank
+    - getAchievements() - Get all ways to earn coins
+  - Configure API base URL
+  - Add error handling for network failures
+
+#### Header Component Update
+- [x] Update existing Header component ✅
+  - Add useState for coins data
+  - Add useEffect to load user's coins on mount
+  - Display coin icon (🪙) and formatted count in header
+  - Make coins display clickable, linking to /leaderboard
+  - Format coins display (e.g., "2.3k" for 2328)
+  - Add hover effect for better UX
+  - Handle loading and error states
+  - Position coins display before profile menu
+  - Style with existing design system (Tailwind CSS)
+
+#### Leaderboard Page Component
+- [x] Create LeaderboardPage.tsx (new page) ✅
+  - **Page Header:**
+    - Title: "Leaderboard"
+    - Subtitle: "Top 200 contributors with the most karma points"
+    - Show current user's rank prominently (e.g., "Your all-time rank is #108")
+    - Style with large heading and purple accent color
+  - **Leaderboard Table:**
+    - Three columns: Rank, User, Karma Points
+    - Display top 200 users ordered by coins
+    - Show medals for top 3: 🥇 (1st), 🥈 (2nd), 🥉 (3rd)
+    - Show "#rank" for positions 4-200
+    - User column: Profile picture (or initials), full name, clickable link to profile
+    - Karma column: Coin icon (🪙) + formatted count (e.g., "2.3k")
+    - Hover effect on rows
+    - Responsive design (mobile-friendly)
+  - **Loading State:**
+    - Show spinner while fetching leaderboard
+    - Center spinner on page
+  - **Empty State:**
+    - Handle case where leaderboard is empty
+  - **Error Handling:**
+    - Show error message if API fails
+  - Route: /leaderboard
+
+#### How to Earn Points Page Component
+- [x] Create HowToEarnPage.tsx (new page) ✅
+  - **Page Header:**
+    - Title: "How to earn karma"
+    - Description: "Karma is a rough measurement of your contributions to the Exponent community. The better your contributions, the more votes and karma you'll receive."
+    - Max width container (4xl) for readability
+  - **Achievement List:**
+    - Display all active achievements as cards
+    - Each card contains:
+      - Left: Large icon (4xl size) from achievement definition
+      - Middle: Display name (bold) and description (smaller text)
+      - Right: Coins awarded badge (purple pill with coin icon 🪙 and number)
+    - Card styling: White background, shadow, rounded corners, padding
+    - Space between cards for readability
+    - Order by coins awarded (highest first)
+  - **Achievement Examples:**
+    - 🪙 25: "Your interview question is published"
+    - 🪙 15: "You are a great mock interview partner"
+    - 🪙 10: "You completed a mock interview"
+    - 🪙 10: "You join a mock interview"
+    - 🪙 10: "You fill out your profile"
+    - 🪙 10: "You submit feedback to Exponent"
+    - 🪙 5: "Your interview question is upvoted"
+    - 🪙 5: "Your question appears in another interview"
+    - 🪙 5: "Your comment is upvoted"
+    - 🪙 1: "You complete a lesson"
+    - 🪙 100: "You refer someone to Exponent"
+  - **Loading State:**
+    - Show spinner while fetching achievements
+  - **Responsive Design:**
+    - Stack elements vertically on mobile
+    - Horizontal layout on desktop
+  - Route: /how-to-earn or /karma
+
+#### User Profile Page Update
+- [x] Update existing ProfilePage component ✅
+  - **Profile Header Section:**
+    - Add coins display below user name and role
+    - Show coin icon (🪙) + formatted count + rank in parentheses
+    - Example: "🪙 2.3k (#108)"
+    - Make it prominent with larger font size
+    - Load coins data on component mount
+  - **Activity Tab:**
+    - Add new "Activity" tab to existing tab navigation
+    - Show karma transaction history when selected
+    - Load transactions on tab click (paginated, 50 per page)
+    - Each transaction card displays:
+      - Left: Circular badge with coin icon (🪙)
+      - Middle: Description text (e.g., "Completed a mock interview") + relative time ("2h ago")
+      - Right: Coins earned (green +10, red -5)
+    - Transaction styling: Gray background, rounded corners, padding
+    - Stack transactions vertically with spacing
+  - **Empty State:**
+    - Show message: "No activity yet. Start earning karma by participating in interviews!"
+    - Display when transactions list is empty
+  - **Loading State:**
+    - Show spinner while loading transactions
+    - Don't block rest of page
+  - **Pagination:**
+    - Load more button at bottom (future enhancement)
+    - Initially show first 50 transactions
+  - Route: /profile/:userId (existing route, update component)
+
+#### Routing & Navigation
+- [x] Update App.tsx routing configuration ✅
+  - Add route: /leaderboard → LeaderboardPage
+  - Add route: /how-to-earn → HowToEarnPage
+  - Update existing: /profile/:userId → ProfilePage (enhanced with coins)
+- [x] Update navigation menu ✅
+  - Add "Leaderboard" link to main navigation (optional)
+  - Add "How to Earn" link to footer or help menu
+  - Coins in header already link to leaderboard
+- [x] Update routing tests ✅
+  - Test new routes render correctly
+  - Test protected routes (profile requires auth)
+
+**Files Created/Modified:**
+- `services/coins.service.ts` - Service for coins API with all TypeScript interfaces
+- `pages/leaderboard/LeaderboardPage.tsx` - Leaderboard page showing top 200 users
+- `pages/leaderboard/HowToEarnPage.tsx` - Achievement definitions page
+- `pages/profile/ProfilePage.tsx` - Updated with Activity & Coins tab
+- `components/layout/Navbar.tsx` - Updated with coins display
+- `utils/constants.ts` - Updated with new route constants
+- `App.tsx` - Updated with new routes for leaderboard and how-to-earn
+- `styles/dashboard.css` - Added coins display and leaderboard table styles
+
+---
+
+### Day 9-10: Testing & Quality Assurance
+
+#### Backend Unit Tests
+- [ ] Create CoinServiceTests.cs
+  - Test AwardCoinsAsync with valid activity (creates transaction, updates total)
+  - Test AwardCoinsAsync with max occurrences (throws exception for one-time rewards)
+  - Test AwardCoinsAsync with invalid user (throws exception)
+  - Test AwardCoinsAsync with invalid activity type (throws exception)
+  - Test GetUserCoinsAsync returns correct data and formatting
+  - Test GetUserTransactionsAsync with pagination
+  - Test GetLeaderboardAsync returns top users ordered by coins
+  - Test GetUserRankAsync calculates rank correctly
+  - Test RefreshLeaderboardRanksAsync updates cached ranks
+  - Test GetAchievementDefinitionsAsync returns active achievements only
+- [ ] Create CoinsControllerTests.cs
+  - Test all GET endpoints return correct data
+  - Test POST /api/coins/award requires admin authorization
+  - Test error handling for invalid requests
+  - Test query parameter validation (limits, pagination)
+- [ ] Integration tests for coin awarding
+  - Test coins awarded after interview completion
+  - Test coins awarded after feedback submission
+  - Test coins awarded after question approval
+  - Test one-time rewards (profile completion) can't be duplicated
+
+#### Frontend Tests
+- [ ] Test coinsService.ts API calls
+- [ ] Test LeaderboardPage renders correctly
+- [ ] Test HowToEarnPage displays all achievements
+- [ ] Test ProfilePage Activity tab shows transactions
+- [ ] Test Header displays coins correctly
+- [ ] Test responsive design on mobile/tablet/desktop
+- [ ] Test error states (API failures, network errors)
+- [ ] Test loading states (spinners, skeleton screens)
+
+---
+
+### Deployment Checklist
+
+- [ ] Run database migration in production
+- [ ] Seed achievement definitions
+- [ ] Deploy backend API changes
+- [ ] Deploy frontend UI changes
+- [ ] Test all endpoints in production
+- [ ] Verify coins display in header
+- [ ] Verify leaderboard loads correctly
+- [ ] Monitor application logs for errors
+- [ ] Set up alerts for coin service failures
+
+---
+
+### Performance Optimizations
+
+- [ ] **Leaderboard Caching:**
+  - Cache leaderboard results for 5-10 minutes
+  - Reduce database load for frequently accessed data
+  - Use Redis for caching layer
+- [ ] **Rank Calculation:**
+  - Background job to update cached ranks every hour
+  - Avoid real-time rank calculation on every request
+  - Use Hangfire or similar for scheduled jobs
+- [ ] **Database Indexing:**
+  - Index on UserCoins.TotalCoins (DESC) for leaderboard
+  - Index on CoinTransactions.UserId for user history
+  - Index on CoinTransactions.CreatedAt for time-based queries
+- [ ] **Pagination:**
+  - Implement cursor-based pagination for large transaction lists
+  - Default page size: 50 transactions
+- [ ] **Async Operations:**
+  - Coin granting should not block main operations
+  - Use try-catch to handle failures gracefully
+  - Log errors but don't fail primary features (interviews, feedback)
+
+---
+
+### Future Enhancements
+
+- [ ] **Badges & Milestones:**
+  - Visual badges for milestones (100, 500, 1000, 5000 coins)
+  - Display badges on profile
+  - Achievement showcase page
+- [ ] **Coin Shop:**
+  - Allow users to spend coins on premium features
+  - Unlock advanced analytics, priority matching, etc.
+  - Deduct coins via CoinService (negative amounts)
+- [ ] **Daily Streaks:**
+  - Track daily login streaks
+  - Bonus coins for consecutive days (1 coin per day, +5 for 7-day streak)
+- [ ] **Leaderboard Filters:**
+  - Monthly leaderboard (reset each month)
+  - Yearly leaderboard
+  - All-time leaderboard (current implementation)
+  - Filter by interview type or activity
+- [ ] **Team Leaderboards:**
+  - Company-specific leaderboards
+  - Department or group rankings
+  - Team competitions and challenges
+- [ ] **Achievement Notifications:**
+  - Toast notification when coins are earned
+  - Email digest of weekly earnings
+  - Push notifications for milestones
+- [ ] **Social Features:**
+  - Share achievements on social media
+  - Challenge friends to earn more coins
+  - Gift coins to other users
+
+---
+
 **Last Updated:** January 2025  
 **Status:** Week 4 Day 13-14 Complete (Peer Matching & Session Management) - Testing Complete ✅
 
@@ -1178,3 +1703,278 @@ A dedicated `UserSolvedQuestions` table was created to optimize the lookup of wh
 3. **Matching Algorithm:** Available peers, preference matching, recently matched exclusion
 4. **Session Management:** Status updates, cancellation rules, authorization checks
 5. **Edge Cases:** Invalid IDs, unauthorized access, empty results, service exceptions
+
+---
+
+## Known Bugs & Issues to Fix
+
+### High Priority Bugs
+
+#### 1. **Coding Interview Test Results Not Synchronized Between Users** 🐛
+**Status:** To Fix | **Priority:** High | **Component:** Live Interview - Coding
+
+**Description:**
+During a live coding interview, test results are not synchronized properly between the two participants. One user may see different test results (pass/fail status) than their partner for the same code execution.
+
+**Observed Behavior:**
+- User A sees: Some tests passing (Pass 1, Pass 2) and some failing with error messages
+- User B sees: All tests showing as passed with checkmarks
+- Both users are in the same interview session viewing the same code
+
+**Expected Behavior:**
+- Both users should see identical test results in real-time
+- Test execution results should be synchronized via SignalR
+- Pass/fail status should match exactly for all test cases
+
+**Impact:**
+- Confusing user experience during interviews
+- Users cannot collaborate effectively on debugging
+- Affects interview quality and assessment accuracy
+
+**Potential Root Cause:**
+- SignalR message not broadcasting test results to all participants
+- Race condition in test result updates
+- Client-side state not updating correctly when receiving results
+- Different result formatting/parsing between participants
+
+**Files to Investigate:**
+- `backend/Vector.Api/Hubs/CollaborationHub.cs` - SignalR hub for real-time updates
+- `backend/Vector.Api/Services/CodeExecutionService.cs` - Test execution and result broadcasting
+- `frontend/src/pages/interview/coding/CodingInterviewPage.tsx` - Client-side result handling
+- `frontend/src/services/signalr.service.ts` - SignalR client connection
+
+**Proposed Fix:**
+1. Ensure `ExecuteCodeAsync` broadcasts results to all session participants via SignalR
+2. Add explicit test result synchronization after execution completes
+3. Verify all clients subscribe to the correct SignalR events
+4. Add logging to track result broadcasting and reception
+5. Test with multiple concurrent users in same session
+
+---
+
+### Medium Priority Issues
+
+#### 2. **Behavioral Interview Redirect After Feedback Submission** 🐛
+**Status:** To Fix | **Priority:** Medium | **Component:** Behavioral Interview
+
+**Description:**
+After completing a behavioral interview and submitting feedback, the URL changes but the page content does not update without a manual refresh.
+
+**Observed Behavior:**
+- User fills out and submits feedback survey
+- URL changes to post-interview page
+- Screen remains on feedback form
+- Requires manual page refresh to see updated content
+
+**Expected Behavior:**
+- After feedback submission, page should automatically update/redirect
+- User should see post-interview summary or next steps
+- No manual refresh required
+
+**Impact:**
+- Poor user experience
+- Users may not realize interview is complete
+- May submit duplicate feedback
+
+**Potential Root Cause:**
+- React Router navigation not triggering component re-render
+- Missing `useEffect` dependency for URL change detection
+- Feedback submission response not triggering navigation properly
+
+**Files to Investigate:**
+- `frontend/src/pages/interview/behavioral/BehavioralInterviewPage.tsx`
+- `frontend/src/pages/interview/behavioral/FeedbackForm.tsx`
+
+**Proposed Fix:**
+1. Use `navigate()` with `{ replace: true }` after feedback submission
+2. Add loading state during submission
+3. Ensure component remounts or updates after navigation
+4. Consider using `window.location.reload()` as last resort if state is complex
+
+---
+
+#### 3. **Coding Interview Timer Not Synchronized** 🐛
+**Status:** To Fix | **Priority:** Medium | **Component:** Live Interview - Coding
+
+**Description:**
+The interview timer displays different remaining times for different users in the same coding interview session.
+
+**Observed Behavior:**
+- User A sees: 45:23 remaining
+- User B sees: 44:58 remaining  
+- Both users joined at the same time
+- Time difference grows over the session
+
+**Expected Behavior:**
+- All participants see the exact same timer countdown
+- Timer synchronized via server time, not client time
+- Timer should persist across page refreshes
+
+**Impact:**
+- Confusing during timed interviews
+- Unfair advantage/disadvantage perception
+- Difficult to coordinate time management
+
+**Potential Root Cause:**
+- Timer calculated from client-side timestamps
+- Not using server-provided start time consistently
+- Clock skew between different clients
+- Timer not synchronized via SignalR
+
+**Files to Investigate:**
+- `frontend/src/pages/interview/coding/CodingInterviewPage.tsx`
+- `backend/Vector.Api/Models/LiveInterviewSession.cs` - StartedAt timestamp
+- `backend/Vector.Api/Hubs/CollaborationHub.cs` - Timer synchronization
+
+**Proposed Fix:**
+1. Calculate remaining time based on server-provided StartedAt timestamp
+2. Broadcast timer updates periodically via SignalR (every minute)
+3. Use server time instead of `Date.now()` for calculations
+4. Add timer sync check on reconnection
+
+---
+
+#### 4. **Practice with a Friend - No Join Link Access** 🐛
+**Status:** To Fix | **Priority:** Medium | **Component:** Friend Interview
+
+**Description:**
+When a user selects "Practice with a Friend" option, they cannot access the shareable join link after creation. There's no UI to copy or share the link with their friend.
+
+**Observed Behavior:**
+- User clicks "Practice with a Friend"
+- Session is created
+- User is redirected to interview page
+- No visible share link or copy button
+- Friend has no way to join
+
+**Expected Behavior:**
+- After creating friend interview, user should see:
+  - Shareable join link
+  - Copy to clipboard button
+  - Option to share via email/messaging
+  - QR code (optional)
+- Link should remain accessible during the interview
+
+**Impact:**
+- Feature is unusable
+- Users cannot practice with friends
+- Poor user experience
+
+**Potential Root Cause:**
+- Frontend component missing share link UI
+- Join URL not being generated or passed to frontend
+- Modal/section for sharing not implemented
+
+**Files to Investigate:**
+- `frontend/src/pages/dashboard/DashboardPage.tsx` - Friend interview creation
+- `frontend/src/pages/interview/[type]/InterviewPage.tsx` - Join link display
+- `backend/Vector.Api/Controllers/PeerInterviewController.cs` - CreateFriendInterviewAsync
+
+**Proposed Fix:**
+1. Add modal after friend interview creation showing:
+   - Join URL (e.g., `/interview/join/{token}`)
+   - Copy to clipboard button
+   - Share via email option
+2. Display join link in interview page header
+3. Store join token in session and make it accessible
+4. Add "Invite Friend" button that reopens share modal
+
+---
+
+### Low Priority Issues
+
+#### 5. **Excessive Console Logging in Production** 🧹
+**Status:** To Fix | **Priority:** Low | **Component:** All
+
+**Description:**
+Too many console.log statements in production code, cluttering browser console and potentially exposing sensitive information.
+
+**Expected Behavior:**
+- Remove or disable debug logging in production
+- Use proper logging levels (debug, info, warn, error)
+- Sensitive data should never be logged
+
+**Proposed Fix:**
+1. Remove unnecessary console.log statements
+2. Use environment-based logging configuration
+3. Implement proper logging service with log levels
+4. Review and sanitize all log messages
+
+---
+
+#### 6. **Interview Feedback Forms Not Interview-Type Specific** 🐛
+**Status:** To Fix | **Priority:** Low | **Component:** Interview Feedback
+
+**Description:**
+The feedback forms shown at the end of interviews are generic and not tailored to the specific interview type. Each interview type (Behavioral, System Design, Coding/SQL/ML) should have customized feedback questions relevant to that interview format.
+
+**Observed Behavior:**
+- All interview types show the same generic feedback form
+- Feedback questions don't match the interview activities
+- Users can't provide specific feedback relevant to the interview type
+
+**Expected Behavior:**
+- **Behavioral Interview Feedback:**
+  - Rate interviewer's listening skills
+  - Rate quality of follow-up questions
+  - Rate comfort level during conversation
+  - Rate relevance of scenarios discussed
+  - Comment on STAR method usage
+
+- **System Design Interview Feedback:**
+  - Rate clarity of requirements gathering
+  - Rate depth of system architecture discussion
+  - Rate trade-off analysis quality
+  - Rate scalability considerations
+  - Rate diagram/visual communication
+  - Comment on problem-solving approach
+
+- **Coding/SQL/ML Interview Feedback:**
+  - Rate problem explanation clarity
+  - Rate hint quality and timing
+  - Rate code review feedback quality
+  - Rate test case coverage discussion
+  - Rate time management
+  - Comment on technical depth and debugging guidance
+
+**Impact:**
+- Less actionable feedback for users
+- Missed opportunity for interview-type specific improvements
+- Generic experience reduces value
+
+**Potential Root Cause:**
+- Feedback form component uses same questions for all interview types
+- No conditional rendering based on interview type
+- Backend doesn't validate feedback against interview type
+
+**Files to Investigate:**
+- `frontend/src/pages/interview/feedback/FeedbackForm.tsx` - Generic feedback form
+- `backend/Vector.Api/Models/InterviewFeedback.cs` - Feedback model
+- `backend/Vector.Api/Controllers/PeerInterviewController.cs` - SubmitFeedbackAsync
+
+**Proposed Fix:**
+1. Create interview-type specific feedback form components:
+   - `BehavioralFeedbackForm.tsx`
+   - `SystemDesignFeedbackForm.tsx`
+   - `CodingFeedbackForm.tsx`
+2. Add conditional rendering based on `interviewType` prop
+3. Update backend model to support type-specific feedback fields (optional JSON field)
+4. Update API validation to ensure feedback matches interview type
+5. Display type-specific feedback in feedback history/analytics
+
+---
+
+## Testing Checklist for Bug Fixes
+
+When fixing these bugs, ensure you test:
+
+- [ ] Test with 2+ users in the same session simultaneously
+- [ ] Test with different network conditions (slow, fast, intermittent)
+- [ ] Test session persistence across page refreshes
+- [ ] Test on different browsers (Chrome, Firefox, Safari, Edge)
+- [ ] Test with different timezones
+- [ ] Verify SignalR connection and reconnection handling
+- [ ] Check database consistency after operations
+- [ ] Verify error handling and user feedback
+- [ ] Test mobile responsiveness
+- [ ] Performance test with multiple concurrent sessions

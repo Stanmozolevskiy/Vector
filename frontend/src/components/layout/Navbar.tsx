@@ -3,10 +3,28 @@ import { useAuth } from '../../hooks/useAuth';
 import { ROUTES } from '../../utils/constants';
 import '../../styles/style.css';
 import '../../styles/dashboard.css';
+import { useEffect, useState } from 'react';
+import coinsService, { type UserCoins } from '../../services/coins.service';
 
 export const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [coins, setCoins] = useState<UserCoins | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      loadCoins();
+    }
+  }, [user]);
+
+  const loadCoins = async () => {
+    try {
+      const data = await coinsService.getMyCoins();
+      setCoins(data);
+    } catch (error) {
+      console.error('Failed to load coins:', error);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -39,6 +57,12 @@ export const Navbar = () => {
           {user && (user.role === 'admin' || user.role === 'coach') ? (
             <Link to={ROUTES.ADD_QUESTION}>Add Question</Link>
           ) : null}
+          {user && coins && (
+            <Link to={ROUTES.LEADERBOARD} className="coins-display" title="Your karma points">
+              <span className="coin-icon">🪙</span>
+              <span className="coin-count">{coins.displayCoins}</span>
+            </Link>
+          )}
           <div className="user-menu">
             <div className="user-avatar">
               {user?.profilePictureUrl ? (

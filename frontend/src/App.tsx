@@ -23,6 +23,7 @@ import { EditQuestionPage } from './pages/questions/EditQuestionPage';
 import { SolutionHistoryPage } from './pages/solutions/SolutionHistoryPage';
 import { ProgressPage } from './pages/progress/ProgressPage';
 import FindPeerPage from './pages/peer-interviews/FindPeerPage';
+import { LeaderboardAndEarnPage } from './pages/leaderboard/LeaderboardAndEarnPage';
 import PeerInterviewSessionPage from './pages/peer-interviews/PeerInterviewSessionPage';
 import { FriendInvitePage } from './pages/peer-interviews/FriendInvitePage';
 import { lazy, Suspense } from 'react';
@@ -125,6 +126,16 @@ function App() {
         <Route path={ROUTES.PROGRESS} element={
           <ProtectedRoute requireAuth>
             <ProgressPage />
+          </ProtectedRoute>
+        } />
+        <Route path={ROUTES.LEADERBOARD} element={
+          <ProtectedRoute requireAuth>
+            <LeaderboardAndEarnPage />
+          </ProtectedRoute>
+        } />
+        <Route path={ROUTES.HOW_TO_EARN} element={
+          <ProtectedRoute requireAuth>
+            <LeaderboardAndEarnPage />
           </ProtectedRoute>
         } />
         <Route path={ROUTES.FIND_PEER} element={

@@ -44,6 +44,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
+      - Development__AutoVerifyEmails=true
       - ConnectionStrings__DefaultConnection=Host=postgres;Database=vector_db;Username=postgres;Password=postgres
       - ConnectionStrings__Redis=redis:6379
       - Jwt__Secret=${JWT_SECRET:-your-super-secret-key-change-in-production}

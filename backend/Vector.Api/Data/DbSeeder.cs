@@ -74,6 +74,16 @@ public static class DbSeeder
             logger.LogError(ex, "Failed to seed admin user, but continuing with other seeds...");
         }
 
+        // Seed achievement definitions (critical for gamification)
+        try
+        {
+            await DbInitializer.SeedAchievementDefinitionsAsync(context, logger);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to seed achievement definitions, but continuing...");
+        }
+
         // Seed interview questions (non-critical)
         try
         {

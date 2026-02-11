@@ -3,18 +3,25 @@ using Vector.Api.Data;
 using Vector.Api.DTOs.User;
 using Vector.Api.Helpers;
 using Vector.Api.Models;
+using Vector.Api.Constants;
 
 namespace Vector.Api.Services;
 
 public class UserService : IUserService
 {
     private readonly ApplicationDbContext _context;
+    private readonly ICoinService _coinService;
     private readonly ILogger<UserService> _logger;
     private readonly IS3Service _s3Service;
 
-    public UserService(ApplicationDbContext context, ILogger<UserService> logger, IS3Service s3Service)
+    public UserService(
+        ApplicationDbContext context, 
+        ICoinService coinService,
+        ILogger<UserService> logger, 
+        IS3Service s3Service)
     {
         _context = context;
+        _coinService = coinService;
         _logger = logger;
         _s3Service = s3Service;
     }
@@ -81,6 +88,9 @@ public class UserService : IUserService
         _logger.LogInformation("User {UserId} updated. New data: FirstName={FirstName}, LastName={LastName}, PhoneNumber={PhoneNumber}, Location={Location}", 
             userId, user.FirstName, user.LastName, user.PhoneNumber, user.Location);
         
+        // Check if profile is now complete and award coins (one-time)
+        await CheckAndAwardProfileCompletionCoinsAsync(user);
+        
         return user;
     }
 
@@ -124,6 +134,9 @@ public class UserService : IUserService
             user.ProfilePictureUrl = pictureUrl;
             user.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
+            
+            // Check if profile is now complete and award coins (one-time)
+            await CheckAndAwardProfileCompletionCoinsAsync(user);
         }
         
         _logger.LogInformation("Profile picture uploaded successfully for user {UserId}: {Url}", userId, pictureUrl);
@@ -210,6 +223,50 @@ public class UserService : IUserService
         {
             _logger.LogError(ex, "Failed to delete user {UserId}. Exception: {ExceptionMessage}", userId, ex.Message);
             return false;
+        }
+    }
+
+    /// <summary>
+    /// Checks if user's profile is complete and awards coins (one-time only)
+    /// Profile is complete if: FirstName, LastName, Email, ProfilePictureUrl, Bio, PhoneNumber, Location are all filled
+    /// </summary>
+    private async Task CheckAndAwardProfileCompletionCoinsAsync(User user)
+    {
+        // Check if profile is 100% complete
+        bool isProfileComplete = !string.IsNullOrWhiteSpace(user.FirstName) &&
+                                !string.IsNullOrWhiteSpace(user.LastName) &&
+                                !string.IsNullOrWhiteSpace(user.Email) &&
+                                !string.IsNullOrWhiteSpace(user.ProfilePictureUrl) &&
+                                !string.IsNullOrWhiteSpace(user.Bio) &&
+                                !string.IsNullOrWhiteSpace(user.PhoneNumber) &&
+                                !string.IsNullOrWhiteSpace(user.Location);
+
+        if (!isProfileComplete)
+        {
+            return; // Profile not complete yet
+        }
+
+        try
+        {
+            // Try to award coins - will throw if already awarded (MaxOccurrences = 1)
+            await _coinService.AwardCoinsAsync(
+                user.Id,
+                AchievementTypes.ProfileCompleted,
+                "Completed your profile",
+                user.Id,
+                "User");
+            
+            _logger.LogInformation("Awarded profile completion coins to user {UserId}", user.Id);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("Maximum"))
+        {
+            // User already received profile completion coins - this is expected
+            _logger.LogDebug("User {UserId} already received profile completion coins", user.Id);
+        }
+        catch (Exception ex)
+        {
+            // Log other errors but don't fail the profile update
+            _logger.LogError(ex, "Failed to award profile completion coins to user {UserId}", user.Id);
         }
     }
 }

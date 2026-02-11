@@ -21,6 +21,8 @@ import type { PeerInterviewSession } from '../../services/peerInterview.service'
 import api from '../../services/api';
 import { RejoinModal } from '../../components/RejoinModal';
 import { FeedbackForm } from '../../components/FeedbackForm';
+import { QuestionVoting } from '../../components/QuestionVoting';
+import { commentsService } from '../../services/comments.service';
 import '../../styles/question-detail.css';
 
 export const QuestionDetailPage = () => {
@@ -1668,8 +1670,12 @@ export const QuestionDetailPage = () => {
       });
     };
 
-    const handleToggleUpvote = (commentId: string) => {
+    const handleToggleUpvote = async (commentId: string) => {
       if (!id) return;
+      if (!user) {
+        showToast('Please log in to upvote comments', 'info');
+        return;
+      }
 
       // Optimistic UI
       setComments((prev) =>
@@ -1680,20 +1686,28 @@ export const QuestionDetailPage = () => {
         })
       );
 
-      questionService
-        .toggleCommentUpvote(id, commentId)
-        .then((res) => {
-          setComments((prev) =>
-            updateCommentTree(prev, commentId, (c) => ({ ...c, hasUpvoted: res.hasUpvoted, upvoteCount: res.upvoteCount }))
-          );
-        })
-        .catch(() => {
-          // Revert on failure by reloading (non-blocking)
-          questionService.getQuestionComments(id, 1, 50, (answerSort || 'Hot').toLowerCase() as 'hot' | 'top' | 'new')
-            .then((data) => setComments(data))
-            .catch(() => {});
-          showToast('Failed to update upvote. Please try again.', 'error');
-        });
+      try {
+        const currentComment = comments.find(c => c.id === commentId);
+        const wasUpvoted = currentComment?.hasUpvoted;
+        
+        if (wasUpvoted) {
+          await commentsService.removeUpvote(commentId);
+        } else {
+          await commentsService.upvoteComment(commentId);
+        }
+        
+        showToast(wasUpvoted ? 'Upvote removed' : 'Comment upvoted!', 'success');
+      } catch (error) {
+        // Revert on failure
+        setComments((prev) =>
+          updateCommentTree(prev, commentId, (c) => ({
+            ...c,
+            hasUpvoted: !c.hasUpvoted,
+            upvoteCount: Math.max(0, (c.upvoteCount || 0) + (c.hasUpvoted ? -1 : 1))
+          }))
+        );
+        showToast('Failed to update upvote. Please try again.', 'error');
+      }
     };
 
     const handleOpenReply = (commentId: string) => {
@@ -2399,14 +2413,19 @@ export const QuestionDetailPage = () => {
           {activeTab === 'description' && (
             <div className="panel-content">
               <div className="question-header">
-                <div className="question-title-row">
-                  <h1 className="question-title">{question.title}</h1>
-                  {isSolved && (
-                    <div className="question-solved-status">
-                      <i className="fas fa-check-circle"></i>
-                      <span>Solved</span>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                  {id && <QuestionVoting questionId={id} />}
+                  <div style={{ flex: 1 }}>
+                    <div className="question-title-row">
+                      <h1 className="question-title">{question.title}</h1>
+                      {isSolved && (
+                        <div className="question-solved-status">
+                          <i className="fas fa-check-circle"></i>
+                          <span>Solved</span>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
                 <div className="question-meta">
                   <span className={`difficulty-badge ${getDifficultyClass(question.difficulty)}`}>

@@ -3,17 +3,23 @@ using System.Text.Json;
 using Vector.Api.Data;
 using Vector.Api.DTOs.Question;
 using Vector.Api.Models;
+using Vector.Api.Constants;
 
 namespace Vector.Api.Services;
 
 public class QuestionService : IQuestionService
 {
     private readonly ApplicationDbContext _context;
+    private readonly ICoinService _coinService;
     private readonly ILogger<QuestionService> _logger;
 
-    public QuestionService(ApplicationDbContext context, ILogger<QuestionService> logger)
+    public QuestionService(
+        ApplicationDbContext context, 
+        ICoinService coinService,
+        ILogger<QuestionService> logger)
     {
         _context = context;
+        _coinService = coinService;
         _logger = logger;
     }
 
@@ -446,6 +452,30 @@ public class QuestionService : IQuestionService
         question.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
+
+        // Award coins to the question creator for getting their question published
+        if (question.CreatedBy.HasValue)
+        {
+            try
+            {
+                await _coinService.AwardCoinsAsync(
+                    question.CreatedBy.Value,
+                    AchievementTypes.QuestionPublished,
+                    "Your interview question was published",
+                    questionId,
+                    "InterviewQuestion");
+                
+                _logger.LogInformation("Awarded coins to user {UserId} for question {QuestionId} approval", 
+                    question.CreatedBy.Value, questionId);
+            }
+            catch (Exception ex)
+            {
+                // Log but don't fail the approval operation
+                _logger.LogError(ex, "Failed to award coins to user {UserId} for question {QuestionId} approval", 
+                    question.CreatedBy.Value, questionId);
+            }
+        }
+
         return question;
     }
 

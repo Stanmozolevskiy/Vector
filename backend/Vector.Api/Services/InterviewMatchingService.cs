@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Vector.Api.Constants;
 using Vector.Api.Data;
 using Vector.Api.DTOs.PeerInterview;
 using Vector.Api.Models;
@@ -16,18 +18,21 @@ public class InterviewMatchingService : IInterviewMatchingService
     private readonly IPeerInterviewService _peerInterviewService;
     private readonly IMatchingPresenceService _presenceService;
     private readonly ILogger<InterviewMatchingService> _logger;
+    private readonly IServiceProvider _serviceProvider;
     private static readonly Random _random = new Random();
 
     public InterviewMatchingService(
         ApplicationDbContext context,
         IPeerInterviewService peerInterviewService,
         IMatchingPresenceService presenceService,
-        ILogger<InterviewMatchingService> logger)
+        ILogger<InterviewMatchingService> logger,
+        IServiceProvider serviceProvider)
     {
         _context = context;
         _peerInterviewService = peerInterviewService;
         _presenceService = presenceService;
         _logger = logger;
+        _serviceProvider = serviceProvider;
     }
 
     public async Task<StartMatchingResponseDto> StartMatchingAsync(Guid scheduledSessionId, Guid userId)

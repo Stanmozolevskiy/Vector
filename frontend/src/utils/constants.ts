@@ -24,4 +24,6 @@ export const ROUTES = {
   PEER_INTERVIEW_SESSION: '/peer-interviews/sessions/:id',
   SYSTEM_DESIGN_INTERVIEW: '/system-design-interview/:sessionId',
   WHITEBOARD: '/whiteboard',
+  LEADERBOARD: '/leaderboard',
+  HOW_TO_EARN: '/how-to-earn',
 };

@@ -3,6 +3,7 @@ using System.Linq;
 using Vector.Api.Data;
 using Vector.Api.DTOs.PeerInterview;
 using Vector.Api.Models;
+using Vector.Api.Constants;
 
 namespace Vector.Api.Services;
 
@@ -10,17 +11,23 @@ public class PeerInterviewService : IPeerInterviewService
 {
     private readonly ApplicationDbContext _context;
     private readonly IQuestionService _questionService;
+    private readonly ICoinService _coinService;
     private readonly ILogger<PeerInterviewService> _logger;
+    private readonly IServiceProvider _serviceProvider;
     private static readonly Random _random = new Random();
 
     public PeerInterviewService(
         ApplicationDbContext context,
         IQuestionService questionService,
-        ILogger<PeerInterviewService> logger)
+        ICoinService coinService,
+        ILogger<PeerInterviewService> logger,
+        IServiceProvider serviceProvider)
     {
         _context = context;
         _questionService = questionService;
+        _coinService = coinService;
         _logger = logger;
+        _serviceProvider = serviceProvider;
     }
 
     // Scheduling
@@ -319,6 +326,10 @@ public class PeerInterviewService : IPeerInterviewService
         });
 
         await _context.SaveChangesAsync();
+
+        // Award coins to question creators when their questions are used in interviews
+        await AwardCoinsForQuestionUsageAsync(firstQuestionId, liveSession.Id);
+        await AwardCoinsForQuestionUsageAsync(secondQuestionId, liveSession.Id);
 
         return (liveSession.Id, scheduledSession.Id, interviewType, liveSession.ActiveQuestionId);
     }
@@ -630,6 +641,9 @@ public class PeerInterviewService : IPeerInterviewService
         session.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
 
+        // Award coins to question creator when their question is used in interview
+        await AwardCoinsForQuestionUsageAsync(newQuestionId, sessionId);
+
         // Reload session
         var updatedSession = await _context.LiveInterviewSessions
             .Include(s => s.FirstQuestion)
@@ -662,6 +676,7 @@ public class PeerInterviewService : IPeerInterviewService
                 .ThenInclude(p => p.User)
             .Include(s => s.FirstQuestion)
             .Include(s => s.SecondQuestion)
+            .Include(s => s.ScheduledSession) // Include to check PracticeType
             .FirstOrDefaultAsync(s => s.Id == sessionId);
 
         if (session == null)
@@ -677,6 +692,66 @@ public class PeerInterviewService : IPeerInterviewService
 
         // Use helper function to update all scheduled sessions for both users
         await UpdateScheduledSessionsOnEndAsync(session);
+
+        // Award coins to all participants for completing the interview
+        // Only award coins for scheduled interviews (peers/expert), NOT friend practice sessions
+        var isFriendInterview = session.ScheduledSession != null && 
+                                session.ScheduledSession.PracticeType.Equals("friend", StringComparison.OrdinalIgnoreCase);
+        
+        if (!isFriendInterview)
+        {
+            foreach (var p in session.Participants)
+            {
+                try
+                {
+                    await _coinService.AwardCoinsAsync(
+                        p.UserId,
+                        AchievementTypes.InterviewCompleted,
+                        "Completed a mock interview",
+                        sessionId,
+                        "LiveInterviewSession");
+                    
+                    _logger.LogInformation("Awarded coins to user {UserId} for completing interview {SessionId}", 
+                        p.UserId, sessionId);
+                }
+                catch (Exception ex)
+                {
+                    // Log but don't fail the interview end operation
+                    _logger.LogWarning(ex, "Failed to award coins to user {UserId} for interview {SessionId}", 
+                        p.UserId, sessionId);
+                }
+            }
+        }
+        else
+        {
+            _logger.LogInformation("Skipping coin award for friend practice session {SessionId}", sessionId);
+        }
+
+        // Check and complete referrals for first-time interview completers (non-friend interviews only)
+        if (!isFriendInterview)
+        {
+            foreach (var p in session.Participants)
+            {
+                try
+                {
+                    // Check if this is the user's first completed interview
+                    var completedCount = await _context.ScheduledInterviewSessions
+                        .Where(s => s.UserId == p.UserId && s.Status == "Completed" && s.PracticeType != "friend")
+                        .CountAsync();
+
+                    if (completedCount == 1) // Just completed their first interview
+                    {
+                        var referralService = _serviceProvider.GetRequiredService<IReferralService>();
+                        await referralService.CompleteReferralAsync(p.UserId);
+                        _logger.LogInformation("Checked referral completion for user {UserId} after first interview", p.UserId);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to check/complete referral for user {UserId}", p.UserId);
+                }
+            }
+        }
 
         // Reload session with all includes
         var updatedSession = await _context.LiveInterviewSessions
@@ -825,6 +900,49 @@ public class PeerInterviewService : IPeerInterviewService
         }
 
         await _context.SaveChangesAsync();
+
+        // Award coins for feedback submission (only for new feedback, not updates)
+        if (existingFeedback == null)
+        {
+            try
+            {
+                await _coinService.AwardCoinsAsync(
+                    userId,
+                    AchievementTypes.FeedbackSubmitted,
+                    "Submitted interview feedback",
+                    feedback.Id,
+                    "InterviewFeedback");
+                
+                _logger.LogInformation("Awarded coins to user {UserId} for submitting feedback {FeedbackId}", 
+                    userId, feedback.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to award coins to user {UserId} for feedback {FeedbackId}", 
+                    userId, feedback.Id);
+            }
+
+            // Award bonus coins if the reviewee was a great interview partner (5 stars only)
+            if (dto.InterviewerPerformanceRating == 5)
+            {
+                try
+                {
+                    await _coinService.AwardCoinsAsync(
+                        dto.RevieweeId,
+                        AchievementTypes.GreatMockInterviewPartner,
+                        "Received 5-star rating as interview partner",
+                        feedback.Id,
+                        "InterviewFeedback");
+                    
+                    _logger.LogInformation("Awarded bonus coins to user {UserId} for being a great partner (5 stars)", 
+                        dto.RevieweeId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to award bonus coins to user {UserId}", dto.RevieweeId);
+                }
+            }
+        }
 
         return await MapToFeedbackDtoAsync(feedback);
     }
@@ -1205,6 +1323,57 @@ public class PeerInterviewService : IPeerInterviewService
         var key = new string(Enumerable.Repeat(chars, 22)
             .Select(s => s[_random.Next(s.Length)]).ToArray());
         return $"{roomId},{key}";
+    }
+
+    /// <summary>
+    /// Awards coins to a question creator when their question is used in an interview
+    /// </summary>
+    private async Task AwardCoinsForQuestionUsageAsync(Guid? questionId, Guid sessionId)
+    {
+        if (!questionId.HasValue)
+        {
+            return; // No question to award coins for
+        }
+
+        try
+        {
+            // Get the question to find its creator
+            var question = await _context.InterviewQuestions
+                .AsNoTracking()
+                .FirstOrDefaultAsync(q => q.Id == questionId.Value);
+
+            if (question == null || !question.CreatedBy.HasValue)
+            {
+                _logger.LogDebug("Question {QuestionId} not found or has no creator", questionId.Value);
+                return;
+            }
+
+            // Award coins to the question creator
+            await _coinService.AwardCoinsAsync(
+                question.CreatedBy.Value,
+                AchievementTypes.QuestionInAnotherInterview,
+                $"Your question '{question.Title}' was used in an interview",
+                sessionId,
+                "LiveInterviewSession");
+
+            _logger.LogInformation(
+                "Awarded coins to user {UserId} for question {QuestionId} used in interview {SessionId}",
+                question.CreatedBy.Value, questionId.Value, sessionId);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("Maximum"))
+        {
+            // User already received coins for this question in this session - this is fine
+            _logger.LogDebug(
+                "Question {QuestionId} already awarded coins for session {SessionId}",
+                questionId.Value, sessionId);
+        }
+        catch (Exception ex)
+        {
+            // Log but don't fail the interview session creation/update
+            _logger.LogError(ex,
+                "Failed to award coins for question {QuestionId} used in session {SessionId}",
+                questionId.Value, sessionId);
+        }
     }
 }
 

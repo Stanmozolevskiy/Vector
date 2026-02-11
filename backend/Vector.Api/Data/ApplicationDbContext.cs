@@ -32,6 +32,11 @@ public class ApplicationDbContext : DbContext
     public DbSet<LiveInterviewParticipant> LiveInterviewParticipants { get; set; }
     public DbSet<InterviewFeedback> InterviewFeedbacks { get; set; }
     public DbSet<WhiteboardData> WhiteboardData { get; set; }
+    public DbSet<UserCoins> UserCoins { get; set; }
+    public DbSet<CoinTransaction> CoinTransactions { get; set; }
+    public DbSet<AchievementDefinition> AchievementDefinitions { get; set; }
+    public DbSet<QuestionVote> QuestionVotes { get; set; }
+    public DbSet<Referral> Referrals { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -420,6 +425,93 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(e => e.UserId); // For querying user's whiteboard
             entity.HasIndex(e => new { e.UserId, e.QuestionId }); // For querying whiteboard by user and question
             entity.HasIndex(e => e.UpdatedAt); // For sorting by update date
+        });
+
+        // Configure UserCoins entity
+        modelBuilder.Entity<UserCoins>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.TotalCoins).HasDefaultValue(0);
+            // Unique index: one coins record per user
+            entity.HasIndex(e => e.UserId).IsUnique();
+            // Index for leaderboard queries (descending order)
+            entity.HasIndex(e => e.TotalCoins);
+            entity.HasIndex(e => e.Rank);
+        });
+
+        // Configure CoinTransaction entity
+        modelBuilder.Entity<CoinTransaction>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.ActivityType).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.RelatedEntityType).HasMaxLength(50);
+            // Indexes for efficient queries
+            entity.HasIndex(e => e.UserId); // For user transaction history
+            entity.HasIndex(e => e.ActivityType); // For filtering by activity type
+            entity.HasIndex(e => e.CreatedAt); // For sorting by date
+        });
+
+        // Configure AchievementDefinition entity
+        modelBuilder.Entity<AchievementDefinition>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ActivityType).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.DisplayName).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.Icon).HasMaxLength(50);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            // Unique index on ActivityType
+            entity.HasIndex(e => e.ActivityType).IsUnique();
+            entity.HasIndex(e => e.IsActive); // For filtering active achievements
+        });
+
+        // Configure QuestionVote entity
+        modelBuilder.Entity<QuestionVote>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.Question)
+                .WithMany()
+                .HasForeignKey(e => e.QuestionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            // Unique index: one vote per user per question
+            entity.HasIndex(e => new { e.QuestionId, e.UserId }).IsUnique();
+            entity.HasIndex(e => e.QuestionId); // For counting votes on a question
+            entity.HasIndex(e => e.UserId); // For getting user's votes
+        });
+
+        // Configure Referral entity
+        modelBuilder.Entity<Referral>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.Referrer)
+                .WithMany()
+                .HasForeignKey(e => e.ReferrerId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.ReferredUser)
+                .WithMany()
+                .HasForeignKey(e => e.ReferredUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.Property(e => e.ReferralCode).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.ReferredEmail).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.Status).HasDefaultValue("Pending").HasMaxLength(20);
+            // Unique index on referral code
+            entity.HasIndex(e => e.ReferralCode).IsUnique();
+            entity.HasIndex(e => e.ReferrerId); // For getting user's referrals
+            entity.HasIndex(e => e.ReferredEmail); // For checking if email was already referred
+            entity.HasIndex(e => e.Status); // For filtering by status
         });
 
     }

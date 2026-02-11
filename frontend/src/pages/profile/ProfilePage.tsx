@@ -7,6 +7,7 @@ import api from '../../services/api';
 import { coachService } from '../../services/coach.service';
 import subscriptionService from '../../services/subscription.service';
 import type { Subscription } from '../../services/subscription.service';
+import coinsService, { type UserCoins, type CoinTransaction } from '../../services/coins.service';
 import '../../styles/style.css';
 import '../../styles/dashboard.css';
 import '../../styles/profile.css';
@@ -52,6 +53,9 @@ export const ProfilePage = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [currentSubscription, setCurrentSubscription] = useState<Subscription | null>(null);
   const [subscriptionLoading, setSubscriptionLoading] = useState(false);
+  const [coins, setCoins] = useState<UserCoins | null>(null);
+  const [transactions, setTransactions] = useState<CoinTransaction[]>([]);
+  const [transactionsLoading, setTransactionsLoading] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -112,9 +116,36 @@ export const ProfilePage = () => {
           .finally(() => {
             setSubscriptionLoading(false);
           });
+        
+        // Fetch user coins
+        coinsService.getMyCoins()
+          .then(data => {
+            setCoins(data);
+          })
+          .catch(err => {
+            console.error('Failed to fetch coins:', err);
+          });
       }
     }
   }, [user, isAuthenticated]);
+
+  useEffect(() => {
+    if (activeSection === 'activity') {
+      loadTransactions();
+    }
+  }, [activeSection]);
+
+  const loadTransactions = async () => {
+    setTransactionsLoading(true);
+    try {
+      const data = await coinsService.getMyTransactions(1, 50);
+      setTransactions(data);
+    } catch (err) {
+      console.error('Failed to load transactions:', err);
+    } finally {
+      setTransactionsLoading(false);
+    }
+  };
 
   const getUserInitials = () => {
     if (user?.firstName && user?.lastName) {
@@ -339,6 +370,13 @@ export const ProfilePage = () => {
                 >
                   <i className="fas fa-user"></i>
                   <span>Personal Information</span>
+                </button>
+                <button
+                  className={`profile-nav-item ${activeSection === 'activity' ? 'active' : ''}`}
+                  onClick={() => setActiveSection('activity')}
+                >
+                  <span style={{ marginRight: '8px' }}>🪙</span>
+                  <span>Activity & Coins</span>
                 </button>
                 <button
                   className={`profile-nav-item ${activeSection === 'subscription' ? 'active' : ''}`}
@@ -622,6 +660,118 @@ export const ProfilePage = () => {
                     )}
                   </div>
                 )}
+              </div>
+
+              {/* Activity Section */}
+              <div className={`profile-section-content ${activeSection === 'activity' ? 'active' : ''}`}>
+                <div className="section-header">
+                  <h2>Activity & Karma Points</h2>
+                  <p>View your karma points and activity history</p>
+                </div>
+
+                {/* Coins Summary Card */}
+                {coins && (
+                  <div className="profile-card" style={{ marginBottom: '1.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <h3 style={{ marginBottom: '0.5rem' }}>Your Karma Points</h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '0.5rem' }}>
+                          <span style={{ fontSize: '2rem' }}>🪙</span>
+                          <span style={{ fontSize: '2rem', fontWeight: 700, color: '#111827' }}>
+                            {coins.displayCoins}
+                          </span>
+                          {coins.displayRank && (
+                            <span style={{ fontSize: '1rem', color: '#6b7280', marginLeft: '8px' }}>
+                              ({coins.displayRank})
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <Link to={ROUTES.LEADERBOARD} className="btn-outline">
+                        <i className="fas fa-trophy"></i> View Leaderboard
+                      </Link>
+                    </div>
+                  </div>
+                )}
+
+                {/* Transaction History */}
+                <div className="profile-card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h3>Recent Activity</h3>
+                    <Link to="/how-to-earn" style={{ color: '#6366f1', fontSize: '0.9rem', fontWeight: 600 }}>
+                      How to earn <i className="fas fa-arrow-right" style={{ marginLeft: '4px' }}></i>
+                    </Link>
+                  </div>
+
+                  {transactionsLoading ? (
+                    <div style={{ textAlign: 'center', padding: '2rem' }}>
+                      <i className="fas fa-spinner fa-spin" style={{ fontSize: '2rem', color: '#6366f1' }}></i>
+                      <p style={{ marginTop: '1rem', color: '#6b7280' }}>Loading activity...</p>
+                    </div>
+                  ) : transactions.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
+                      <i className="fas fa-inbox" style={{ fontSize: '3rem', color: '#d1d5db', marginBottom: '1rem' }}></i>
+                      <p>No activity yet. Start earning karma by participating in interviews!</p>
+                      <Link to={ROUTES.FIND_PEER} className="btn-primary" style={{ marginTop: '1rem', display: 'inline-block', textDecoration: 'none' }}>
+                        Find a Peer Interview
+                      </Link>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      {transactions.map((transaction) => (
+                        <div
+                          key={transaction.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'start',
+                            padding: '1rem',
+                            backgroundColor: '#f9fafb',
+                            borderRadius: '8px',
+                            gap: '1rem',
+                          }}
+                        >
+                          {/* Icon */}
+                          <div
+                            style={{
+                              width: '40px',
+                              height: '40px',
+                              borderRadius: '50%',
+                              backgroundColor: '#ede9fe',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <span style={{ fontSize: '1.2rem' }}>🪙</span>
+                          </div>
+
+                          {/* Content */}
+                          <div style={{ flex: 1 }}>
+                            <p style={{ fontWeight: 500, color: '#111827', marginBottom: '0.25rem' }}>
+                              {transaction.description}
+                            </p>
+                            <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                              {transaction.timeAgo}
+                            </p>
+                          </div>
+
+                          {/* Amount */}
+                          <div
+                            style={{
+                              fontWeight: 700,
+                              fontSize: '1rem',
+                              color: transaction.amount > 0 ? '#10b981' : '#ef4444',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {transaction.amount > 0 ? '+' : ''}{transaction.amount}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Subscription Section */}

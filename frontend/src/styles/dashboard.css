@@ -338,6 +338,37 @@
     display: block;
 }
 
+/* Coins Display */
+.coins-display {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    border-radius: var(--radius-md);
+    transition: var(--transition);
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--text-primary);
+}
+
+.coins-display:hover {
+    background: linear-gradient(135deg, #fde68a, #fcd34d);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.coin-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
+.coin-count {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #78350f;
+}
+
 /* Dropdown Menu - Clean, modern implementation */
 .dropdown-menu {
     display: none;
@@ -429,6 +460,109 @@
     color: var(--primary-color);
 }
 
+/* Data Table for Leaderboard */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table thead {
+    background: var(--bg-gray-50);
+}
+
+.data-table th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.data-table td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.data-table tbody tr.hover-row {
+    transition: var(--transition);
+}
+
+.data-table tbody tr.hover-row:hover {
+    background: var(--bg-gray-50);
+}
+
+/* Page Components */
+.page-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.main-content {
+    flex: 1;
+    padding: var(--spacing-xl) 0;
+}
+
+.page-header {
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+}
+
+.page-header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.page-header .subtitle {
+    font-size: 1.125rem;
+    color: var(--text-secondary);
+    margin-bottom: 0;
+}
+
+.page-header .my-rank {
+    margin-top: 1rem;
+    font-size: 1rem;
+    color: var(--text-secondary);
+}
+
+.info-banner {
+    background: linear-gradient(135deg, #ede9fe, #f3e8ff);
+    border-radius: var(--radius-lg);
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border: 1px solid #e9d5ff;
+}
+
+.info-banner i {
+    color: #7c3aed;
+    font-size: 1.25rem;
+}
+
+.alert {
+    padding: 1rem 1.5rem;
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.alert-error {
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+}
+
+.alert-error i {
+    color: #dc2626;
+}
+
 @media (max-width: 968px) {
     .dashboard-grid {
         grid-template-columns: 1fr;
@@ -436,5 +570,18 @@
     
     .stats-grid {
         grid-template-columns: 1fr;
+    }
+
+    .page-header h1 {
+        font-size: 2rem;
+    }
+
+    .data-table {
+        font-size: 0.9rem;
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: 0.75rem 0.5rem;
     }
 }

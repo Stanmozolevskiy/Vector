@@ -15,6 +15,7 @@ public class UserServiceTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
     private readonly UserService _userService;
+    private readonly Mock<ICoinService> _mockCoinService;
     private readonly Mock<ILogger<UserService>> _mockLogger;
     private readonly Mock<IS3Service> _mockS3Service;
 
@@ -24,9 +25,10 @@ public class UserServiceTests : IDisposable
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
         _context = new ApplicationDbContext(options);
+        _mockCoinService = new Mock<ICoinService>();
         _mockLogger = new Mock<ILogger<UserService>>();
         _mockS3Service = new Mock<IS3Service>();
-        _userService = new UserService(_context, _mockLogger.Object, _mockS3Service.Object);
+        _userService = new UserService(_context, _mockCoinService.Object, _mockLogger.Object, _mockS3Service.Object);
     }
 
     [Fact]

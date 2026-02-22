@@ -34,18 +34,21 @@ public class AuthServiceTests : IDisposable
         _emailServiceMock = new Mock<IEmailService>();
         _loggerMock = new Mock<ILogger<AuthService>>();
 
-        var serviceProviderMock = new Mock<IServiceProvider>();
-        serviceProviderMock.Setup(x => x.GetService(typeof(IServiceProvider)))
-            .Returns(serviceProviderMock.Object);
-
         var configurationBuilder = new ConfigurationBuilder();
         configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
         {
             { "Jwt:Secret", "test-secret-key-that-is-at-least-32-characters-long" },
             { "Jwt:Issuer", "TestIssuer" },
-            { "Jwt:Audience", "TestAudience" }
+            { "Jwt:Audience", "TestAudience" },
+            { "Development:AutoVerifyEmails", "true" }
         });
         _configuration = configurationBuilder.Build();
+
+        var serviceProviderMock = new Mock<IServiceProvider>();
+        serviceProviderMock.Setup(x => x.GetService(typeof(IServiceProvider)))
+            .Returns(serviceProviderMock.Object);
+        serviceProviderMock.Setup(x => x.GetService(typeof(IConfiguration)))
+            .Returns(_configuration);
 
         var redisServiceMock = new Mock<IRedisService>();
         redisServiceMock.Setup(r => r.StoreRefreshTokenAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<TimeSpan>()))
@@ -83,7 +86,7 @@ public class AuthServiceTests : IDisposable
         Assert.Equal(dto.Email, result.Email);
         Assert.Equal(dto.FirstName, result.FirstName);
         Assert.Equal(dto.LastName, result.LastName);
-        Assert.False(result.EmailVerified);
+        Assert.True(result.EmailVerified); // Auto-verified in development mode
         Assert.NotNull(result.PasswordHash);
         Assert.NotEqual(dto.Password, result.PasswordHash);
 

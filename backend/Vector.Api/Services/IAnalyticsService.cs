@@ -28,5 +28,10 @@ public interface IAnalyticsService
     /// Calculate and update streak for a user
     /// </summary>
     Task CalculateStreakAsync(Guid userId);
+    
+    /// <summary>
+    /// Rebuild analytics from existing data for a user
+    /// </summary>
+    Task RebuildAnalyticsAsync(Guid userId);
 }
 

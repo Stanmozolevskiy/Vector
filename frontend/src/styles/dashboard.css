@@ -283,11 +283,17 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    transition: all 0.3s ease;
+}
+
+.goal-checkbox.checked {
+    background-color: var(--success-color);
+    border-color: var(--success-color);
 }
 
 .goal-checkbox i {
-    color: var(--success-color);
-    font-size: 0.875rem;
+    color: white;
+    font-size: 0.75rem;
 }
 
 .goal-text {

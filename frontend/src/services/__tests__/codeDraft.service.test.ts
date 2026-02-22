@@ -29,7 +29,6 @@ describe('codeDraftService', () => {
       };
 
       (api.get as any).mockResolvedValue({
-        status: 200,
         data: mockDraft,
       });
 
@@ -37,37 +36,33 @@ describe('codeDraftService', () => {
 
       expect(result).toEqual(mockDraft);
       expect(api.get).toHaveBeenCalledWith(
-        `/code-drafts/${questionId}/${language}`,
-        { validateStatus: expect.any(Function) }
+        `/code-drafts/${questionId}/${language}`
       );
     });
 
     it('should return null when code draft does not exist (404)', async () => {
       const questionId = 'test-question-id';
       const language = 'javascript';
+      const error = new Error('Not found');
+      (error as any).response = { status: 404 };
 
-      (api.get as any).mockResolvedValue({
-        status: 404,
-        data: null,
-      });
+      (api.get as any).mockRejectedValue(error);
 
       const result = await codeDraftService.getCodeDraft(questionId, language);
 
       expect(result).toBeNull();
       expect(api.get).toHaveBeenCalledWith(
-        `/code-drafts/${questionId}/${language}`,
-        { validateStatus: expect.any(Function) }
+        `/code-drafts/${questionId}/${language}`
       );
     });
 
     it('should not throw error on 404 - returns null silently', async () => {
       const questionId = 'test-question-id';
       const language = 'javascript';
+      const error = new Error('Not found');
+      (error as any).response = { status: 404 };
 
-      (api.get as any).mockResolvedValue({
-        status: 404,
-        data: null,
-      });
+      (api.get as any).mockRejectedValue(error);
 
       // Should not throw, should return null
       const result = await codeDraftService.getCodeDraft(questionId, language);
@@ -85,26 +80,6 @@ describe('codeDraftService', () => {
       await expect(
         codeDraftService.getCodeDraft(questionId, language)
       ).rejects.toThrow('Server error');
-    });
-
-    it('should use validateStatus to prevent axios from logging 404', async () => {
-      const questionId = 'test-question-id';
-      const language = 'javascript';
-
-      (api.get as any).mockResolvedValue({
-        status: 404,
-        data: null,
-      });
-
-      await codeDraftService.getCodeDraft(questionId, language);
-
-      const callArgs = (api.get as any).mock.calls[0];
-      const validateStatus = callArgs[1].validateStatus;
-      
-      // validateStatus should return true for 200 and 404
-      expect(validateStatus(200)).toBe(true);
-      expect(validateStatus(404)).toBe(true);
-      expect(validateStatus(500)).toBe(false);
     });
   });
 

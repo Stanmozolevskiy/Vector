@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace Vector.Api.Models;
 
@@ -12,6 +13,7 @@ public class InterviewQuestionComment
     [Required]
     public Guid QuestionId { get; set; }
 
+    [JsonIgnore]
     public InterviewQuestion Question { get; set; } = null!;
 
     [Required]
@@ -24,8 +26,10 @@ public class InterviewQuestionComment
     /// </summary>
     public Guid? ParentCommentId { get; set; }
 
+    [JsonIgnore]
     public InterviewQuestionComment? ParentComment { get; set; }
 
+    [JsonIgnore]
     public ICollection<InterviewQuestionComment> Replies { get; set; } = new List<InterviewQuestionComment>();
 
     public ICollection<InterviewQuestionCommentVote> Votes { get; set; } = new List<InterviewQuestionCommentVote>();
@@ -33,6 +37,12 @@ public class InterviewQuestionComment
     [Required]
     [MaxLength(2000)]
     public string Content { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Type of comment: feedback, tip, or question
+    /// </summary>
+    [MaxLength(50)]
+    public string? CommentType { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

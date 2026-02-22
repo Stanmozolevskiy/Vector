@@ -20,6 +20,7 @@ import { QuestionsPage } from './pages/questions/QuestionsPage';
 import { QuestionDetailPage } from './pages/questions/QuestionDetailPage';
 import { AddQuestionPage } from './pages/questions/AddQuestionPage';
 import { EditQuestionPage } from './pages/questions/EditQuestionPage';
+import BookmarkedQuestionsPage from './pages/questions/BookmarkedQuestionsPage';
 import { SolutionHistoryPage } from './pages/solutions/SolutionHistoryPage';
 import { ProgressPage } from './pages/progress/ProgressPage';
 import FindPeerPage from './pages/peer-interviews/FindPeerPage';
@@ -116,6 +117,11 @@ function App() {
         <Route path={ROUTES.QUESTIONS} element={
           <ProtectedRoute requireAuth>
             <QuestionsPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/questions/bookmarks" element={
+          <ProtectedRoute requireAuth>
+            <BookmarkedQuestionsPage />
           </ProtectedRoute>
         } />
         <Route path={ROUTES.SOLUTION_HISTORY} element={

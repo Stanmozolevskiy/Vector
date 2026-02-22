@@ -27,14 +27,20 @@ public class SolutionService : ISolutionService
 
     public async Task SubmitSolutionAsync(Guid userId, SubmitSolutionDto dto)
     {
+        _logger.LogInformation("SubmitSolutionAsync called - UserId: {UserId}, QuestionId: {QuestionId}, Language: {Language}", 
+            userId, dto.QuestionId, dto.Language);
+            
         // Verify question exists
         var question = await _context.InterviewQuestions
             .FirstOrDefaultAsync(q => q.Id == dto.QuestionId && q.IsActive);
 
         if (question == null)
         {
+            _logger.LogWarning("Question not found: {QuestionId}", dto.QuestionId);
             throw new KeyNotFoundException("Question not found.");
         }
+        
+        _logger.LogInformation("Question found: {QuestionTitle}", question.Title);
 
         // Get total test cases count for the question
         var totalTestCases = await _context.QuestionTestCases
@@ -58,6 +64,7 @@ public class SolutionService : ISolutionService
         };
 
         _context.UserSolutions.Add(userSolution);
+        _logger.LogInformation("Created UserSolution record for user {UserId}, question {QuestionId}", userId, dto.QuestionId);
 
         // Mark question as solved in optimized lookup table (upsert)
         var existingSolved = await _context.UserSolvedQuestions
@@ -75,15 +82,18 @@ public class SolutionService : ISolutionService
                 SolvedAt = DateTime.UtcNow
             };
             _context.UserSolvedQuestions.Add(userSolvedQuestion);
+            _logger.LogInformation("Created new UserSolvedQuestion record");
         }
         else
         {
             // Update existing record (update solved date and language if needed)
             existingSolved.SolvedAt = DateTime.UtcNow;
             existingSolved.Language = dto.Language;
+            _logger.LogInformation("Updated existing UserSolvedQuestion record");
         }
 
         await _context.SaveChangesAsync();
+        _logger.LogInformation("Successfully saved solution to database for user {UserId}, question {QuestionId}", userId, dto.QuestionId);
 
         // Update analytics (fire and forget - don't block on analytics update)
         _ = Task.Run(async () =>

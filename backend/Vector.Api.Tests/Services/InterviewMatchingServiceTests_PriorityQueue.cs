@@ -16,9 +16,11 @@ public class InterviewMatchingServiceTests_PriorityQueue : IDisposable
 {
     private readonly ApplicationDbContext _context;
     private readonly Mock<IQuestionService> _questionServiceMock;
+    private readonly Mock<ICoinService> _coinServiceMock;
     private readonly Mock<ILogger<PeerInterviewService>> _loggerMock;
     private readonly Mock<ILogger<InterviewMatchingService>> _matchingLoggerMock;
     private readonly Mock<IMatchingPresenceService> _presenceServiceMock;
+    private readonly Mock<IServiceProvider> _serviceProviderMock;
     private readonly PeerInterviewService _service;
     private readonly InterviewMatchingService _matchingService;
 
@@ -30,9 +32,11 @@ public class InterviewMatchingServiceTests_PriorityQueue : IDisposable
         _context = new ApplicationDbContext(options);
 
         _questionServiceMock = new Mock<IQuestionService>();
+        _coinServiceMock = new Mock<ICoinService>();
         _loggerMock = new Mock<ILogger<PeerInterviewService>>();
         _matchingLoggerMock = new Mock<ILogger<InterviewMatchingService>>();
         _presenceServiceMock = new Mock<IMatchingPresenceService>();
+        _serviceProviderMock = new Mock<IServiceProvider>();
         
         // Setup presence service to return true by default (user is active)
         _presenceServiceMock.Setup(p => p.IsUserActive(It.IsAny<Guid>(), It.IsAny<Guid>())).Returns(true);
@@ -40,14 +44,17 @@ public class InterviewMatchingServiceTests_PriorityQueue : IDisposable
         _service = new PeerInterviewService(
             _context,
             _questionServiceMock.Object,
-            _loggerMock.Object
+            _coinServiceMock.Object,
+            _loggerMock.Object,
+            _serviceProviderMock.Object
         );
 
         _matchingService = new InterviewMatchingService(
             _context,
             _service,
             _presenceServiceMock.Object,
-            _matchingLoggerMock.Object
+            _matchingLoggerMock.Object,
+            _serviceProviderMock.Object
         );
     }
 

@@ -61,10 +61,13 @@ public class AnalyticsService : IAnalyticsService
             if (status == "Accepted")
             {
                 // Check if this is the first accepted solution for this question
-                var existingAccepted = await _context.UserSolutions
-                    .AnyAsync(s => s.UserId == userId && s.QuestionId == questionId && s.Status == "Accepted");
+                // Count how many accepted solutions exist for this question
+                var acceptedCount = await _context.UserSolutions
+                    .CountAsync(s => s.UserId == userId && s.QuestionId == questionId && s.Status == "Accepted");
 
-                if (!existingAccepted)
+                // If this is the first accepted solution, increment questions solved
+                // The current solution has already been saved, so count should be >= 1
+                if (acceptedCount == 1)
                 {
                     analytics.QuestionsSolved++;
                 }
@@ -113,14 +116,28 @@ public class AnalyticsService : IAnalyticsService
 
         if (analytics == null)
         {
-            // Return empty analytics if none exists
+            // Return empty analytics if none exists with mock interviews count
+            var mockInterviews = await _context.ScheduledInterviewSessions
+                .CountAsync(s => s.UserId == userId && 
+                               s.Status == "Completed" && 
+                               s.PracticeType != "friend");
+
+            // Get total question counts by difficulty
+            var totalQuestionsByDifficulty = await _context.InterviewQuestions
+                .Where(q => q.IsActive && q.QuestionType == "Coding")
+                .GroupBy(q => q.Difficulty)
+                .Select(g => new { Difficulty = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.Difficulty, x => x.Count);
+
             return new LearningAnalyticsDto
             {
-                UserId = userId
+                UserId = userId,
+                MockInterviewsCompleted = mockInterviews,
+                TotalQuestionsByDifficulty = totalQuestionsByDifficulty
             };
         }
 
-        return MapToDto(analytics);
+        return await MapToDtoAsync(analytics);
     }
 
     public async Task<CategoryProgressDto?> GetCategoryProgressAsync(Guid userId, string category)
@@ -221,15 +238,15 @@ public class AnalyticsService : IAnalyticsService
                 return;
             }
 
-            // Get all accepted solutions ordered by date
-            var acceptedSolutions = await _context.UserSolutions
-                .Where(s => s.UserId == userId && s.Status == "Accepted")
-                .OrderByDescending(s => s.SubmittedAt)
-                .Select(s => s.SubmittedAt.Date)
+            // Get all solved questions ordered by date (using UserSolvedQuestions)
+            var solvedDates = await _context.UserSolvedQuestions
+                .Where(usq => usq.UserId == userId)
+                .OrderByDescending(usq => usq.SolvedAt)
+                .Select(usq => usq.SolvedAt.Date)
                 .Distinct()
                 .ToListAsync();
 
-            if (acceptedSolutions.Count == 0)
+            if (solvedDates.Count == 0)
             {
                 analytics.CurrentStreak = 0;
                 analytics.LongestStreak = 0;
@@ -244,9 +261,9 @@ public class AnalyticsService : IAnalyticsService
             var checkDate = today;
 
             // If last activity was today or yesterday, start counting
-            if (acceptedSolutions.Contains(today) || acceptedSolutions.Contains(today.AddDays(-1)))
+            if (solvedDates.Contains(today) || solvedDates.Contains(today.AddDays(-1)))
             {
-                foreach (var date in acceptedSolutions.OrderByDescending(d => d))
+                foreach (var date in solvedDates.OrderByDescending(d => d))
                 {
                     if (date == checkDate || date == checkDate.AddDays(-1))
                     {
@@ -264,9 +281,9 @@ public class AnalyticsService : IAnalyticsService
             var longestStreak = 1;
             var currentRun = 1;
 
-            for (int i = 1; i < acceptedSolutions.Count; i++)
+            for (int i = 1; i < solvedDates.Count; i++)
             {
-                var daysDiff = (acceptedSolutions[i - 1] - acceptedSolutions[i]).Days;
+                var daysDiff = (solvedDates[i - 1] - solvedDates[i]).Days;
                 if (daysDiff == 1)
                 {
                     currentRun++;
@@ -344,14 +361,28 @@ public class AnalyticsService : IAnalyticsService
         }
     }
 
-    private LearningAnalyticsDto MapToDto(LearningAnalytics analytics)
+    private async Task<LearningAnalyticsDto> MapToDtoAsync(LearningAnalytics analytics)
     {
+        // Count completed mock interviews (excluding practice with friend)
+        var mockInterviewsCompleted = await _context.ScheduledInterviewSessions
+            .CountAsync(s => s.UserId == analytics.UserId && 
+                           s.Status == "Completed" && 
+                           s.PracticeType != "friend");
+
+        // Get total question counts by difficulty (only coding questions that are active)
+        var totalQuestionsByDifficulty = await _context.InterviewQuestions
+            .Where(q => q.IsActive && q.QuestionType == "Coding")
+            .GroupBy(q => q.Difficulty)
+            .Select(g => new { Difficulty = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Difficulty, x => x.Count);
+
         return new LearningAnalyticsDto
         {
             UserId = analytics.UserId,
             QuestionsSolved = analytics.QuestionsSolved,
             QuestionsByCategory = ParseJsonDictionary(analytics.QuestionsByCategory),
             QuestionsByDifficulty = ParseJsonDictionary(analytics.QuestionsByDifficulty),
+            TotalQuestionsByDifficulty = totalQuestionsByDifficulty,
             AverageExecutionTime = analytics.AverageExecutionTime,
             AverageMemoryUsed = analytics.AverageMemoryUsed,
             SuccessRate = analytics.SuccessRate,
@@ -359,8 +390,110 @@ public class AnalyticsService : IAnalyticsService
             LongestStreak = analytics.LongestStreak,
             LastActivityDate = analytics.LastActivityDate,
             TotalSubmissions = analytics.TotalSubmissions,
-            SolutionsByLanguage = ParseJsonDictionary(analytics.SolutionsByLanguage)
+            SolutionsByLanguage = ParseJsonDictionary(analytics.SolutionsByLanguage),
+            MockInterviewsCompleted = mockInterviewsCompleted
         };
+    }
+
+    public async Task RebuildAnalyticsAsync(Guid userId)
+    {
+        try
+        {
+            _logger.LogInformation("Rebuilding analytics for user {UserId}", userId);
+
+            // Get or create analytics record
+            var analytics = await _context.LearningAnalytics
+                .FirstOrDefaultAsync(a => a.UserId == userId);
+
+            if (analytics == null)
+            {
+                analytics = new LearningAnalytics
+                {
+                    UserId = userId,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                _context.LearningAnalytics.Add(analytics);
+            }
+
+            // Get all solved questions from UserSolvedQuestions table (the source of truth for checkmarks)
+            var solvedQuestions = await _context.UserSolvedQuestions
+                .Include(usq => usq.Question)
+                .Where(usq => usq.UserId == userId)
+                .ToListAsync();
+
+            _logger.LogInformation("Found {Count} solved questions for user {UserId}", solvedQuestions.Count, userId);
+
+            // Count unique questions solved
+            analytics.QuestionsSolved = solvedQuestions.Count;
+
+            // Reset dictionaries
+            var categoryDict = new Dictionary<string, int>();
+            var difficultyDict = new Dictionary<string, int>();
+            var languageDict = new Dictionary<string, int>();
+
+            // Count by category, difficulty, and language
+            foreach (var solved in solvedQuestions)
+            {
+                if (solved.Question != null)
+                {
+                    var category = solved.Question.Category;
+                    var difficulty = solved.Question.Difficulty;
+                    var language = solved.Language ?? "Unknown";
+
+                    categoryDict[category] = categoryDict.GetValueOrDefault(category, 0) + 1;
+                    difficultyDict[difficulty] = difficultyDict.GetValueOrDefault(difficulty, 0) + 1;
+                    languageDict[language] = languageDict.GetValueOrDefault(language, 0) + 1;
+                }
+            }
+
+            analytics.QuestionsByCategory = JsonSerializer.Serialize(categoryDict);
+            analytics.QuestionsByDifficulty = JsonSerializer.Serialize(difficultyDict);
+            analytics.SolutionsByLanguage = JsonSerializer.Serialize(languageDict);
+
+            _logger.LogInformation("Category breakdown: {Categories}", analytics.QuestionsByCategory);
+            _logger.LogInformation("Difficulty breakdown: {Difficulties}", analytics.QuestionsByDifficulty);
+
+            // Set last activity date
+            if (solvedQuestions.Any())
+            {
+                analytics.LastActivityDate = solvedQuestions.Max(s => s.SolvedAt);
+            }
+
+            // Get total submissions from UserSolutions (if available)
+            analytics.TotalSubmissions = await _context.UserSolutions
+                .CountAsync(s => s.UserId == userId);
+
+            // Calculate success rate based on actual accepted solutions
+            var acceptedSolutionsCount = await _context.UserSolutions
+                .CountAsync(s => s.UserId == userId && s.Status == "Accepted");
+            
+            if (analytics.TotalSubmissions > 0)
+            {
+                analytics.SuccessRate = (decimal)acceptedSolutionsCount / analytics.TotalSubmissions * 100;
+            }
+            else if (solvedQuestions.Any())
+            {
+                // If no UserSolutions but have UserSolvedQuestions, assume 100% success
+                analytics.SuccessRate = 100;
+                analytics.TotalSubmissions = solvedQuestions.Count;
+            }
+
+            // Calculate streak
+            await CalculateStreakAsync(userId);
+
+            // Save all changes including category/difficulty/language stats
+            analytics.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Analytics rebuilt successfully for user {UserId}: {QuestionsSolved} questions solved", 
+                userId, analytics.QuestionsSolved);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error rebuilding analytics for user {UserId}", userId);
+            throw;
+        }
     }
 }
 

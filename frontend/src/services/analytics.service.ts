@@ -5,6 +5,7 @@ export interface LearningAnalytics {
   questionsSolved: number;
   questionsByCategory: Record<string, number>;
   questionsByDifficulty: Record<string, number>;
+  totalQuestionsByDifficulty: Record<string, number>;
   averageExecutionTime: number;
   averageMemoryUsed: number;
   successRate: number;
@@ -13,6 +14,7 @@ export interface LearningAnalytics {
   lastActivityDate: string | null;
   totalSubmissions: number;
   solutionsByLanguage: Record<string, number>;
+  mockInterviewsCompleted: number;
 }
 
 export interface CategoryProgress {
@@ -55,6 +57,14 @@ class AnalyticsService {
    */
   async getDifficultyProgress(difficulty: string): Promise<DifficultyProgress> {
     const response = await api.get<DifficultyProgress>(`/analytics/difficulty/${encodeURIComponent(difficulty)}`);
+    return response.data;
+  }
+
+  /**
+   * Rebuild analytics from existing data
+   */
+  async rebuildAnalytics(): Promise<{ message: string; analytics: LearningAnalytics }> {
+    const response = await api.post<{ message: string; analytics: LearningAnalytics }>('/analytics/rebuild');
     return response.data;
   }
 }

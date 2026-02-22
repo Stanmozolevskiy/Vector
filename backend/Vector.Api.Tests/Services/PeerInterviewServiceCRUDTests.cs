@@ -13,7 +13,9 @@ public class PeerInterviewServiceCRUDTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
     private readonly Mock<IQuestionService> _questionServiceMock;
+    private readonly Mock<ICoinService> _coinServiceMock;
     private readonly Mock<ILogger<PeerInterviewService>> _loggerMock;
+    private readonly Mock<IServiceProvider> _serviceProviderMock;
     private readonly PeerInterviewService _service;
 
     public PeerInterviewServiceCRUDTests()
@@ -24,8 +26,16 @@ public class PeerInterviewServiceCRUDTests : IDisposable
         _context = new ApplicationDbContext(options);
 
         _questionServiceMock = new Mock<IQuestionService>();
+        _coinServiceMock = new Mock<ICoinService>();
         _loggerMock = new Mock<ILogger<PeerInterviewService>>();
-        _service = new PeerInterviewService(_context, _questionServiceMock.Object, _loggerMock.Object);
+        _serviceProviderMock = new Mock<IServiceProvider>();
+        _service = new PeerInterviewService(
+            _context, 
+            _questionServiceMock.Object, 
+            _coinServiceMock.Object,
+            _loggerMock.Object,
+            _serviceProviderMock.Object
+        );
     }
 
     public void Dispose()

@@ -7,6 +7,7 @@ import { solutionService } from '../../services/solution.service';
 import { useAuth } from '../../hooks/useAuth';
 import { ROUTES } from '../../utils/constants';
 import { CompanyIcon } from '../../components/common/CompanyIcon';
+import BookmarkButton from '../../components/questions/BookmarkButton';
 import '../../styles/questions.css';
 
 const ROLES = ['Software Engineer', 'Product Manager', 'Data Engineer', 'Data Scientist', 'Technical Program Manager'];
@@ -58,7 +59,7 @@ export const QuestionsPage = () => {
         companies: selectedCompanies.length > 0 ? selectedCompanies : undefined,
         role: roleFilter,
         page: currentPage,
-        pageSize: 20,
+        pageSize: 15,
       };
       const data = await questionService.getQuestions(filter);
       setQuestions(data);
@@ -441,10 +442,13 @@ export const QuestionsPage = () => {
                           ))}
                         </div>
                         <div className="question-footer">
-                          <button className="action-btn">
-                            <i className="far fa-bookmark"></i>
-                            Save
-                          </button>
+                          <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <BookmarkButton 
+                              questionId={question.id} 
+                              size="small" 
+                              showLabel 
+                            />
+                          </div>
                           <div className="question-stats">
                             {question.acceptanceRate && (
                               <span>{question.acceptanceRate}% acceptance</span>
@@ -456,25 +460,87 @@ export const QuestionsPage = () => {
                   </div>
 
                   <div className="pagination">
+                    {/* First page button */}
                     <button
-                      className="page-btn disabled"
+                      className={`page-btn ${currentPage === 1 ? 'disabled' : ''}`}
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage(1)}
+                      title="First page"
+                    >
+                      <i className="fas fa-angles-left"></i>
+                    </button>
+                    
+                    {/* Previous page button */}
+                    <button
+                      className={`page-btn ${currentPage === 1 ? 'disabled' : ''}`}
                       disabled={currentPage === 1}
                       onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      title="Previous page"
                     >
                       <i className="fas fa-chevron-left"></i>
                     </button>
-                    <button
-                      className={`page-btn ${currentPage === 1 ? 'active' : ''}`}
-                      onClick={() => setCurrentPage(1)}
-                    >
-                      1
+                    
+                    {/* Page numbers */}
+                    {currentPage > 2 && (
+                      <button
+                        className="page-btn"
+                        onClick={() => setCurrentPage(currentPage - 2)}
+                      >
+                        {currentPage - 2}
+                      </button>
+                    )}
+                    
+                    {currentPage > 1 && (
+                      <button
+                        className="page-btn"
+                        onClick={() => setCurrentPage(currentPage - 1)}
+                      >
+                        {currentPage - 1}
+                      </button>
+                    )}
+                    
+                    <button className="page-btn active">
+                      {currentPage}
                     </button>
+                    
+                    {questions.length >= 15 && (
+                      <>
+                        <button
+                          className="page-btn"
+                          onClick={() => setCurrentPage(currentPage + 1)}
+                        >
+                          {currentPage + 1}
+                        </button>
+                        
+                        <button
+                          className="page-btn"
+                          onClick={() => setCurrentPage(currentPage + 2)}
+                        >
+                          {currentPage + 2}
+                        </button>
+                      </>
+                    )}
+                    
+                    {/* Next page button */}
                     <button
-                      className="page-btn"
+                      className={`page-btn ${questions.length < 15 ? 'disabled' : ''}`}
+                      disabled={questions.length < 15}
                       onClick={() => setCurrentPage(p => p + 1)}
+                      title="Next page"
                     >
                       <i className="fas fa-chevron-right"></i>
                     </button>
+                    
+                    {/* Last page button (only show if we know we're not on last page) */}
+                    {questions.length >= 15 && (
+                      <button
+                        className="page-btn"
+                        onClick={() => setCurrentPage(currentPage + 3)}
+                        title="Jump ahead"
+                      >
+                        <i className="fas fa-angles-right"></i>
+                      </button>
+                    )}
                   </div>
                 </>
               )}

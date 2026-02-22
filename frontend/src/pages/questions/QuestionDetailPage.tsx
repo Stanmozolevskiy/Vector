@@ -22,7 +22,9 @@ import api from '../../services/api';
 import { RejoinModal } from '../../components/RejoinModal';
 import { FeedbackForm } from '../../components/FeedbackForm';
 import { QuestionVoting } from '../../components/QuestionVoting';
+import { QuestionDiscussion } from '../../components/QuestionDiscussion';
 import { commentsService } from '../../services/comments.service';
+import BookmarkButton from '../../components/questions/BookmarkButton';
 import '../../styles/question-detail.css';
 
 export const QuestionDetailPage = () => {
@@ -227,25 +229,43 @@ export const QuestionDetailPage = () => {
   useEffect(() => {
     if (!id || !question) return;
     const type = question.questionType?.toLowerCase();
-    if (type === 'coding' || type === 'sql') return;
 
     let cancelled = false;
     const timer = setTimeout(() => {
       setIsLoadingComments(true);
-      const sortParam = (answerSort || 'Hot').toLowerCase() as 'hot' | 'top' | 'new';
-      questionService.getQuestionComments(id, 1, 50, sortParam)
-        .then((data) => {
-          if (cancelled) return;
-          setComments(data);
-        })
-        .catch(() => {
-          if (cancelled) return;
-          setComments([]);
-        })
-        .finally(() => {
-          if (cancelled) return;
-          setIsLoadingComments(false);
-        });
+      
+      // For coding/SQL questions, use commentsService
+      if (type === 'coding' || type === 'sql') {
+        commentsService.getComments(id)
+          .then((data) => {
+            if (cancelled) return;
+            setComments(data);
+          })
+          .catch(() => {
+            if (cancelled) return;
+            setComments([]);
+          })
+          .finally(() => {
+            if (cancelled) return;
+            setIsLoadingComments(false);
+          });
+      } else {
+        // For behavioral/system design, use questionService
+        const sortParam = (answerSort || 'Hot').toLowerCase() as 'hot' | 'top' | 'new';
+        questionService.getQuestionComments(id, 1, 50, sortParam)
+          .then((data) => {
+            if (cancelled) return;
+            setComments(data);
+          })
+          .catch(() => {
+            if (cancelled) return;
+            setComments([]);
+          })
+          .finally(() => {
+            if (cancelled) return;
+            setIsLoadingComments(false);
+          });
+      }
     }, 0);
 
     return () => {
@@ -253,6 +273,32 @@ export const QuestionDetailPage = () => {
       clearTimeout(timer);
     };
   }, [id, question, answerSort]);
+
+  // Function to reload comments (for after posting new comments)
+  const loadComments = async () => {
+    if (!id || !question) return;
+    const type = question.questionType?.toLowerCase();
+    
+    try {
+      setIsLoadingComments(true);
+      
+      // For coding/SQL questions, use the commentsService
+      if (type === 'coding' || type === 'sql') {
+        const data = await commentsService.getComments(id);
+        setComments(data);
+      } else {
+        // For behavioral/system design, use questionService
+        const sortParam = (answerSort || 'Hot').toLowerCase() as 'hot' | 'top' | 'new';
+        const data = await questionService.getQuestionComments(id, 1, 50, sortParam);
+        setComments(data);
+      }
+    } catch (error) {
+      console.error('Error loading comments:', error);
+      setComments([]);
+    } finally {
+      setIsLoadingComments(false);
+    }
+  };
 
   // Also check session when user becomes available
   // Session check removed - only checks when sessionId is in URL params
@@ -2411,45 +2457,46 @@ export const QuestionDetailPage = () => {
           </div>
 
           {activeTab === 'description' && (
-            <div className="panel-content">
-              <div className="question-header">
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-                  {id && <QuestionVoting questionId={id} />}
-                  <div style={{ flex: 1 }}>
-                    <div className="question-title-row">
-                      <h1 className="question-title">{question.title}</h1>
-                      {isSolved && (
-                        <div className="question-solved-status">
-                          <i className="fas fa-check-circle"></i>
-                          <span>Solved</span>
-                        </div>
-                      )}
+            <div className="panel-content" style={{ position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', padding: 0 }}>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
+                <div className="question-header">
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1 }}>
+                      <div className="question-title-row">
+                        <h1 className="question-title">{question.title}</h1>
+                        {isSolved && (
+                          <div className="question-solved-status">
+                            <i className="fas fa-check-circle"></i>
+                            <span>Solved</span>
+                          </div>
+                        )}
+                        <BookmarkButton questionId={question.id} size="medium" showLabel />
+                      </div>
                     </div>
                   </div>
+                  <div className="question-meta">
+                    <span className={`difficulty-badge ${getDifficultyClass(question.difficulty)}`}>
+                      {question.difficulty}
+                    </span>
+                    {question.tags && question.tags.length > 0 && (
+                      <button className="meta-btn">
+                        <i className="far fa-bookmark"></i> Topics
+                      </button>
+                    )}
+                    {question.companyTags && question.companyTags.length > 0 && (
+                      <button className="meta-btn">
+                        <i className="far fa-building"></i> Companies
+                      </button>
+                    )}
+                    {question.hints && question.hints.length > 0 && (
+                      <button className="meta-btn">
+                        <i className="far fa-lightbulb"></i> Hint 1
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div className="question-meta">
-                  <span className={`difficulty-badge ${getDifficultyClass(question.difficulty)}`}>
-                    {question.difficulty}
-                  </span>
-                  {question.tags && question.tags.length > 0 && (
-                    <button className="meta-btn">
-                      <i className="far fa-bookmark"></i> Topics
-                    </button>
-                  )}
-                  {question.companyTags && question.companyTags.length > 0 && (
-                    <button className="meta-btn">
-                      <i className="far fa-building"></i> Companies
-                    </button>
-                  )}
-                  {question.hints && question.hints.length > 0 && (
-                    <button className="meta-btn">
-                      <i className="far fa-lightbulb"></i> Hint 1
-                    </button>
-                  )}
-                </div>
-              </div>
 
-              <div className="problem-content">
+                <div className="problem-content">
                 <div dangerouslySetInnerHTML={{ __html: question.description.replace(/\n/g, '<br />') }} />
                 
                 {question.examples && question.examples.length > 0 && (
@@ -2567,7 +2614,32 @@ export const QuestionDetailPage = () => {
                     <i className={`fas fa-chevron-${companiesExpanded ? 'up' : 'down'} collapse-icon`}></i>
                   </div>
                 )}
+
+                {/* Discussion Section - scrollable content */}
+                {id && (
+                  <QuestionDiscussion
+                    questionId={id}
+                    comments={comments}
+                    onCommentAdded={loadComments}
+                  />
+                )}
+                </div>
               </div>
+
+              {/* Fixed voting bar at bottom */}
+              {id && (
+                <QuestionVoting 
+                  questionId={id} 
+                  commentCount={comments.length}
+                  onCommentsClick={() => {
+                    // Scroll to comments section if it exists
+                    const commentsSection = document.getElementById('discussion-section');
+                    if (commentsSection) {
+                      commentsSection.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
+                />
+              )}
             </div>
           )}
 

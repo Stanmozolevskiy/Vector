@@ -127,6 +127,33 @@ public class AnalyticsController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Rebuild analytics from existing solutions and interviews
+    /// </summary>
+    [HttpPost("rebuild")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> RebuildAnalytics()
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            if (!userId.HasValue)
+            {
+                return Unauthorized(new { error = "User not authenticated." });
+            }
+
+            await _analyticsService.RebuildAnalyticsAsync(userId.Value);
+            var analytics = await _analyticsService.GetUserAnalyticsAsync(userId.Value);
+            
+            return Ok(new { message = "Analytics rebuilt successfully", analytics });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error rebuilding analytics");
+            return StatusCode(500, new { error = "An error occurred while rebuilding analytics." });
+        }
+    }
+
     private Guid? GetCurrentUserId()
     {
         // JWT tokens may use different claim names

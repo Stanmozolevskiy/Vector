@@ -11,7 +11,7 @@ using Vector.Api.Services;
 namespace Vector.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/questions")]
 [Authorize]
 public class QuestionController : ControllerBase
 {
@@ -887,6 +887,132 @@ public class QuestionController : ControllerBase
         {
             _logger.LogError(ex, "Error rejecting question {QuestionId}", id);
             return StatusCode(500, new { error = "An error occurred while rejecting the question." });
+        }
+    }
+
+    /// <summary>
+    /// Bookmark a question
+    /// </summary>
+    [HttpPost("{id}/bookmark")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> BookmarkQuestion(Guid id, [FromBody] AddBookmarkDto? dto)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null)
+            {
+                return Unauthorized(new { error = "Invalid token" });
+            }
+
+            var bookmark = await _questionService.AddBookmarkAsync(id, userId.Value, dto?.Notes);
+
+            return Ok(new { 
+                id = bookmark.Id,
+                questionId = bookmark.QuestionId,
+                notes = bookmark.Notes,
+                createdAt = bookmark.CreatedAt,
+                message = "Question bookmarked successfully"
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error bookmarking question {QuestionId}", id);
+            return StatusCode(500, new { error = "An error occurred while bookmarking the question." });
+        }
+    }
+
+    /// <summary>
+    /// Remove bookmark from a question
+    /// </summary>
+    [HttpDelete("{id}/bookmark")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RemoveBookmark(Guid id)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null)
+            {
+                return Unauthorized(new { error = "Invalid token" });
+            }
+
+            var removed = await _questionService.RemoveBookmarkAsync(id, userId.Value);
+
+            if (!removed)
+            {
+                return NotFound(new { error = "Bookmark not found" });
+            }
+
+            return Ok(new { message = "Bookmark removed successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error removing bookmark for question {QuestionId}", id);
+            return StatusCode(500, new { error = "An error occurred while removing the bookmark." });
+        }
+    }
+
+    /// <summary>
+    /// Get user's bookmarked questions
+    /// </summary>
+    [HttpGet("bookmarks")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetBookmarkedQuestions()
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null)
+            {
+                return Unauthorized(new { error = "Invalid token" });
+            }
+
+            var questions = await _questionService.GetBookmarkedQuestionsAsync(userId.Value);
+            var questionDtos = questions.Select(MapToQuestionDto);
+
+            return Ok(questionDtos);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting bookmarked questions");
+            return StatusCode(500, new { error = "An error occurred while retrieving bookmarked questions." });
+        }
+    }
+
+    /// <summary>
+    /// Check if question is bookmarked
+    /// </summary>
+    [HttpGet("{id}/bookmark")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> IsQuestionBookmarked(Guid id)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null)
+            {
+                return Unauthorized(new { error = "Invalid token" });
+            }
+
+            var isBookmarked = await _questionService.IsQuestionBookmarkedAsync(id, userId.Value);
+
+            return Ok(new { isBookmarked });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking bookmark status for question {QuestionId}", id);
+            return StatusCode(500, new { error = "An error occurred while checking bookmark status." });
         }
     }
 }

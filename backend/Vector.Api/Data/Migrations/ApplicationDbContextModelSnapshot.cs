@@ -471,6 +471,10 @@ namespace Vector.Api.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("CommentType")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<string>("Content")
                         .IsRequired()
                         .HasMaxLength(2000)
@@ -514,6 +518,9 @@ namespace Vector.Api.Data.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("VoteType")
+                        .HasColumnType("integer");
 
                     b.HasKey("CommentId", "UserId");
 
@@ -778,6 +785,39 @@ namespace Vector.Api.Data.Migrations
                     b.ToTable("Payments");
                 });
 
+            modelBuilder.Entity("Vector.Api.Models.QuestionBookmark", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("QuestionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("QuestionId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "QuestionId")
+                        .IsUnique();
+
+                    b.ToTable("QuestionBookmarks");
+                });
+
             modelBuilder.Entity("Vector.Api.Models.QuestionSolution", b =>
                 {
                     b.Property<Guid>("Id")
@@ -864,6 +904,96 @@ namespace Vector.Api.Data.Migrations
                     b.HasIndex("QuestionId");
 
                     b.ToTable("QuestionTestCases");
+                });
+
+            modelBuilder.Entity("Vector.Api.Models.QuestionVote", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("QuestionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("VoteType")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuestionId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("QuestionId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("QuestionVotes");
+                });
+
+            modelBuilder.Entity("Vector.Api.Models.Referral", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReferralCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ReferredEmail")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid?>("ReferredUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ReferrerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("Pending");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReferralCode")
+                        .IsUnique();
+
+                    b.HasIndex("ReferredEmail");
+
+                    b.HasIndex("ReferredUserId");
+
+                    b.HasIndex("ReferrerId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("Referrals");
                 });
 
             modelBuilder.Entity("Vector.Api.Models.RefreshToken", b =>
@@ -1534,6 +1664,25 @@ namespace Vector.Api.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Vector.Api.Models.QuestionBookmark", b =>
+                {
+                    b.HasOne("Vector.Api.Models.InterviewQuestion", "Question")
+                        .WithMany()
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Vector.Api.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Question");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Vector.Api.Models.QuestionSolution", b =>
                 {
                     b.HasOne("Vector.Api.Models.User", "Creator")
@@ -1561,6 +1710,43 @@ namespace Vector.Api.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Question");
+                });
+
+            modelBuilder.Entity("Vector.Api.Models.QuestionVote", b =>
+                {
+                    b.HasOne("Vector.Api.Models.InterviewQuestion", "Question")
+                        .WithMany()
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Vector.Api.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Question");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Vector.Api.Models.Referral", b =>
+                {
+                    b.HasOne("Vector.Api.Models.User", "ReferredUser")
+                        .WithMany()
+                        .HasForeignKey("ReferredUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Vector.Api.Models.User", "Referrer")
+                        .WithMany()
+                        .HasForeignKey("ReferrerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ReferredUser");
+
+                    b.Navigation("Referrer");
                 });
 
             modelBuilder.Entity("Vector.Api.Models.RefreshToken", b =>

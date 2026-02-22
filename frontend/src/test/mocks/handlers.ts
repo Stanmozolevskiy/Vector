@@ -220,6 +220,16 @@ export const handlers = [
     }, { status: 200 });
   }),
 
+  // Coins endpoints
+  http.get(`${API_BASE_URL}/coins/me`, () => {
+    return HttpResponse.json({
+      userId: '123e4567-e89b-12d3-a456-426614174000',
+      currentBalance: 100,
+      lifetimeEarned: 500,
+      lifetimeSpent: 400,
+    }, { status: 200 });
+  }),
+
   // Change password endpoint (alternative path)
   http.put(`${API_BASE_URL}/users/me/password`, async ({ request }) => {
     const body = await request.json() as { currentPassword: string; newPassword: string; confirmPassword: string };

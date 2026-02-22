@@ -13,6 +13,7 @@ public class QuestionServiceFilterTests : IDisposable
     private readonly ApplicationDbContext _context;
     private readonly QuestionService _service;
     private readonly Mock<ILogger<QuestionService>> _loggerMock;
+    private readonly Mock<ICoinService> _coinServiceMock;
 
     public QuestionServiceFilterTests()
     {
@@ -22,7 +23,8 @@ public class QuestionServiceFilterTests : IDisposable
 
         _context = new ApplicationDbContext(options);
         _loggerMock = new Mock<ILogger<QuestionService>>();
-        _service = new QuestionService(_context, _loggerMock.Object);
+        _coinServiceMock = new Mock<ICoinService>();
+        _service = new QuestionService(_context, _coinServiceMock.Object, _loggerMock.Object);
 
         SeedTestData();
     }

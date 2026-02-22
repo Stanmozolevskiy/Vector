@@ -1,0 +1,2590 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Vector.Api</name>
+    </assembly>
+    <members>
+        <member name="T:Vector.Api.Attributes.AuthorizeRoleAttribute">
+            <summary>
+            Authorization attribute that checks if the user has the required role(s)
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Constants.AchievementTypes">
+            <summary>
+            Constants for achievement activity types
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.AdminController.GetAllUsers">
+            <summary>
+            Get all users (admin only)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.AdminController.GetStatistics">
+            <summary>
+            Get user statistics (admin only)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.AdminController.UpdateUserRole(System.Guid,Vector.Api.Controllers.UpdateRoleDto)">
+            <summary>
+            Update user role (admin only)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.AdminController.DeleteUser(System.Guid)">
+            <summary>
+            Delete user (admin only)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.AdminController.GetAllCoachApplications">
+            <summary>
+            Get all coach applications (admin only)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.AdminController.GetPendingCoachApplications">
+            <summary>
+            Get pending coach applications (admin only)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.AdminController.ReviewCoachApplication(System.Guid,Vector.Api.DTOs.Coach.ReviewCoachApplicationDto)">
+            <summary>
+            Review (approve/reject) a coach application (admin only)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.AnalyticsController.GetMyAnalytics">
+            <summary>
+            Get current user's learning analytics
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.AnalyticsController.GetCategoryProgress(System.String)">
+            <summary>
+            Get progress for a specific category
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.AnalyticsController.GetDifficultyProgress(System.String)">
+            <summary>
+            Get progress for a specific difficulty level
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.AnalyticsController.RebuildAnalytics">
+            <summary>
+            Rebuild analytics from existing solutions and interviews
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.AuthController.Register(Vector.Api.DTOs.Auth.RegisterDto)">
+            <summary>
+            Register a new user
+            </summary>
+            <param name="dto">Registration data</param>
+            <returns>Created user (without password)</returns>
+        </member>
+        <member name="M:Vector.Api.Controllers.AuthController.VerifyEmail(System.String)">
+            <summary>
+            Verify user email address using verification token
+            </summary>
+            <param name="token">Email verification token from the verification email</param>
+            <returns>Success message if email is verified</returns>
+            <response code="200">Email verified successfully</response>
+            <response code="400">Invalid or expired verification token</response>
+            <response code="500">Internal server error</response>
+        </member>
+        <member name="M:Vector.Api.Controllers.AuthController.ResendVerification(Vector.Api.DTOs.Auth.ForgotPasswordDto)">
+            <summary>
+            Resend email verification link
+            </summary>
+            <param name="dto">Email address to resend verification to</param>
+            <returns>Success message</returns>
+            <response code="200">Verification email sent (or email not found for security)</response>
+            <response code="400">Invalid email format</response>
+        </member>
+        <member name="M:Vector.Api.Controllers.AuthController.Login(Vector.Api.DTOs.Auth.LoginDto)">
+            <summary>
+            Login user and return JWT access token
+            </summary>
+            <param name="dto">Login credentials</param>
+            <returns>JWT access token</returns>
+            <response code="200">Login successful, returns access token</response>
+            <response code="400">Invalid credentials or email not verified</response>
+            <response code="401">Unauthorized - invalid email or password</response>
+        </member>
+        <member name="M:Vector.Api.Controllers.AuthController.ForgotPassword(Vector.Api.DTOs.Auth.ForgotPasswordDto)">
+            <summary>
+            Request a password reset link to be sent to the user's email.
+            </summary>
+            <param name="dto">Email address for password reset</param>
+            <returns>Success message</returns>
+            <response code="200">Password reset link sent successfully (or email not found for security reasons)</response>
+            <response code="400">Invalid email format</response>
+            <response code="500">Internal server error</response>
+        </member>
+        <member name="M:Vector.Api.Controllers.AuthController.ResetPassword(Vector.Api.DTOs.Auth.ResetPasswordDto)">
+            <summary>
+            Reset user password using a valid reset token.
+            </summary>
+            <param name="dto">Reset password data (token, email, new password)</param>
+            <returns>Success message</returns>
+            <response code="200">Password reset successfully</response>
+            <response code="400">Invalid or expired token, or invalid email</response>
+            <response code="500">Internal server error</response>
+        </member>
+        <member name="M:Vector.Api.Controllers.AuthController.RefreshToken(Vector.Api.DTOs.Auth.RefreshTokenDto)">
+            <summary>
+            Refresh access token using refresh token
+            </summary>
+            <param name="dto">Refresh token data</param>
+            <returns>New access token and refresh token</returns>
+            <response code="200">Tokens refreshed successfully</response>
+            <response code="401">Invalid or expired refresh token</response>
+        </member>
+        <member name="M:Vector.Api.Controllers.AuthController.Logout">
+            <summary>
+            Logout user and invalidate refresh token
+            </summary>
+            <returns>Success message</returns>
+        </member>
+        <member name="M:Vector.Api.Controllers.CoachController.SubmitApplication(Vector.Api.DTOs.Coach.SubmitCoachApplicationDto)">
+            <summary>
+            Submit a coach application
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.CoachController.GetMyApplication">
+            <summary>
+            Get current user's coach application status
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.CoachController.UploadImage(Microsoft.AspNetCore.Http.IFormFile)">
+            <summary>
+            Upload images for coach application (portfolio, certificates, etc.)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.CodeDraftController.GetCodeDraft(System.Guid,System.String)">
+            <summary>
+            Get code draft for a question and language
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.CodeDraftController.SaveCodeDraft(Vector.Api.DTOs.Solution.SaveCodeDraftDto)">
+            <summary>
+            Save code draft
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.CodeDraftController.DeleteCodeDraft(System.Guid,System.String)">
+            <summary>
+            Delete code draft
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.CodeExecutionController.ExecuteCode(Vector.Api.DTOs.CodeExecution.ExecutionRequestDto)">
+            <summary>
+            Execute code with optional input
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.CodeExecutionController.RunCode(System.Guid,Vector.Api.DTOs.CodeExecution.ExecutionRequestDto)">
+            <summary>
+            Run code against visible (non-hidden) test cases for a question (for "Run" button)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.CodeExecutionController.RunCodeWithTestCases(System.Guid,Vector.Api.DTOs.CodeExecution.RunCodeWithTestCasesDto)">
+            <summary>
+            Run code with line-based testcase input (new UI format)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.CodeExecutionController.ValidateSolution(System.Guid,Vector.Api.DTOs.CodeExecution.ExecutionRequestDto)">
+            <summary>
+            Validate code against all test cases for a question, including hidden ones (for "Submit" button)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.CodeExecutionController.GetSupportedLanguages">
+            <summary>
+            Get list of supported programming languages
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Controllers.CoinsController">
+            <summary>
+            Controller for coin and achievement management
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.CoinsController.GetMyCoins">
+            <summary>
+            Get current user's coins and rank
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.CoinsController.GetUserCoins(System.Guid)">
+            <summary>
+            Get specific user's coins (public endpoint)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.CoinsController.GetMyTransactions(System.Int32,System.Int32)">
+            <summary>
+            Get current user's transaction history
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.CoinsController.GetLeaderboard(System.Int32)">
+            <summary>
+            Get leaderboard (top N users by coins)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.CoinsController.GetMyRank">
+            <summary>
+            Get current user's rank
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.CoinsController.GetAchievements">
+            <summary>
+            Get all ways to earn coins (achievement definitions)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.CoinsController.AwardCoins(Vector.Api.DTOs.Coins.AwardCoinsRequest)">
+            <summary>
+            Award coins to a user (Internal API - Admin only)
+            This endpoint is used internally by other services
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.CoinsController.RefreshLeaderboardRanks">
+            <summary>
+            Refresh leaderboard ranks (Admin only background job trigger)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.CoinsController.CreateOrUpdateAchievement(Vector.Api.Controllers.CreateAchievementRequest)">
+            <summary>
+            Create or update an achievement definition (Admin only)
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Controllers.CreateAchievementRequest">
+            <summary>
+            Request model for creating/updating achievements
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.HealthController.Get">
+            <summary>
+            Basic health check endpoint
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.HealthController.GetDetailed">
+            <summary>
+            Detailed health check with database and Redis status
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Controllers.InterviewMatchingController">
+            <summary>
+            Controller for interview matching functionality
+            Handles matching users for peer interviews
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.InterviewMatchingController.StartMatching(System.Guid)">
+            <summary>
+            Start matching process for a scheduled session
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.InterviewMatchingController.GetMatchingStatus(System.Guid)">
+            <summary>
+            Get matching status for a scheduled session
+            Returns 204 No Content if no matching request exists (this is a valid state)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.InterviewMatchingController.ConfirmMatch(System.Guid)">
+            <summary>
+            Confirm a match (user confirms readiness)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.InterviewMatchingController.ExpireMatch(System.Guid)">
+            <summary>
+            Expire a match if not both confirmed within 15 seconds (re-queue users)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.InterviewMatchingController.ExpireAllRequests(System.Guid)">
+            <summary>
+            Expire all matching requests for a session (used on page refresh/close)
+            Does not create new requests
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.PeerInterviewController.ScheduleInterview(Vector.Api.DTOs.PeerInterview.ScheduleInterviewDto)">
+            <summary>
+            Schedule a new interview session
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.PeerInterviewController.GetUpcomingSessions">
+            <summary>
+            Get upcoming scheduled sessions for the current user
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.PeerInterviewController.GetPastSessions">
+            <summary>
+            Get past scheduled sessions for the current user
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.PeerInterviewController.GetScheduledSession(System.Guid)">
+            <summary>
+            Get a scheduled session by ID
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.PeerInterviewController.CancelScheduledSession(System.Guid)">
+            <summary>
+            Cancel a scheduled session
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.PeerInterviewController.GetSession(System.Guid)">
+            <summary>
+            Get a live interview session by ID, or a scheduled session if no live session exists
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.PeerInterviewController.SwitchRoles(System.Guid)">
+            <summary>
+            Switch roles between interviewer and interviewee
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.PeerInterviewController.ChangeQuestion(System.Guid,Vector.Api.DTOs.PeerInterview.ChangeQuestionRequestDto)">
+            <summary>
+            Change the active question in a session (interviewer only)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.PeerInterviewController.EndInterview(System.Guid)">
+            <summary>
+            End an interview session
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.PeerInterviewController.SubmitFeedback(Vector.Api.DTOs.PeerInterview.SubmitFeedbackDto)">
+            <summary>
+            Submit feedback for a session
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.PeerInterviewController.GetSessionFeedback(System.Guid)">
+            <summary>
+            Get all feedback for a session
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.PeerInterviewController.GetFeedback(System.Guid)">
+            <summary>
+            Get a specific feedback by ID
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.PeerInterviewController.GetFeedbackStatus(System.Guid)">
+            <summary>
+            Get feedback status for a session (check if user and opponent have submitted feedback)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.PeerInterviewController.CreateFriendInterview(Vector.Api.DTOs.PeerInterview.CreateFriendInterviewDto)">
+            <summary>
+            Create a "practice with a friend" interview immediately (no schedule / no queue).
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.PeerInterviewController.JoinFriendInterview(System.Guid)">
+            <summary>
+            Join a "practice with a friend" live session (by link).
+            When the second user joins, the system creates the matching records so the session shows up in both users' history.
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.QuestionController.GetQuestions(Vector.Api.DTOs.Question.QuestionFilterDto)">
+            <summary>
+            Get all questions with optional filters
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.QuestionController.GetQuestion(System.Guid)">
+            <summary>
+            Get question by ID
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.QuestionController.GetQuestionComments(System.Guid,System.Int32,System.Int32,System.String)">
+            <summary>
+            Get comments for a question (community answers / discussion)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.QuestionController.AddQuestionComment(System.Guid,Vector.Api.DTOs.Question.CreateQuestionCommentDto)">
+            <summary>
+            Add a comment to a question
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.QuestionController.ToggleCommentUpvote(System.Guid,System.Guid)">
+            <summary>
+            Toggle upvote for a comment
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.QuestionController.CreateQuestion(Vector.Api.DTOs.Question.CreateQuestionDto)">
+            <summary>
+            Create a new question (admin or coach)
+            Admin-created questions are automatically approved
+            Coach-created questions require admin approval
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.QuestionController.SubmitQuestion(Vector.Api.DTOs.Question.CreateQuestionDto)">
+            <summary>
+            Submit a new question for review (any authenticated user)
+            Non-admin submissions are created as Pending and will not be visible until approved.
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.QuestionController.UploadQuestionVideo(Microsoft.AspNetCore.Http.IFormFile)">
+            <summary>
+            Upload a question video (mp4/webm). Returns a public URL.
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.QuestionController.UpdateQuestion(System.Guid,Vector.Api.DTOs.Question.UpdateQuestionDto)">
+            <summary>
+            Update a question (admin only)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.QuestionController.DeleteQuestion(System.Guid)">
+            <summary>
+            Delete a question (admin only)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.QuestionController.GetTestCases(System.Guid,System.Boolean)">
+            <summary>
+            Get test cases for a question
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.QuestionController.AddTestCase(System.Guid,Vector.Api.DTOs.Question.CreateTestCaseDto)">
+            <summary>
+            Add a test case to a question (admin or coach)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.QuestionController.GetSolutions(System.Guid,System.String)">
+            <summary>
+            Get solutions for a question
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.QuestionController.AddSolution(System.Guid,Vector.Api.DTOs.Question.CreateSolutionDto)">
+            <summary>
+            Add a solution to a question (admin only)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.QuestionController.GetPendingQuestions">
+            <summary>
+            Get pending questions (admin only)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.QuestionController.ApproveQuestion(System.Guid)">
+            <summary>
+            Approve a question (admin only)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.QuestionController.RejectQuestion(System.Guid,Vector.Api.DTOs.Question.RejectQuestionDto)">
+            <summary>
+            Reject a question (admin only)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.QuestionController.BookmarkQuestion(System.Guid,Vector.Api.DTOs.Question.AddBookmarkDto)">
+            <summary>
+            Bookmark a question
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.QuestionController.RemoveBookmark(System.Guid)">
+            <summary>
+            Remove bookmark from a question
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.QuestionController.GetBookmarkedQuestions">
+            <summary>
+            Get user's bookmarked questions
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.QuestionController.IsQuestionBookmarked(System.Guid)">
+            <summary>
+            Check if question is bookmarked
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.SolutionController.SubmitSolution(Vector.Api.DTOs.Solution.SubmitSolutionDto)">
+            <summary>
+            Submit a solution for a question (only called when validation passes)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.SolutionController.GetMySolutions(Vector.Api.DTOs.Solution.SolutionFilterDto)">
+            <summary>
+            Get current user's solutions
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.SolutionController.GetSolutionById(System.Guid)">
+            <summary>
+            Get solution by ID
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.SolutionController.GetSolutionsForQuestion(System.Guid)">
+            <summary>
+            Get solutions for a specific question
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.SolutionController.HasSolvedQuestion(System.Guid)">
+            <summary>
+            Check if user has solved a specific question (optimized lookup)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.SolutionController.GetStatistics">
+            <summary>
+            Get solution statistics for current user
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.SubscriptionController.GetPlans">
+            <summary>
+            Get all available subscription plans
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.SubscriptionController.GetPlan(System.String)">
+            <summary>
+            Get a specific subscription plan by ID
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.SubscriptionController.GetMySubscription">
+            <summary>
+            Get current user's subscription
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.SubscriptionController.UpdateSubscription(Vector.Api.DTOs.Subscription.UpdateSubscriptionDto)">
+            <summary>
+            Update user's subscription plan
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.SubscriptionController.CancelSubscription">
+            <summary>
+            Cancel user's subscription
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.SubscriptionController.GetInvoices">
+            <summary>
+            Get user's billing history/invoices
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.UserController.GetCurrentUser">
+            <summary>
+            Get current authenticated user's information.
+            </summary>
+            <returns>Current user information</returns>
+            <response code="200">Returns the current user</response>
+            <response code="401">Unauthorized</response>
+            <response code="404">User not found</response>
+        </member>
+        <member name="M:Vector.Api.Controllers.UserController.UpdateProfile(Vector.Api.DTOs.User.UpdateProfileDto)">
+            <summary>
+            Update current user's profile information
+            </summary>
+            <param name="dto">Profile update data</param>
+            <returns>Updated user information</returns>
+        </member>
+        <member name="M:Vector.Api.Controllers.UserController.ChangePassword(Vector.Api.DTOs.User.ChangePasswordDto)">
+            <summary>
+            Change user's password
+            </summary>
+            <param name="dto">Password change data</param>
+            <returns>Success message</returns>
+        </member>
+        <member name="M:Vector.Api.Controllers.UserController.UploadProfilePicture(Microsoft.AspNetCore.Http.IFormFile)">
+            <summary>
+            Upload profile picture
+            </summary>
+            <param name="file">Image file to upload</param>
+            <returns>Profile picture URL</returns>
+        </member>
+        <member name="M:Vector.Api.Controllers.UserController.DeleteAccount">
+            <summary>
+            Delete current user's account
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.UserController.DeleteProfilePicture">
+            <summary>
+            Delete profile picture
+            </summary>
+            <returns>Success message</returns>
+        </member>
+        <member name="M:Vector.Api.Controllers.WhiteboardController.GetWhiteboardData(System.String,System.String)">
+            <summary>
+            Get whiteboard data for the current user or partner
+            </summary>
+            <param name="questionId">Optional question ID to get whiteboard for a specific question</param>
+            <param name="sessionId">Optional session ID to get whiteboard for a session</param>
+            <returns>Whiteboard data</returns>
+        </member>
+        <member name="M:Vector.Api.Controllers.WhiteboardController.SaveWhiteboardData(Vector.Api.DTOs.Whiteboard.SaveWhiteboardDataDto,System.String,System.String)">
+            <summary>
+            Save whiteboard data for the current user or specified user
+            </summary>
+            <param name="dto">Whiteboard data to save</param>
+            <param name="userId">Optional user ID to save to (for role-based whiteboards)</param>
+            <returns>Saved whiteboard data</returns>
+        </member>
+        <member name="M:Vector.Api.Controllers.WhiteboardController.DeleteWhiteboardData(System.String)">
+            <summary>
+            Delete whiteboard data for the current user
+            </summary>
+            <param name="questionId">Optional question ID to delete whiteboard for a specific question</param>
+            <returns>Success status</returns>
+        </member>
+        <member name="T:Vector.Api.Data.DbSeeder">
+            <summary>
+            Seeds the database with initial data (admin user, etc.)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Data.DbSeeder.SeedAdminUser(Vector.Api.Data.ApplicationDbContext,Microsoft.Extensions.Logging.ILogger)">
+            <summary>
+            Seeds the database with default admin user if it doesn't exist
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Data.DbSeeder.SeedDatabase(Vector.Api.Data.ApplicationDbContext,Microsoft.Extensions.Logging.ILogger)">
+            <summary>
+            Seeds all initial data
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Data.DbSeeder.SeedInterviewQuestions(Vector.Api.Data.ApplicationDbContext,Microsoft.Extensions.Logging.ILogger)">
+            <summary>
+            Seeds sample interview questions for testing
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Data.DbSeeder.SeedQuestionTestCasesAndSolutions(Vector.Api.Data.ApplicationDbContext,Microsoft.Extensions.Logging.ILogger,System.Collections.Generic.List{Vector.Api.Models.InterviewQuestion},System.Nullable{System.Guid})">
+            <summary>
+            Seeds test cases and solutions for questions
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Data.DbSeeder.GetSolutionExplanation(System.String,System.Int32,System.String,System.String,System.String)">
+            <summary>
+            Gets detailed solution explanation for a question
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Data.Migrations.InitialCreate">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.InitialCreate.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.InitialCreate.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.InitialCreate.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:Vector.Api.Data.Migrations.AddPasswordResetTable">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddPasswordResetTable.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddPasswordResetTable.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddPasswordResetTable.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:Vector.Api.Data.Migrations.AddRefreshTokensTable">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddRefreshTokensTable.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddRefreshTokensTable.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddRefreshTokensTable.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:Vector.Api.Data.Migrations.AddRefreshTokenTable">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddRefreshTokenTable.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddRefreshTokenTable.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddRefreshTokenTable.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:Vector.Api.Data.Migrations.AddPhoneNumberAndLocationToUser">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddPhoneNumberAndLocationToUser.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddPhoneNumberAndLocationToUser.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddPhoneNumberAndLocationToUser.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:Vector.Api.Data.Migrations.AddMockInterviews">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddMockInterviews.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddMockInterviews.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddMockInterviews.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:Vector.Api.Data.Migrations.AddCoachApplication">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddCoachApplication.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddCoachApplication.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddCoachApplication.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:Vector.Api.Data.Migrations.AddImageUrlsToCoachApplication">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddImageUrlsToCoachApplication.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddImageUrlsToCoachApplication.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddImageUrlsToCoachApplication.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:Vector.Api.Data.Migrations.AddInterviewQuestions">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddInterviewQuestions.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddInterviewQuestions.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddInterviewQuestions.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:Vector.Api.Data.Migrations.AddQuestionType">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddQuestionType.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddQuestionType.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddQuestionType.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:Vector.Api.Data.Migrations.AddQuestionApprovalWorkflow">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddQuestionApprovalWorkflow.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddQuestionApprovalWorkflow.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddQuestionApprovalWorkflow.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:Vector.Api.Data.Migrations.AddUserSolutionTables">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddUserSolutionTables.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddUserSolutionTables.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddUserSolutionTables.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:Vector.Api.Data.Migrations.AddLearningAnalytics">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddLearningAnalytics.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddLearningAnalytics.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddLearningAnalytics.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:Vector.Api.Data.Migrations.AddUserCodeDraft">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddUserCodeDraft.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddUserCodeDraft.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddUserCodeDraft.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:Vector.Api.Data.Migrations.AddUserSolvedQuestionsTable">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddUserSolvedQuestionsTable.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddUserSolvedQuestionsTable.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddUserSolvedQuestionsTable.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:Vector.Api.Data.Migrations.AddPeerInterviewTables">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddPeerInterviewTables.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddPeerInterviewTables.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddPeerInterviewTables.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:Vector.Api.Data.Migrations.AddAssignedQuestionIdToScheduledInterviewSession">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddAssignedQuestionIdToScheduledInterviewSession.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddAssignedQuestionIdToScheduledInterviewSession.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddAssignedQuestionIdToScheduledInterviewSession.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:Vector.Api.Data.Migrations.AddWhiteboardData">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddWhiteboardData.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddWhiteboardData.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddWhiteboardData.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:Vector.Api.Data.Migrations.AddSessionIdToWhiteboardData">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddSessionIdToWhiteboardData.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddSessionIdToWhiteboardData.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddSessionIdToWhiteboardData.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:Vector.Api.Data.Migrations.AddExcalidrawRoomIdsToLiveInterviewSession">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddExcalidrawRoomIdsToLiveInterviewSession.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddExcalidrawRoomIdsToLiveInterviewSession.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddExcalidrawRoomIdsToLiveInterviewSession.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:Vector.Api.Data.Migrations.RemoveLegacyUnusedTables">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.RemoveLegacyUnusedTables.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.RemoveLegacyUnusedTables.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.RemoveLegacyUnusedTables.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:Vector.Api.Data.Migrations.RemoveSolutionSubmissions">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.RemoveSolutionSubmissions.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.RemoveSolutionSubmissions.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.RemoveSolutionSubmissions.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:Vector.Api.Data.Migrations.AddQuestionMetadataAndComments">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddQuestionMetadataAndComments.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddQuestionMetadataAndComments.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddQuestionMetadataAndComments.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:Vector.Api.Data.Migrations.AddCommentVotesAndReplies">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddCommentVotesAndReplies.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddCommentVotesAndReplies.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddCommentVotesAndReplies.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:Vector.Api.Data.Migrations.AddCoinsAndAchievementsSystem">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddCoinsAndAchievementsSystem.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddCoinsAndAchievementsSystem.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddCoinsAndAchievementsSystem.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:Vector.Api.Data.Migrations.AddVotingCommentReferralSystems">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddVotingCommentReferralSystems.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddVotingCommentReferralSystems.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddVotingCommentReferralSystems.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:Vector.Api.Data.Migrations.AddCommentTypeField">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddCommentTypeField.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddCommentTypeField.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddCommentTypeField.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:Vector.Api.Data.Migrations.AddVoteTypeToCommentVotes">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddVoteTypeToCommentVotes.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddVoteTypeToCommentVotes.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddVoteTypeToCommentVotes.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:Vector.Api.Data.Migrations.AddQuestionBookmarks">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddQuestionBookmarks.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddQuestionBookmarks.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddQuestionBookmarks.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:Vector.Api.DTOs.Coach.CoachApplicationResponseDto">
+            <summary>
+            DTO for coach application response
+            </summary>
+        </member>
+        <member name="T:Vector.Api.DTOs.Coach.ReviewCoachApplicationDto">
+            <summary>
+            DTO for reviewing (approving/rejecting) a coach application
+            </summary>
+        </member>
+        <member name="T:Vector.Api.DTOs.Coach.SubmitCoachApplicationDto">
+            <summary>
+            DTO for submitting a coach application
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.Coach.SubmitCoachApplicationDto.ImageUrls">
+            <summary>
+            Comma-separated list of image URLs (uploaded separately)
+            </summary>
+        </member>
+        <member name="T:Vector.Api.DTOs.CodeExecution.CaseResultDto">
+            <summary>
+            DTO for a single test case result
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.CodeExecution.ExecutionRequestDto.Stdin">
+            <summary>
+            Optional input data (stdin) for code execution
+            </summary>
+        </member>
+        <member name="T:Vector.Api.DTOs.CodeExecution.RunCodeWithTestCasesDto">
+            <summary>
+            DTO for running code with line-based testcase input
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.CodeExecution.RunCodeWithTestCasesDto.TestCaseText">
+            <summary>
+            Raw text from testcase editor (line-based format)
+            </summary>
+        </member>
+        <member name="T:Vector.Api.DTOs.CodeExecution.RunResultDto">
+            <summary>
+            DTO for complete run result with all test cases
+            </summary>
+        </member>
+        <member name="T:Vector.Api.DTOs.Coins.AchievementDefinitionDto">
+            <summary>
+            DTO for an achievement definition (how to earn coins)
+            </summary>
+        </member>
+        <member name="T:Vector.Api.DTOs.Coins.AwardCoinsRequest">
+            <summary>
+            Request to award coins to a user
+            </summary>
+        </member>
+        <member name="T:Vector.Api.DTOs.Coins.CoinTransactionDto">
+            <summary>
+            DTO for a single coin transaction
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.Coins.CoinTransactionDto.TimeAgo">
+            <summary>
+            Formatted relative time (e.g., "2h ago", "1d ago", "just now")
+            </summary>
+        </member>
+        <member name="T:Vector.Api.DTOs.Coins.LeaderboardEntryDto">
+            <summary>
+            DTO for a single leaderboard entry
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.Coins.LeaderboardEntryDto.DisplayCoins">
+            <summary>
+            Formatted coins display (e.g., "2.3k")
+            </summary>
+        </member>
+        <member name="T:Vector.Api.DTOs.Coins.UserCoinsDto">
+            <summary>
+            DTO for user's total coins and rank
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.Coins.UserCoinsDto.DisplayCoins">
+            <summary>
+            Formatted coins display (e.g., "2.3k", "500", "1.5M")
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.Coins.UserCoinsDto.DisplayRank">
+            <summary>
+            Formatted rank display (e.g., "#108")
+            </summary>
+        </member>
+        <member name="T:Vector.Api.DTOs.Common.ApiErrorResponse">
+            <summary>
+            Standard API error response format
+            </summary>
+        </member>
+        <member name="T:Vector.Api.DTOs.PeerInterview.ChangeQuestionRequestDto">
+            <summary>
+            Request DTO for changing active question
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.ChangeQuestionRequestDto.QuestionId">
+            <summary>
+            Optional: Specific question ID to set as active. If not provided, a random question will be selected.
+            </summary>
+        </member>
+        <member name="T:Vector.Api.DTOs.PeerInterview.ChangeQuestionResponseDto">
+            <summary>
+            Response DTO for changing active question
+            </summary>
+        </member>
+        <member name="T:Vector.Api.DTOs.PeerInterview.CreateFriendInterviewDto">
+            <summary>
+            DTO for creating a "practice with a friend" interview.
+            This creates a live session immediately (no scheduling / no matching queue).
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.CreateFriendInterviewDto.InterviewType">
+            <summary>
+            Interview type: data-structures-algorithms, system-design, behavioral, product-management, sql, data-science-ml
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.CreateFriendInterviewDto.InterviewLevel">
+            <summary>
+            Interview level: beginner, intermediate, advanced
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.CreateFriendInterviewDto.PartnerEmail">
+            <summary>
+            Optional partner email to send the invite link to.
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.FriendInterviewCreatedDto.RedirectUrl">
+            <summary>
+            Relative URL (frontend route) the creator should navigate to.
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.FriendInterviewCreatedDto.InviteUrl">
+            <summary>
+            Absolute invite URL that can be shared with a friend.
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.FriendInterviewCreatedDto.EmailSent">
+            <summary>
+            True only when email delivery is enabled and the send attempt succeeded.
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.FriendInterviewCreatedDto.EmailDeliveryMode">
+            <summary>
+            Email delivery mode: "sendgrid" or "disabled".
+            </summary>
+        </member>
+        <member name="T:Vector.Api.DTOs.PeerInterview.SubmitFeedbackDto">
+            <summary>
+            DTO for submitting interview feedback
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.SubmitFeedbackDto.DidSessionHappen">
+            <summary>
+            Whether the session actually happened
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.SubmitFeedbackDto.ProblemSolvingRating">
+            <summary>
+            Problem solving rating (1-5)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.SubmitFeedbackDto.ProblemSolvingDescription">
+            <summary>
+            Problem solving description
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.SubmitFeedbackDto.CodingSkillsRating">
+            <summary>
+            Coding skills rating (1-5)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.SubmitFeedbackDto.CodingSkillsDescription">
+            <summary>
+            Coding skills description
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.SubmitFeedbackDto.CommunicationRating">
+            <summary>
+            Communication rating (1-5)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.SubmitFeedbackDto.CommunicationDescription">
+            <summary>
+            Communication description
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.SubmitFeedbackDto.ThingsDidWell">
+            <summary>
+            Things the reviewee did well
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.SubmitFeedbackDto.AreasForImprovement">
+            <summary>
+            Areas where the reviewee could improve
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.SubmitFeedbackDto.InterviewerPerformanceRating">
+            <summary>
+            Overall interviewer performance rating (1-5)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.SubmitFeedbackDto.InterviewerPerformanceDescription">
+            <summary>
+            Interviewer performance description
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.SubmitFeedbackDto.AudioVideoIssues">
+            <summary>
+            Audio/video issues (yes/no/null)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.SubmitFeedbackDto.CodeEditorIssues">
+            <summary>
+            Code editor issues (yes/no/null)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.SubmitFeedbackDto.AdditionalFeedback">
+            <summary>
+            Additional feedback for Exponent
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.SubmitFeedbackDto.WantEmailIntroduction">
+            <summary>
+            Whether user wants email introduction to partner (yes/no/null)
+            </summary>
+        </member>
+        <member name="T:Vector.Api.DTOs.PeerInterview.InterviewFeedbackDto">
+            <summary>
+            DTO for feedback response
+            </summary>
+        </member>
+        <member name="T:Vector.Api.DTOs.PeerInterview.FeedbackStatusDto">
+            <summary>
+            DTO for feedback status check
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.FeedbackStatusDto.HasUserSubmittedFeedback">
+            <summary>
+            Whether the current user has submitted feedback for their opponent
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.FeedbackStatusDto.HasOpponentSubmittedFeedback">
+            <summary>
+            Whether the opponent has submitted feedback for the current user
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.FeedbackStatusDto.Opponent">
+            <summary>
+            The opponent's user information
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.FeedbackStatusDto.OpponentId">
+            <summary>
+            The opponent's ID
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.FeedbackStatusDto.LiveSessionId">
+            <summary>
+            The live session ID
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.FeedbackStatusDto.OpponentFeedback">
+            <summary>
+            Feedback left by opponent for the current user (if available)
+            </summary>
+        </member>
+        <member name="T:Vector.Api.DTOs.PeerInterview.LiveInterviewSessionDto">
+            <summary>
+            DTO for live interview session
+            </summary>
+        </member>
+        <member name="T:Vector.Api.DTOs.PeerInterview.MatchingRequestDto">
+            <summary>
+            DTO for interview matching request
+            </summary>
+        </member>
+        <member name="T:Vector.Api.DTOs.PeerInterview.ScheduledInterviewSessionDto">
+            <summary>
+            DTO for scheduled interview session response
+            </summary>
+        </member>
+        <member name="T:Vector.Api.DTOs.PeerInterview.ScheduleInterviewDto">
+            <summary>
+            DTO for scheduling a new interview session
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.ScheduleInterviewDto.InterviewType">
+            <summary>
+            Interview type: data-structures-algorithms, system-design, behavioral, product-management, sql, data-science-ml
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.ScheduleInterviewDto.PracticeType">
+            <summary>
+            Practice type: peers, friend, expert
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.ScheduleInterviewDto.InterviewLevel">
+            <summary>
+            Interview level: beginner, intermediate, advanced
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.PeerInterview.ScheduleInterviewDto.ScheduledStartAt">
+            <summary>
+            Scheduled start time for the interview
+            </summary>
+        </member>
+        <member name="T:Vector.Api.DTOs.PeerInterview.SwitchRolesResponseDto">
+            <summary>
+            Response DTO for role switch operation
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.Question.CreateTestCaseDto.Input">
+            <summary>
+            Input data as plain string (will be used as stdin in Judge0)
+            Example: "2\n7\n11\n15\n9" or "[1, 2, 3]\n7"
+            </summary>
+        </member>
+        <member name="P:Vector.Api.DTOs.Question.CreateTestCaseDto.ExpectedOutput">
+            <summary>
+            Expected output as plain string (will be used as expected_output in Judge0)
+            Example: "[0, 1]" or "true"
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Helpers.ImageHelper">
+            <summary>
+            Helper class for image validation
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Helpers.ImageHelper.ValidateImage(Microsoft.AspNetCore.Http.IFormFile)">
+            <summary>
+            Validates image file with comprehensive checks
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Helpers.ImageHelper.GetFileSizeString(System.Int64)">
+            <summary>
+            Gets human-readable file size
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Hubs.CollaborationHub">
+            <summary>
+            SignalR hub for real-time collaboration during peer interviews
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Hubs.CollaborationHub.SetMatchingModalOpen(System.String)">
+            <summary>
+            Set user as active in the matching modal for a specific session
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Hubs.CollaborationHub.SetMatchingModalClosed(System.String)">
+            <summary>
+            Set user as inactive (matching modal closed)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Hubs.CollaborationHub.SendChatMessage(System.String,System.String)">
+            <summary>
+            Send a chat message to other users in the session
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Hubs.CollaborationHub.SendRoleSwitched(System.String)">
+            <summary>
+            Notify other users in the session that roles have been switched
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Hubs.CollaborationHub.BroadcastWhiteboardUpdate(System.String,Vector.Api.Hubs.CollaborationHub.WhiteboardUpdateData)">
+            <summary>
+            Broadcast whiteboard update to all other users in the session
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Hubs.CollaborationHub.WhiteboardUpdateData">
+            <summary>
+            Data class for whiteboard updates
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Hubs.CollaborationHub.SendWebRTCOffer(System.String,System.String)">
+            <summary>
+            Send WebRTC offer to peer in session
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Hubs.CollaborationHub.SendWebRTCAnswer(System.String,System.String)">
+            <summary>
+            Send WebRTC answer to peer in session
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Hubs.CollaborationHub.SendWebRTCIceCandidate(System.String,System.String,System.Nullable{System.Int32},System.String)">
+            <summary>
+            Send WebRTC ICE candidate to peer in session
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Models.AchievementDefinition">
+            <summary>
+            Defines an achievement type and how many coins it awards
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.AchievementDefinition.ActivityType">
+            <summary>
+            Unique identifier for the activity type
+            e.g., 'InterviewCompleted', 'QuestionPublished'
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.AchievementDefinition.DisplayName">
+            <summary>
+            Display name shown to users
+            e.g., "You completed a mock interview"
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.AchievementDefinition.Description">
+            <summary>
+            Detailed description of the achievement
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.AchievementDefinition.CoinsAwarded">
+            <summary>
+            Number of coins awarded for this achievement
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.AchievementDefinition.Icon">
+            <summary>
+            Icon or emoji representing this achievement
+            e.g., "🪙", "🌟", "🤝"
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.AchievementDefinition.IsActive">
+            <summary>
+            Whether this achievement is currently active
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.AchievementDefinition.MaxOccurrences">
+            <summary>
+            Maximum number of times this achievement can be earned
+            Null = unlimited, 1 = one-time only
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Models.CoachApplication">
+            <summary>
+            Represents a coach application submitted by a user
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.CoachApplication.ImageUrls">
+            <summary>
+            Comma-separated list of image URLs (portfolio, certificates, etc.)
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Models.CoinTransaction">
+            <summary>
+            Represents a single coin transaction (earning or spending)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.CoinTransaction.Amount">
+            <summary>
+            Amount of coins (positive for earning, negative for spending)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.CoinTransaction.ActivityType">
+            <summary>
+            Type of activity that triggered this transaction
+            e.g., 'InterviewCompleted', 'QuestionPublished'
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.CoinTransaction.Description">
+            <summary>
+            Human-readable description of the transaction
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.CoinTransaction.RelatedEntityId">
+            <summary>
+            Reference to related entity (question, interview, etc.)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.CoinTransaction.RelatedEntityType">
+            <summary>
+            Type of related entity (e.g., 'Question', 'Interview')
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Models.InterviewFeedback">
+            <summary>
+            Represents feedback provided by one user about another after an interview
+            Each participant can leave separate feedback for the other participant
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewFeedback.LiveSessionId">
+            <summary>
+            Live session this feedback is for
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewFeedback.ReviewerId">
+            <summary>
+            User who is providing the feedback (reviewer)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewFeedback.RevieweeId">
+            <summary>
+            User who is being reviewed (reviewee)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewFeedback.ProblemSolvingRating">
+            <summary>
+            Problem solving rating (1-5)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewFeedback.ProblemSolvingDescription">
+            <summary>
+            Problem solving description
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewFeedback.CodingSkillsRating">
+            <summary>
+            Coding skills rating (1-5)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewFeedback.CodingSkillsDescription">
+            <summary>
+            Coding skills description
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewFeedback.CommunicationRating">
+            <summary>
+            Communication rating (1-5)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewFeedback.CommunicationDescription">
+            <summary>
+            Communication description
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewFeedback.ThingsDidWell">
+            <summary>
+            Things the reviewee did well
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewFeedback.AreasForImprovement">
+            <summary>
+            Areas where the reviewee could improve
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewFeedback.InterviewerPerformanceRating">
+            <summary>
+            Overall interviewer performance rating (1-5)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewFeedback.InterviewerPerformanceDescription">
+            <summary>
+            Interviewer performance description
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Models.InterviewMatchingRequest">
+            <summary>
+            Represents a matching request in the queue for pairing users
+            Status transitions: Pending → Matched → Confirmed
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewMatchingRequest.UserId">
+            <summary>
+            User who initiated the matching request
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewMatchingRequest.ScheduledSessionId">
+            <summary>
+            Scheduled session that triggered this matching request
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewMatchingRequest.InterviewType">
+            <summary>
+            Interview type (hard match requirement)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewMatchingRequest.PracticeType">
+            <summary>
+            Practice type (hard match requirement)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewMatchingRequest.InterviewLevel">
+            <summary>
+            Interview level (soft match - preferred but not required)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewMatchingRequest.ScheduledStartAt">
+            <summary>
+            Scheduled start time for matching
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewMatchingRequest.Status">
+            <summary>
+            Status: Pending, Matched, Confirmed, Expired, Cancelled
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewMatchingRequest.MatchedUserId">
+            <summary>
+            ID of the matched user (when status is Matched or Confirmed)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewMatchingRequest.LiveSessionId">
+            <summary>
+            ID of the live session created when match is confirmed
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewMatchingRequest.UserConfirmed">
+            <summary>
+            Whether the requesting user has confirmed readiness
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewMatchingRequest.MatchedUserConfirmed">
+            <summary>
+            Whether the matched user has confirmed readiness
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewMatchingRequest.ExpiresAt">
+            <summary>
+            When the matching request expires (10 minutes after creation)
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Models.InterviewQuestion">
+            <summary>
+            Represents an interview question (LeetCode-style problem)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewQuestion.Difficulty">
+            <summary>
+            Difficulty level: Easy, Medium, Hard
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewQuestion.QuestionType">
+            <summary>
+            Question type: Coding, Behavioral, Design, Whiteboard, etc.
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewQuestion.Category">
+            <summary>
+            Category: Arrays, Strings, Trees, Graphs, Dynamic Programming, etc.
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewQuestion.CompanyTags">
+            <summary>
+            Company tags (JSON array): ["Google", "Amazon", "Facebook"]
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewQuestion.Tags">
+            <summary>
+            Additional tags (JSON array): ["Hash Table", "Two Pointers"]
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewQuestion.Constraints">
+            <summary>
+            Constraints as text
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewQuestion.Examples">
+            <summary>
+            Examples (JSON array of example objects)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewQuestion.Hints">
+            <summary>
+            Hints (JSON array of strings)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewQuestion.VideoUrl">
+            <summary>
+            Optional video URL (mp4 or embeddable URL) for the interview question
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewQuestion.RoleTags">
+            <summary>
+            Role tags (JSON array): ["Product Manager", "Engineering Manager"]
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewQuestion.RelatedQuestionIds">
+            <summary>
+            Related question IDs (JSON array of GUID strings)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewQuestion.RelatedCourseIds">
+            <summary>
+            Related course IDs (JSON array of GUID strings) - reserved for future use
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewQuestion.TimeComplexityHint">
+            <summary>
+            Time complexity hint (e.g., "O(n)")
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewQuestion.SpaceComplexityHint">
+            <summary>
+            Space complexity hint (e.g., "O(1)")
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewQuestion.AcceptanceRate">
+            <summary>
+            Acceptance rate (percentage)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewQuestion.IsActive">
+            <summary>
+            Whether the question is active and visible
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewQuestion.ApprovalStatus">
+            <summary>
+            Approval status: Pending, Approved, Rejected
+            Admin-created questions are automatically Approved
+            Coach-created questions start as Pending
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewQuestion.ApprovedBy">
+            <summary>
+            User who approved/rejected the question (admin only)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewQuestion.ApprovedAt">
+            <summary>
+            Date when the question was approved/rejected
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewQuestion.RejectionReason">
+            <summary>
+            Rejection reason (if status is Rejected)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewQuestion.CreatedBy">
+            <summary>
+            User who created the question (admin or coach)
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Models.InterviewQuestionComment">
+            <summary>
+            User comment on an interview question (community answers / discussion)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewQuestionComment.ParentCommentId">
+            <summary>
+            Parent comment for threaded replies (null for top-level comments)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewQuestionComment.CommentType">
+            <summary>
+            Type of comment: feedback, tip, or question
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Models.InterviewQuestionCommentVote">
+            <summary>
+            Vote on an interview question comment (one per user per comment)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.InterviewQuestionCommentVote.VoteType">
+            <summary>
+            Vote type: 1 for upvote, -1 for downvote
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Models.LearningAnalytics">
+            <summary>
+            Represents learning analytics and progress tracking for a user
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.LearningAnalytics.QuestionsSolved">
+            <summary>
+            Total number of questions solved (with accepted solutions)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.LearningAnalytics.QuestionsByCategory">
+            <summary>
+            Questions solved by category (JSON object): {"Arrays": 5, "Strings": 3, ...}
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.LearningAnalytics.QuestionsByDifficulty">
+            <summary>
+            Questions solved by difficulty (JSON object): {"Easy": 10, "Medium": 5, "Hard": 2}
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.LearningAnalytics.AverageExecutionTime">
+            <summary>
+            Average execution time across all accepted solutions (in seconds)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.LearningAnalytics.AverageMemoryUsed">
+            <summary>
+            Average memory used across all accepted solutions (in bytes)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.LearningAnalytics.SuccessRate">
+            <summary>
+            Success rate (percentage of accepted solutions)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.LearningAnalytics.CurrentStreak">
+            <summary>
+            Current streak (consecutive days with at least one accepted solution)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.LearningAnalytics.LongestStreak">
+            <summary>
+            Longest streak achieved
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.LearningAnalytics.LastActivityDate">
+            <summary>
+            Date of last activity (last accepted solution)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.LearningAnalytics.TotalSubmissions">
+            <summary>
+            Total number of submissions (including failed attempts)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.LearningAnalytics.SolutionsByLanguage">
+            <summary>
+            Solutions by language (JSON object): {"python": 10, "javascript": 5, ...}
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Models.LiveInterviewParticipant">
+            <summary>
+            Represents a participant in a live interview session
+            Stores per-user metadata including their role
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.LiveInterviewParticipant.LiveSessionId">
+            <summary>
+            Live session this participant belongs to
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.LiveInterviewParticipant.UserId">
+            <summary>
+            User who is participating
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.LiveInterviewParticipant.Role">
+            <summary>
+            Current role: Interviewer or Interviewee
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.LiveInterviewParticipant.IsActive">
+            <summary>
+            Whether this participant is currently in the session
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.LiveInterviewParticipant.JoinedAt">
+            <summary>
+            When the participant joined the session
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.LiveInterviewParticipant.LeftAt">
+            <summary>
+            When the participant left the session (if they left early)
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Models.LiveInterviewSession">
+            <summary>
+            Represents an active live interview session with two participants
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.LiveInterviewSession.ScheduledSessionId">
+            <summary>
+            Reference to scheduled session (optional, may be null if created directly)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.LiveInterviewSession.FirstQuestionId">
+            <summary>
+            First question assigned to the session
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.LiveInterviewSession.SecondQuestionId">
+            <summary>
+            Second question assigned to the session (optional, for when they switch roles)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.LiveInterviewSession.ActiveQuestionId">
+            <summary>
+            Currently active question ID (either FirstQuestionId or SecondQuestionId)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.LiveInterviewSession.Status">
+            <summary>
+            Status: InProgress, Completed, Cancelled
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.LiveInterviewSession.StartedAt">
+            <summary>
+            When the session actually started
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.LiveInterviewSession.EndedAt">
+            <summary>
+            When the session ended
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.LiveInterviewSession.InterviewerRoomId">
+            <summary>
+            Excalidraw room ID for the interviewer's whiteboard (for system design interviews)
+            Format: roomId,key (e.g., "35a7b3f8f24f22d21f18,gaiLKrrJVtanONO5UiU2UA")
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.LiveInterviewSession.IntervieweeRoomId">
+            <summary>
+            Excalidraw room ID for the interviewee's whiteboard (for system design interviews)
+            Format: roomId,key (e.g., "35a7b3f8f24f22d21f18,gaiLKrrJVtanONO5UiU2UA")
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Models.QuestionSolution">
+            <summary>
+            Represents a solution for an interview question
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.QuestionSolution.Language">
+            <summary>
+            Programming language: Python, JavaScript, Java, C++, etc.
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.QuestionSolution.Code">
+            <summary>
+            Solution code
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.QuestionSolution.Explanation">
+            <summary>
+            Solution explanation
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.QuestionSolution.TimeComplexity">
+            <summary>
+            Time complexity (e.g., "O(n)")
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.QuestionSolution.SpaceComplexity">
+            <summary>
+            Space complexity (e.g., "O(1)")
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.QuestionSolution.IsOfficial">
+            <summary>
+            Whether this is an official solution (vs user-submitted)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.QuestionSolution.CreatedBy">
+            <summary>
+            User who created this solution (null if official)
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Models.QuestionTestCase">
+            <summary>
+            Represents a test case for an interview question
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.QuestionTestCase.TestCaseNumber">
+            <summary>
+            Test case number (for ordering)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.QuestionTestCase.Input">
+            <summary>
+            Input data (JSON string)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.QuestionTestCase.ExpectedOutput">
+            <summary>
+            Expected output (JSON string)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.QuestionTestCase.IsHidden">
+            <summary>
+            Whether this is a hidden test case (not shown to user before submission)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.QuestionTestCase.Explanation">
+            <summary>
+            Explanation for this test case (optional)
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Models.QuestionVote">
+            <summary>
+            Represents a user's vote (upvote/downvote) on a question
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.QuestionVote.QuestionId">
+            <summary>
+            The question that was voted on
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.QuestionVote.UserId">
+            <summary>
+            User who voted
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.QuestionVote.VoteType">
+            <summary>
+            Vote type: 1 for upvote, -1 for downvote
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Models.Referral">
+            <summary>
+            Represents a user referral
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.Referral.ReferrerId">
+            <summary>
+            User who sent the referral
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.Referral.ReferredUserId">
+            <summary>
+            User who was referred (optional - may not have signed up yet)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.Referral.ReferredEmail">
+            <summary>
+            Email of the referred person
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.Referral.ReferralCode">
+            <summary>
+            Unique referral code/token
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.Referral.Status">
+            <summary>
+            Status: Pending, Completed, Expired
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.Referral.CompletedAt">
+            <summary>
+            When the referred user completed their first interview (triggers reward)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.Referral.ExpiresAt">
+            <summary>
+            When the referral code expires
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Models.ScheduledInterviewSession">
+            <summary>
+            Represents a scheduled interview session created by a user
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.ScheduledInterviewSession.UserId">
+            <summary>
+            User who scheduled the interview (session creator)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.ScheduledInterviewSession.InterviewType">
+            <summary>
+            Interview type: data-structures-algorithms, system-design, behavioral, product-management, sql, data-science-ml
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.ScheduledInterviewSession.PracticeType">
+            <summary>
+            Practice type: peers, friend, expert
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.ScheduledInterviewSession.InterviewLevel">
+            <summary>
+            Interview level: beginner, intermediate, advanced
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.ScheduledInterviewSession.ScheduledStartAt">
+            <summary>
+            Scheduled start time for the interview
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.ScheduledInterviewSession.Status">
+            <summary>
+            Status: Scheduled, Cancelled, Completed, InProgress
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.ScheduledInterviewSession.LiveSession">
+            <summary>
+            Reference to live session if one was created from this scheduled session
+            (navigation property only - foreign key is on LiveInterviewSession)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.ScheduledInterviewSession.AssignedQuestionId">
+            <summary>
+            Question assigned to this user when scheduling (only for data-structures-algorithms interview type)
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Models.UserCodeDraft">
+            <summary>
+            Represents a user's code draft (work in progress) for a question and language
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.UserCodeDraft.Language">
+            <summary>
+            Programming language used (python, javascript, java, cpp, csharp, go)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.UserCodeDraft.Code">
+            <summary>
+            Draft code (work in progress)
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Models.UserCoins">
+            <summary>
+            Represents a user's total coins and cached rank
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.UserCoins.Rank">
+            <summary>
+            Cached rank for performance (updated periodically by background job)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.UserCoins.LastRankUpdate">
+            <summary>
+            Timestamp of last rank update
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Models.UserSolution">
+            <summary>
+            Represents a user's solution submission for an interview question
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.UserSolution.Language">
+            <summary>
+            Programming language used (python, javascript, java, cpp, csharp, go)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.UserSolution.Code">
+            <summary>
+            Submitted code
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.UserSolution.Status">
+            <summary>
+            Overall status: Accepted, Wrong Answer, Time Limit Exceeded, Runtime Error, Compilation Error
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.UserSolution.ExecutionTime">
+            <summary>
+            Execution time in seconds
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.UserSolution.MemoryUsed">
+            <summary>
+            Memory used in bytes
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.UserSolution.TestCasesPassed">
+            <summary>
+            Number of test cases passed
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.UserSolution.TotalTestCases">
+            <summary>
+            Total number of test cases
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Models.UserSolvedQuestion">
+            <summary>
+            Tracks which questions a user has solved (optimized lookup table)
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Models.WhiteboardData">
+            <summary>
+            Represents whiteboard data for a user
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.WhiteboardData.UserId">
+            <summary>
+            Foreign key to User (nullable for session-based whiteboards)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.WhiteboardData.User">
+            <summary>
+            Navigation property to User
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.WhiteboardData.QuestionId">
+            <summary>
+            Optional question ID if whiteboard is associated with a question
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.WhiteboardData.Question">
+            <summary>
+            Navigation property to Question
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.WhiteboardData.SessionId">
+            <summary>
+            Optional session ID for collaborative whiteboards (for peer interviews)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.WhiteboardData.Elements">
+            <summary>
+            Excalidraw elements (JSON array)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.WhiteboardData.AppState">
+            <summary>
+            Excalidraw app state (JSON object)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.WhiteboardData.Files">
+            <summary>
+            Excalidraw files (JSON object)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.WhiteboardData.CreatedAt">
+            <summary>
+            Timestamp when whiteboard was created
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.WhiteboardData.UpdatedAt">
+            <summary>
+            Timestamp when whiteboard was last updated
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Services.CoachService">
+            <summary>
+            Service for managing coach applications
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Services.CodeExecutionService">
+            <summary>
+            Service for executing code using Judge0 API
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.CodeExecutionService.ExecuteCodeAsync(Vector.Api.DTOs.CodeExecution.ExecutionRequestDto)">
+            <summary>
+            Execute code with optional input
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.CodeExecutionService.RunCodeAsync(System.Guid,Vector.Api.DTOs.CodeExecution.ExecutionRequestDto)">
+            <summary>
+            Run code against visible (non-hidden) test cases for a question (for "Run" button)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.CodeExecutionService.ValidateSolutionAsync(System.Guid,Vector.Api.DTOs.CodeExecution.ExecutionRequestDto)">
+            <summary>
+            Validate code against all test cases for a question, including hidden ones (for "Submit" button)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.CodeExecutionService.RunCodeWithTestCasesAsync(System.Guid,Vector.Api.DTOs.CodeExecution.RunCodeWithTestCasesDto)">
+            <summary>
+            Run code with line-based testcase input (new UI format)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.CodeExecutionService.RunSqlCodeWithTestCasesAsync(Vector.Api.Models.InterviewQuestion,Vector.Api.DTOs.CodeExecution.RunCodeWithTestCasesDto)">
+            <summary>
+            Run SQL code with test cases - handles SQL test case format (JSON with schema/data)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.CodeExecutionService.GetSupportedLanguagesAsync">
+            <summary>
+            Get list of supported programming languages
+            Uses Judge0 Official API language IDs
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.CodeExecutionService.MapToExecutionResult(Vector.Api.Services.CodeExecutionService.Judge0ExecutionResult)">
+            <summary>
+            Map Judge0 execution result to ExecutionResultDto
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.CodeExecutionService.NormalizeSqlOutput(System.String)">
+            <summary>
+            Normalize SQL output for comparison (handles various formats from Judge0 SQLite)
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Services.CodeExecutionService.Judge0SubmissionResponse">
+            <summary>
+            Judge0 submission response model
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Services.CodeExecutionService.Judge0ExecutionResult">
+            <summary>
+            Judge0 execution result model
+            Note: Judge0 Official API uses lowercase property names in JSON
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Services.CodeExecutionService.Judge0Status">
+            <summary>
+            Judge0 status model
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Services.CodeWrapperService">
+            <summary>
+            Service to wrap user code with test case execution logic
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.CodeWrapperService.WrapCodeForExecution(System.String,System.String,System.String,Vector.Api.Models.InterviewQuestion)">
+            <summary>
+            Wraps user code to execute with test case inputs
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.CodeWrapperService.ExtractParameterNames(System.String,System.String)">
+            <summary>
+            Extract parameter names from function signature
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Services.CoinService">
+            <summary>
+            Service for managing coins and achievements
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.CoinService.AwardCoinsAsync(System.Guid,System.String,System.String,System.Nullable{System.Guid},System.String)">
+            <summary>
+            Robust and consistent method to award coins for any activity.
+            This is the SINGLE SOURCE OF TRUTH for all coin grants.
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.IAnalyticsService.UpdateAnalyticsAsync(System.Guid,System.Guid,System.String,System.Decimal,System.Int64,System.String)">
+            <summary>
+            Update analytics when a solution is submitted
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.IAnalyticsService.GetUserAnalyticsAsync(System.Guid)">
+            <summary>
+            Get user analytics
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.IAnalyticsService.GetCategoryProgressAsync(System.Guid,System.String)">
+            <summary>
+            Get progress for a specific category
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.IAnalyticsService.GetDifficultyProgressAsync(System.Guid,System.String)">
+            <summary>
+            Get progress for a specific difficulty level
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.IAnalyticsService.CalculateStreakAsync(System.Guid)">
+            <summary>
+            Calculate and update streak for a user
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.IAnalyticsService.RebuildAnalyticsAsync(System.Guid)">
+            <summary>
+            Rebuild analytics from existing data for a user
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Services.ICoachService">
+            <summary>
+            Service interface for coach application management
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.ICoachService.SubmitApplicationAsync(System.Guid,Vector.Api.DTOs.Coach.SubmitCoachApplicationDto)">
+            <summary>
+            Submit a coach application
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.ICoachService.GetApplicationByUserIdAsync(System.Guid)">
+            <summary>
+            Get coach application by user ID
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.ICoachService.GetApplicationByIdAsync(System.Guid)">
+            <summary>
+            Get coach application by ID
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.ICoachService.GetPendingApplicationsAsync">
+            <summary>
+            Get all pending coach applications (for admin)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.ICoachService.GetAllApplicationsAsync">
+            <summary>
+            Get all coach applications (for admin)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.ICoachService.ReviewApplicationAsync(System.Guid,System.Guid,Vector.Api.DTOs.Coach.ReviewCoachApplicationDto)">
+            <summary>
+            Review (approve/reject) a coach application
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Services.ICodeExecutionService">
+            <summary>
+            Service interface for code execution using Judge0 API
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.ICodeExecutionService.ExecuteCodeAsync(Vector.Api.DTOs.CodeExecution.ExecutionRequestDto)">
+            <summary>
+            Execute code with optional input
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.ICodeExecutionService.RunCodeAsync(System.Guid,Vector.Api.DTOs.CodeExecution.ExecutionRequestDto)">
+            <summary>
+            Run code against visible (non-hidden) test cases for a question (for "Run" button)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.ICodeExecutionService.RunCodeWithTestCasesAsync(System.Guid,Vector.Api.DTOs.CodeExecution.RunCodeWithTestCasesDto)">
+            <summary>
+            Run code with line-based testcase input (new UI format)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.ICodeExecutionService.ValidateSolutionAsync(System.Guid,Vector.Api.DTOs.CodeExecution.ExecutionRequestDto)">
+            <summary>
+            Validate code against all test cases for a question, including hidden ones (for "Submit" button)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.ICodeExecutionService.GetSupportedLanguagesAsync">
+            <summary>
+            Get list of supported programming languages
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Services.ICoinService">
+            <summary>
+            Service interface for coin and achievement management
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.ICoinService.AwardCoinsAsync(System.Guid,System.String,System.String,System.Nullable{System.Guid},System.String)">
+            <summary>
+            Award coins to a user for completing an activity.
+            This is the SINGLE SOURCE OF TRUTH for all coin grants.
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Services.IInterviewMatchingService">
+            <summary>
+            Service interface for interview matching functionality
+            Handles matching users for peer interviews
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.IInterviewMatchingService.StartMatchingAsync(System.Guid,System.Guid)">
+            <summary>
+            Start matching process for a scheduled session
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.IInterviewMatchingService.GetMatchingStatusAsync(System.Guid,System.Guid)">
+            <summary>
+            Get matching status for a scheduled session
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.IInterviewMatchingService.ConfirmMatchAsync(System.Guid,System.Guid)">
+            <summary>
+            Confirm a match (user confirms readiness)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.IInterviewMatchingService.ExpireMatchIfNotConfirmedAsync(System.Guid,System.Guid)">
+            <summary>
+            Expire a match if not both confirmed within 15 seconds
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.IInterviewMatchingService.ExpireAllRequestsForSessionAsync(System.Guid,System.Guid)">
+            <summary>
+            Expire all active matching requests for a user and session (used on page refresh/close)
+            Does not create new requests
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.IInterviewMatchingService.ExpireMatchOnUserDisconnectAsync(System.Guid)">
+            <summary>
+            Immediately expire a match when a user disconnects during confirmation.
+            Re-queues the remaining active user if they're still on the matching modal.
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Services.IMatchingPresenceService">
+            <summary>
+            Service for tracking user presence in the matching modal
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.IMatchingPresenceService.SetUserActive(System.Guid,System.Guid)">
+            <summary>
+            Set user as active in the matching modal for a specific session
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.IMatchingPresenceService.SetUserInactive(System.Guid,System.Guid)">
+            <summary>
+            Set user as inactive (modal closed)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.IMatchingPresenceService.IsUserActive(System.Guid,System.Guid)">
+            <summary>
+            Check if user is currently active in the matching modal
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.IMatchingPresenceService.ClearUserPresence(System.Guid)">
+            <summary>
+            Clear all presence for a user (e.g., on disconnect)
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Services.InterviewMatchingService">
+            <summary>
+            Service for interview matching functionality
+            Handles matching users for peer interviews
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.InterviewMatchingService.GenerateExcalidrawRoomId">
+            <summary>
+            Generates an Excalidraw room ID in the format: roomId,key
+            Similar to Excalidraw's format: "35a7b3f8f24f22d21f18,gaiLKrrJVtanONO5UiU2UA"
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Services.IPeerInterviewService">
+            <summary>
+            Service interface for peer interview functionality
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Services.IRedisService">
+            <summary>
+            Redis service for caching, session management, and rate limiting
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Services.IS3Service">
+            <summary>
+            Service for handling S3 file operations
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.IS3Service.UploadFileAsync(System.IO.Stream,System.String,System.String,System.String)">
+            <summary>
+            Uploads a file to S3 and returns the public URL
+            </summary>
+            <param name="fileStream">The file stream to upload</param>
+            <param name="fileName">The name of the file</param>
+            <param name="contentType">The MIME type of the file</param>
+            <param name="folder">Optional folder path within the bucket (e.g., "profile-pictures")</param>
+            <returns>The public URL of the uploaded file</returns>
+        </member>
+        <member name="M:Vector.Api.Services.IS3Service.DeleteFileAsync(System.String)">
+            <summary>
+            Deletes a file from S3
+            </summary>
+            <param name="fileUrl">The URL of the file to delete</param>
+            <returns>True if deleted successfully</returns>
+        </member>
+        <member name="M:Vector.Api.Services.IS3Service.GetPresignedUrlAsync(System.String,System.Int32)">
+            <summary>
+            Generates a presigned URL for temporary file access
+            </summary>
+            <param name="fileKey">The S3 key of the file</param>
+            <param name="expirationMinutes">URL expiration time in minutes</param>
+            <returns>The presigned URL</returns>
+        </member>
+        <member name="M:Vector.Api.Services.ISolutionService.SubmitSolutionAsync(System.Guid,Vector.Api.DTOs.Solution.SubmitSolutionDto)">
+            <summary>
+            Submit a solution for a question (only called when validation passes)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.ISolutionService.GetUserSolutionsAsync(System.Guid,Vector.Api.DTOs.Solution.SolutionFilterDto)">
+            <summary>
+            Get user's solutions
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.ISolutionService.GetSolutionByIdAsync(System.Guid,System.Guid)">
+            <summary>
+            Get solution by ID
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.ISolutionService.GetSolutionsForQuestionAsync(System.Guid,System.Guid)">
+            <summary>
+            Get solutions for a specific question
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.ISolutionService.GetSolutionStatisticsAsync(System.Guid)">
+            <summary>
+            Get solution statistics for a user
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.ISolutionService.HasUserSolvedQuestionAsync(System.Guid,System.Guid)">
+            <summary>
+            Check if a user has solved a specific question (optimized lookup)
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Services.SolutionStatisticsDto">
+            <summary>
+            Solution statistics DTO
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Services.MatchingPresenceService">
+            <summary>
+            In-memory service for tracking user presence in the matching modal
+            Uses ConcurrentDictionary for thread-safe operations
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.PeerInterviewService.UpdateScheduledSessionsOnEndAsync(Vector.Api.Models.LiveInterviewSession)">
+            <summary>
+            Helper function to update all scheduled sessions when an interview ends.
+            Ensures both users' scheduled sessions are marked as completed and have access to
+            both questions and partner information.
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.PeerInterviewService.GenerateExcalidrawRoomId">
+            <summary>
+            Generates an Excalidraw room ID in the format: roomId,key
+            Similar to Excalidraw's format: "35a7b3f8f24f22d21f18,gaiLKrrJVtanONO5UiU2UA"
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.PeerInterviewService.AwardCoinsForQuestionUsageAsync(System.Nullable{System.Guid},System.Guid)">
+            <summary>
+            Awards coins to a question creator when their question is used in an interview
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Services.RedisService">
+            <summary>
+            Redis service implementation for caching, tokens, and rate limiting
+            Uses connection pooling via IConnectionMultiplexer (singleton)
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Services.S3Service">
+            <summary>
+            Service for handling S3 file operations
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Services.TestCaseParserService">
+            <summary>
+            Service to parse and validate line-based testcase input
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.TestCaseParserService.ParseTestCases(System.String,System.Int32,System.String[])">
+            <summary>
+            Parse line-based testcase input into structured testcases
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.UserService.CheckAndAwardProfileCompletionCoinsAsync(Vector.Api.Models.User)">
+            <summary>
+            Checks if user's profile is complete and awards coins (one-time only)
+            Profile is complete if: FirstName, LastName, Email, ProfilePictureUrl, Bio, PhoneNumber, Location are all filled
+            </summary>
+        </member>
+    </members>
+</doc>

@@ -37,6 +37,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<AchievementDefinition> AchievementDefinitions { get; set; }
     public DbSet<QuestionVote> QuestionVotes { get; set; }
     public DbSet<Referral> Referrals { get; set; }
+    public DbSet<QuestionBookmark> QuestionBookmarks { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -512,6 +513,26 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(e => e.ReferrerId); // For getting user's referrals
             entity.HasIndex(e => e.ReferredEmail); // For checking if email was already referred
             entity.HasIndex(e => e.Status); // For filtering by status
+        });
+
+        // Configure QuestionBookmark entity
+        modelBuilder.Entity<QuestionBookmark>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Question)
+                .WithMany()
+                .HasForeignKey(e => e.QuestionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.Notes).HasMaxLength(500);
+            // Unique index on UserId + QuestionId (one bookmark per user per question)
+            entity.HasIndex(e => new { e.UserId, e.QuestionId }).IsUnique();
+            entity.HasIndex(e => e.UserId); // For getting user's bookmarks
+            entity.HasIndex(e => e.QuestionId); // For statistics
+            entity.HasIndex(e => e.CreatedAt); // For sorting by date
         });
 
     }

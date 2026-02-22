@@ -16,6 +16,7 @@ public class QuestionApprovalTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
     private readonly Mock<ILogger<QuestionService>> _loggerMock;
+    private readonly Mock<ICoinService> _coinServiceMock;
     private readonly QuestionService _service;
 
     public QuestionApprovalTests()
@@ -26,7 +27,8 @@ public class QuestionApprovalTests : IDisposable
         _context = new ApplicationDbContext(options);
 
         _loggerMock = new Mock<ILogger<QuestionService>>();
-        _service = new QuestionService(_context, _loggerMock.Object);
+        _coinServiceMock = new Mock<ICoinService>();
+        _service = new QuestionService(_context, _coinServiceMock.Object, _loggerMock.Object);
     }
 
     public void Dispose()

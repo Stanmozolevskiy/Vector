@@ -21,7 +21,7 @@ public class CommentService : ICommentService
         _logger = logger;
     }
 
-    public async Task<InterviewQuestionComment> CreateCommentAsync(Guid questionId, Guid userId, string content)
+    public async Task<InterviewQuestionComment> CreateCommentAsync(Guid questionId, Guid userId, string content, string? commentType = null, Guid? parentCommentId = null)
     {
         var question = await _context.InterviewQuestions.FindAsync(questionId);
         if (question == null)
@@ -29,11 +29,23 @@ public class CommentService : ICommentService
             throw new KeyNotFoundException("Question not found");
         }
 
+        // Validate parent comment if provided
+        if (parentCommentId.HasValue)
+        {
+            var parentComment = await _context.InterviewQuestionComments.FindAsync(parentCommentId.Value);
+            if (parentComment == null || parentComment.QuestionId != questionId)
+            {
+                throw new KeyNotFoundException("Parent comment not found or does not belong to this question");
+            }
+        }
+
         var comment = new InterviewQuestionComment
         {
             QuestionId = questionId,
             UserId = userId,
             Content = content,
+            CommentType = commentType,
+            ParentCommentId = parentCommentId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -41,15 +53,19 @@ public class CommentService : ICommentService
         _context.InterviewQuestionComments.Add(comment);
         await _context.SaveChangesAsync();
 
+        // Load the user relationship before returning
+        await _context.Entry(comment).Reference(c => c.User).LoadAsync();
+
         return comment;
     }
 
     public async Task<IEnumerable<InterviewQuestionComment>> GetCommentsForQuestionAsync(Guid questionId)
     {
+        // Return ALL comments (including replies) so the frontend can organize them
         return await _context.InterviewQuestionComments
             .Include(c => c.User)
             .Include(c => c.Votes)
-            .Where(c => c.QuestionId == questionId && c.ParentCommentId == null)
+            .Where(c => c.QuestionId == questionId)
             .OrderByDescending(c => c.CreatedAt)
             .ToListAsync();
     }
@@ -97,7 +113,7 @@ public class CommentService : ICommentService
 
         if (existingVote != null)
         {
-            return false; // Already upvoted
+            return false; // Already upvoted (idempotent - no error)
         }
 
         var comment = await _context.InterviewQuestionComments
@@ -120,22 +136,29 @@ public class CommentService : ICommentService
         _context.InterviewQuestionCommentVotes.Add(vote);
         await _context.SaveChangesAsync();
 
-        // Award coins to comment author
-        try
+        // Award coins to comment author ONLY if they didn't upvote their own comment
+        if (comment.UserId != userId)
         {
-            await _coinService.AwardCoinsAsync(
-                comment.UserId,
-                AchievementTypes.CommentUpvoted,
-                "Your comment was upvoted",
-                commentId,
-                "InterviewQuestionComment");
+            try
+            {
+                await _coinService.AwardCoinsAsync(
+                    comment.UserId,
+                    AchievementTypes.CommentUpvoted,
+                    "Your comment was upvoted",
+                    commentId,
+                    "InterviewQuestionComment");
 
-            _logger.LogInformation("Awarded CommentUpvoted coins to user {UserId} for comment {CommentId}",
-                comment.UserId, commentId);
+                _logger.LogInformation("Awarded CommentUpvoted coins to user {UserId} for comment {CommentId}",
+                    comment.UserId, commentId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to award CommentUpvoted coins to user {UserId}", comment.UserId);
+            }
         }
-        catch (Exception ex)
+        else
         {
-            _logger.LogWarning(ex, "Failed to award CommentUpvoted coins to user {UserId}", comment.UserId);
+            _logger.LogInformation("User {UserId} upvoted their own comment {CommentId}, no coins awarded", userId, commentId);
         }
 
         return true;
@@ -149,6 +172,46 @@ public class CommentService : ICommentService
         if (vote == null)
         {
             return false; // Not upvoted
+        }
+
+        _context.InterviewQuestionCommentVotes.Remove(vote);
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> DownvoteCommentAsync(Guid commentId, Guid userId)
+    {
+        // Check if already voted
+        var existingVote = await _context.InterviewQuestionCommentVotes
+            .FirstOrDefaultAsync(v => v.CommentId == commentId && v.UserId == userId);
+
+        if (existingVote == null)
+        {
+            // Cannot downvote without upvoting first
+            return false;
+        }
+
+        // If already downvoted, return false (idempotent)
+        if (existingVote.VoteType == -1)
+        {
+            return false;
+        }
+
+        // If upvoted, change to downvote
+        existingVote.VoteType = -1;
+        existingVote.CreatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> RemoveDownvoteAsync(Guid commentId, Guid userId)
+    {
+        var vote = await _context.InterviewQuestionCommentVotes
+            .FirstOrDefaultAsync(v => v.CommentId == commentId && v.UserId == userId && v.VoteType == -1);
+
+        if (vote == null)
+        {
+            return false; // Not downvoted
         }
 
         _context.InterviewQuestionCommentVotes.Remove(vote);

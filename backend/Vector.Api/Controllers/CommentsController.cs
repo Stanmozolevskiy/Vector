@@ -22,9 +22,30 @@ public class CommentsController : ControllerBase
     [HttpPost("questions/{questionId}")]
     public async Task<IActionResult> CreateComment(Guid questionId, [FromBody] CreateCommentRequest request)
     {
-        var userId = GetCurrentUserId();
-        var comment = await _commentService.CreateCommentAsync(questionId, userId, request.Content);
-        return Ok(comment);
+        _logger.LogInformation("Creating comment for question {QuestionId}. Content: {Content}, Type: {CommentType}", 
+            questionId, request.Content?.Substring(0, Math.Min(50, request.Content?.Length ?? 0)), request.CommentType);
+        
+        try
+        {
+            var userId = GetCurrentUserId();
+            _logger.LogInformation("User ID: {UserId}", userId);
+            
+            var comment = await _commentService.CreateCommentAsync(
+                questionId, 
+                userId, 
+                request.Content, 
+                request.CommentType, 
+                request.ParentCommentId
+            );
+            
+            _logger.LogInformation("Comment created successfully with ID: {CommentId}", comment.Id);
+            return Ok(comment);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating comment for question {QuestionId}", questionId);
+            return StatusCode(500, new { message = "Failed to create comment", error = ex.Message });
+        }
     }
 
     [HttpGet("questions/{questionId}")]
@@ -56,7 +77,8 @@ public class CommentsController : ControllerBase
     {
         var userId = GetCurrentUserId();
         var success = await _commentService.UpvoteCommentAsync(commentId, userId);
-        return success ? Ok(new { message = "Comment upvoted successfully" }) : BadRequest(new { message = "Already upvoted" });
+        // Return Ok even if already upvoted (idempotent operation)
+        return Ok(new { message = success ? "Comment upvoted successfully" : "Already upvoted" });
     }
 
     [HttpDelete("{commentId}/upvote")]
@@ -64,7 +86,23 @@ public class CommentsController : ControllerBase
     {
         var userId = GetCurrentUserId();
         var success = await _commentService.RemoveUpvoteAsync(commentId, userId);
-        return success ? Ok(new { message = "Upvote removed" }) : BadRequest(new { message = "Not upvoted" });
+        return success ? Ok(new { message = "Upvote removed" }) : Ok(new { message = "Not upvoted" });
+    }
+
+    [HttpPost("{commentId}/downvote")]
+    public async Task<IActionResult> DownvoteComment(Guid commentId)
+    {
+        var userId = GetCurrentUserId();
+        var success = await _commentService.DownvoteCommentAsync(commentId, userId);
+        return success ? Ok(new { message = "Comment downvoted successfully" }) : Ok(new { message = "Cannot downvote - you must upvote first" });
+    }
+
+    [HttpDelete("{commentId}/downvote")]
+    public async Task<IActionResult> RemoveDownvote(Guid commentId)
+    {
+        var userId = GetCurrentUserId();
+        var success = await _commentService.RemoveDownvoteAsync(commentId, userId);
+        return success ? Ok(new { message = "Downvote removed" }) : Ok(new { message = "Not downvoted" });
     }
 
     private Guid GetCurrentUserId()
@@ -81,6 +119,8 @@ public class CommentsController : ControllerBase
 public class CreateCommentRequest
 {
     public string Content { get; set; } = string.Empty;
+    public string? CommentType { get; set; }
+    public Guid? ParentCommentId { get; set; }
 }
 
 public class UpdateCommentRequest

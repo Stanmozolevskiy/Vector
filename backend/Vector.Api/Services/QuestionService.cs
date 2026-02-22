@@ -135,9 +135,21 @@ public class QuestionService : IQuestionService
 
         // Apply company filtering in memory after fetching other filters
         // This is necessary because JSON deserialization doesn't translate well to SQL
-        var results = await query
-            .OrderBy(q => q.Title)
-            .ToListAsync();
+        
+        // Get total count before pagination for potential future use
+        var totalCount = await query.CountAsync();
+        
+        // Apply sorting before pagination
+        query = query.OrderBy(q => q.Title);
+        
+        // Apply pagination if specified
+        if (filter?.Page > 0 && filter?.PageSize > 0)
+        {
+            var skip = (filter.Page - 1) * filter.PageSize;
+            query = query.Skip(skip).Take(filter.PageSize);
+        }
+        
+        var results = await query.ToListAsync();
 
         if (filter?.Companies != null && filter.Companies.Any())
         {
@@ -504,6 +516,79 @@ public class QuestionService : IQuestionService
             .Where(q => q.ApprovalStatus == "Pending")
             .OrderBy(q => q.CreatedAt)
             .ToListAsync();
+    }
+
+    public async Task<QuestionBookmark> AddBookmarkAsync(Guid questionId, Guid userId, string? notes = null)
+    {
+        // Check if question exists
+        var question = await _context.InterviewQuestions.FindAsync(questionId);
+        if (question == null)
+        {
+            throw new ArgumentException($"Question with ID {questionId} not found.");
+        }
+
+        // Check if already bookmarked
+        var existing = await _context.QuestionBookmarks
+            .FirstOrDefaultAsync(b => b.UserId == userId && b.QuestionId == questionId);
+
+        if (existing != null)
+        {
+            // Update notes if provided
+            if (notes != null)
+            {
+                existing.Notes = notes;
+                await _context.SaveChangesAsync();
+            }
+            return existing;
+        }
+
+        // Create new bookmark
+        var bookmark = new QuestionBookmark
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            QuestionId = questionId,
+            Notes = notes,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _context.QuestionBookmarks.Add(bookmark);
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("User {UserId} bookmarked question {QuestionId}", userId, questionId);
+        return bookmark;
+    }
+
+    public async Task<bool> RemoveBookmarkAsync(Guid questionId, Guid userId)
+    {
+        var bookmark = await _context.QuestionBookmarks
+            .FirstOrDefaultAsync(b => b.UserId == userId && b.QuestionId == questionId);
+
+        if (bookmark == null)
+        {
+            return false;
+        }
+
+        _context.QuestionBookmarks.Remove(bookmark);
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("User {UserId} removed bookmark for question {QuestionId}", userId, questionId);
+        return true;
+    }
+
+    public async Task<IEnumerable<InterviewQuestion>> GetBookmarkedQuestionsAsync(Guid userId)
+    {
+        return await _context.QuestionBookmarks
+            .Where(b => b.UserId == userId)
+            .OrderByDescending(b => b.CreatedAt)
+            .Select(b => b.Question)
+            .ToListAsync();
+    }
+
+    public async Task<bool> IsQuestionBookmarkedAsync(Guid questionId, Guid userId)
+    {
+        return await _context.QuestionBookmarks
+            .AnyAsync(b => b.UserId == userId && b.QuestionId == questionId);
     }
 }
 

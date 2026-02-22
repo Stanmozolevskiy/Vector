@@ -18,5 +18,11 @@ public interface IQuestionService
     Task<InterviewQuestion> ApproveQuestionAsync(Guid questionId, Guid approvedBy);
     Task<InterviewQuestion> RejectQuestionAsync(Guid questionId, Guid rejectedBy, string? rejectionReason = null);
     Task<IEnumerable<InterviewQuestion>> GetPendingQuestionsAsync();
+    
+    // Bookmark methods
+    Task<QuestionBookmark> AddBookmarkAsync(Guid questionId, Guid userId, string? notes = null);
+    Task<bool> RemoveBookmarkAsync(Guid questionId, Guid userId);
+    Task<IEnumerable<InterviewQuestion>> GetBookmarkedQuestionsAsync(Guid userId);
+    Task<bool> IsQuestionBookmarkedAsync(Guid questionId, Guid userId);
 }
 

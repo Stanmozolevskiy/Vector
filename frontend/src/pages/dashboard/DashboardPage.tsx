@@ -5,6 +5,8 @@ import { ROUTES } from '../../utils/constants';
 import { Navbar } from '../../components/layout/Navbar';
 import { analyticsService, type LearningAnalytics } from '../../services/analytics.service';
 import { peerInterviewService, type ScheduledInterviewSession } from '../../services/peerInterview.service';
+import challengeService, { type DailyChallengeResponse } from '../../services/challenge.service';
+import { RecommendationsPanel } from '../../components/recommendations/RecommendationsPanel';
 import '../../styles/style.css';
 import '../../styles/dashboard.css';
 
@@ -15,6 +17,8 @@ export const DashboardPage = () => {
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const [upcomingInterviews, setUpcomingInterviews] = useState<ScheduledInterviewSession[]>([]);
   const [interviewsLoading, setInterviewsLoading] = useState(true);
+  const [dailyChallenge, setDailyChallenge] = useState<DailyChallengeResponse | null>(null);
+  const [challengeLoading, setChallengeLoading] = useState(true);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -53,6 +57,17 @@ export const DashboardPage = () => {
         
         setAnalytics(analyticsData);
         setUpcomingInterviews(interviewsData);
+
+        // Load daily challenge
+        try {
+          setChallengeLoading(true);
+          const challengeData = await challengeService.getDailyChallenge();
+          setDailyChallenge(challengeData);
+        } catch (challengeError) {
+          console.error('[Dashboard] Error loading daily challenge:', challengeError);
+        } finally {
+          setChallengeLoading(false);
+        }
       } catch (err) {
         console.error('Error loading dashboard data:', err);
       } finally {
@@ -143,6 +158,75 @@ export const DashboardPage = () => {
                   <Link to={ROUTES.DASHBOARD} className="btn-primary" style={{ marginTop: 'var(--spacing-md)' }}>Browse Courses</Link>
                 </div>
               </div>
+
+              {/* Daily Challenge */}
+              {!challengeLoading && dailyChallenge && (
+                <div className="dashboard-card daily-challenge-widget">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h2>
+                      <i className="fas fa-trophy" style={{ color: '#ffc01e', marginRight: '8px' }}></i>
+                      Daily Challenge
+                    </h2>
+                    <Link to="/challenges/daily" className="btn-outline" style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}>
+                      View All
+                    </Link>
+                  </div>
+                  
+                  <div style={{ 
+                    background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    border: '1px solid rgba(102, 126, 234, 0.2)'
+                  }}>
+                    <div style={{ marginBottom: '12px' }}>
+                      <h3 style={{ fontSize: '1.25rem', marginBottom: '8px' }}>{dailyChallenge.challenge.question.title}</h3>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        <span className={`difficulty-badge ${dailyChallenge.challenge.difficulty.toLowerCase()}`}>
+                          {dailyChallenge.challenge.difficulty}
+                        </span>
+                        <span style={{ 
+                          padding: '4px 12px', 
+                          borderRadius: '16px', 
+                          background: 'var(--bg-light)', 
+                          fontSize: '0.875rem',
+                          color: 'var(--text-secondary)'
+                        }}>
+                          {dailyChallenge.challenge.category}
+                        </span>
+                      </div>
+                    </div>
+
+                    {dailyChallenge.userAttempt?.isCompleted ? (
+                      <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '8px',
+                        padding: '12px',
+                        background: 'rgba(0, 184, 163, 0.1)',
+                        borderRadius: '8px',
+                        color: '#00b8a3',
+                        fontWeight: 600
+                      }}>
+                        <i className="fas fa-check-circle"></i>
+                        <span>Completed! +{dailyChallenge.userAttempt.coinsEarned} coins</span>
+                      </div>
+                    ) : (
+                      <Link 
+                        to="/challenges/daily" 
+                        className="btn-primary"
+                        style={{ 
+                          width: '100%', 
+                          justifyContent: 'center',
+                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                        }}
+                      >
+                        <i className="fas fa-play"></i> 
+                        {dailyChallenge.userAttempt ? 'Continue Challenge' : 'Start Challenge'}
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Activity Chart */}
               <div className="dashboard-card">
@@ -303,6 +387,9 @@ export const DashboardPage = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Recommendations Panel */}
+              <RecommendationsPanel />
 
               {/* Learning Goals */}
               <div className="dashboard-card">

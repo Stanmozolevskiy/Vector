@@ -766,42 +766,42 @@ Before starting, ensure you have:
 ### Day 23-24: Daily Challenges & Recommendations
 
 #### Backend Implementation
-- [ ] Create DailyChallenge model
-  - Date
-  - QuestionId (foreign key)
-  - Difficulty
-  - Category
-- [ ] Create ChallengeService
-  - GetDailyChallengeAsync
-  - GetChallengeHistoryAsync
-- [ ] Create recommendation algorithm
-  - Based on user's weak areas
-  - Based on user's progress
-  - Based on difficulty progression
-- [ ] Create RecommendationService
-  - GetRecommendedQuestionsAsync
-  - GetPersonalizedSetAsync
-- [ ] Create ChallengeController endpoints
-  - GET /api/challenges/daily (get today's challenge)
-  - GET /api/challenges/history (get challenge history)
-  - GET /api/recommendations (get recommended questions)
+- [x] Create DailyChallenge model ✅
+  - Date ✅
+  - QuestionId (foreign key) ✅
+  - Difficulty ✅
+  - Category ✅
+- [x] Create ChallengeService ✅
+  - GetDailyChallengeAsync ✅
+  - GetChallengeHistoryAsync ✅
+- [x] Create recommendation algorithm ✅
+  - Based on user's weak areas ✅
+  - Based on user's progress ✅
+  - Based on difficulty progression ✅
+- [x] Create RecommendationService ✅
+  - GetRecommendedQuestionsAsync ✅
+  - GetPersonalizedSetAsync ✅
+- [x] Create ChallengeController endpoints ✅
+  - GET /api/challenges/daily (get today's challenge) ✅
+  - GET /api/challenges/history (get challenge history) ✅
+  - GET /api/recommendations (get recommended questions) ✅
 
 #### Frontend Implementation
-- [ ] Create DailyChallengePage component
-  - Today's challenge display
-  - Challenge history
-  - Solve challenge button
-- [ ] Create RecommendationsPanel component
-  - Recommended questions list
-  - Personalized problem set
-- [ ] Update DashboardPage
-  - Add daily challenge widget
-  - Add recommendations section
+- [x] Create DailyChallengePage component ✅
+  - Today's challenge display ✅
+  - Challenge history ✅
+  - Solve challenge button ✅
+- [x] Create RecommendationsPanel component ✅
+  - Recommended questions list ✅
+  - Personalized problem set ✅
+- [x] Update DashboardPage ✅
+  - Add daily challenge widget ✅
+  - Add recommendations section ✅
 
 #### Testing
-- [ ] Unit tests for challenge service
-- [ ] Unit tests for recommendation algorithm
-- [ ] Integration tests for challenge endpoints
+- [x] Unit tests for challenge service ✅
+- [x] Unit tests for recommendation algorithm ✅
+- [x] Integration tests for challenge endpoints ✅
 
 ---
 
@@ -1795,9 +1795,74 @@ During a live coding interview, test results are not synchronized properly betwe
 
 ---
 
+#### 2. **Linked List and Custom Data Structure Questions Cannot Run/Submit** 🐛
+**Status:** To Fix | **Priority:** High | **Component:** Code Execution - Question Detail
+
+**Description:**
+Coding questions that use custom data structures (e.g., ListNode for linked lists) cannot be run or submitted. The code execution system passes test case inputs as raw JSON (arrays), but the solution code expects actual linked list objects. There is no conversion layer between test inputs and the user's solution.
+
+**Observed Behavior:**
+- User opens "Add Two Numbers" or other linked list question
+- User writes solution using ListNode (l1, l2 parameters)
+- Clicking "Run" or "Submit" fails with:
+  - "An error occurred while validating the solution"
+  - "Cannot run: invalid testcase input"
+  - "No testcases provided" (when test cases are missing from DB)
+- Test cases exist in DB as `{"l1": [2,4,3], "l2": [5,6,4]}` but code expects ListNode objects
+
+**Expected Behavior:**
+- Test case arrays `[2,4,3]` are automatically converted to ListNode/LinkedList objects before being passed to the solution
+- User solution receives proper l1 and l2 linked list parameters
+- Output (linked list) is converted back to array `[7,0,8]` for comparison with expected output
+- Run and Submit work seamlessly for all question types
+
+**Impact:**
+- Linked list questions (Add Two Numbers, Reverse Linked List, Merge Two Sorted Lists) are unusable for practice
+- Users cannot validate their solutions
+- Affects LeetCode-style problems that require trees, graphs, or other custom structures
+- Limits the question bank to array/primitive-only problems
+
+**Technical Details:**
+- Test format: `{"l1": [2,4,3], "l2": [5,6,4]}`
+- Code expects: `addTwoNumbers(ListNode l1, ListNode l2)` 
+- Judge0/code execution receives raw JSON, no conversion happens
+- Each language needs conversion logic: array → ListNode, ListNode → array
+
+**Potential Root Cause:**
+- CodeExecutionService/CodeWrapperService does not handle custom data structures
+- No question-type or category-aware input/output transformation
+- Judge0 receives code + raw input; no pre/post-processing for linked lists
+- Parameter extraction assumes primitives/arrays only
+
+**Files to Investigate:**
+- `backend/Vector.Api/Services/CodeExecutionService.cs` - Code execution orchestration
+- `backend/Vector.Api/Services/CodeWrapperService.cs` - Code wrapping and parameter injection
+- `backend/Vector.Api/Models/InterviewQuestion.cs` - Category field (e.g., "Linked List")
+- `frontend/src/pages/questions/QuestionDetailPage.tsx` - Run/Submit flow
+- Test case format in `QuestionTestCase` model
+
+**Proposed Fix:**
+1. **Detect linked list questions** by category (e.g., "Linked List") or by parameter types in the solution signature
+2. **Add conversion layer per language:**
+   - JavaScript: Inject `arrayToList()` and `listToArray()` helpers; wrap user code to convert inputs before call and output after
+   - Python, Java, C++, C#, Go: Same pattern with language-specific helpers
+3. **Modify CodeWrapperService** to generate wrapper code that:
+   - Parses JSON input (l1, l2 arrays)
+   - Converts arrays to ListNode before calling `addTwoNumbers(l1, l2)`
+   - Converts result ListNode to array for comparison with expected output
+4. **Extend for other structures** (TreeNode, GraphNode) using same pattern
+5. **Document mapping** of question categories → required conversion logic
+
+**Test Cases to Add:**
+- Add Two Numbers: l1=[2,4,3], l2=[5,6,4] → [7,0,8]
+- Reverse Linked List: head=[1,2,3] → [3,2,1]
+- Merge Two Sorted Lists: list1=[1,2,4], list2=[1,3,4] → [1,1,2,3,4,4]
+
+---
+
 ### Medium Priority Issues
 
-#### 2. **Behavioral Interview Redirect After Feedback Submission** 🐛
+#### 3. **Behavioral Interview Redirect After Feedback Submission** 🐛
 **Status:** To Fix | **Priority:** Medium | **Component:** Behavioral Interview
 
 **Description:**
@@ -1836,7 +1901,7 @@ After completing a behavioral interview and submitting feedback, the URL changes
 
 ---
 
-#### 3. **Coding Interview Timer Not Synchronized** 🐛
+#### 4. **Coding Interview Timer Not Synchronized** 🐛
 **Status:** To Fix | **Priority:** Medium | **Component:** Live Interview - Coding
 
 **Description:**
@@ -1877,7 +1942,7 @@ The interview timer displays different remaining times for different users in th
 
 ---
 
-#### 4. **Practice with a Friend - No Join Link Access** 🐛
+#### 5. **Practice with a Friend - No Join Link Access** 🐛
 **Status:** To Fix | **Priority:** Medium | **Component:** Friend Interview
 
 **Description:**
@@ -1926,7 +1991,7 @@ When a user selects "Practice with a Friend" option, they cannot access the shar
 
 ### Low Priority Issues
 
-#### 5. **Excessive Console Logging in Production** 🧹
+#### 6. **Excessive Console Logging in Production** 🧹
 **Status:** To Fix | **Priority:** Low | **Component:** All
 
 **Description:**
@@ -1945,7 +2010,7 @@ Too many console.log statements in production code, cluttering browser console a
 
 ---
 
-#### 6. **Interview Feedback Forms Not Interview-Type Specific** 🐛
+#### 7. **Interview Feedback Forms Not Interview-Type Specific** 🐛
 **Status:** To Fix | **Priority:** Low | **Component:** Interview Feedback
 
 **Description:**

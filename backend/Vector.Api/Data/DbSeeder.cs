@@ -191,7 +191,7 @@ public static class DbSeeder
                 },
                 new {
                     Title = "Add Two Numbers",
-                    Description = "You are given two non-empty linked lists representing two non-negative integers. The digits are stored in reverse order, and each of their nodes contains a single digit. Add the two numbers and return the sum as a linked list.\n\nYou may assume the two numbers do not contain any leading zero, except the number 0 itself.",
+                    Description = "You are given two non-empty linked lists representing two non-negative integers. The digits are stored in reverse order, and each of their nodes contains a single digit. Add the two numbers and return the sum as a linked list.\n\nYou may assume the two numbers do not contain any leading zero, except the number 0 itself.\n\n**Note:** The test system automatically converts arrays to linked lists for testing. For example, `[2,4,3]` is automatically converted to `2 → 4 → 3` before being passed to your function.",
                     Difficulty = "Medium",
                     QuestionType = "Coding",
                     Category = "Linked List",
@@ -205,8 +205,8 @@ public static class DbSeeder
                     },
                     Hints = new[] { 
                         "Make sure you understand what is required. You need to add two numbers represented as linked lists where digits are stored in reverse order. Try working through the example: l1 = [2,4,3] represents 342, and l2 = [5,6,4] represents 465.",
-                        "If you're stuck, think about how you add numbers manually. You start from the rightmost digit, add them, and if the sum is 10 or more, you carry over to the next digit. Apply the same logic here, but remember the digits are stored in reverse.",
-                        "Keep track of the carry using a variable. As you traverse both lists, add the current digits along with any carry from the previous addition. If the sum is 10 or more, update the carry for the next iteration."
+                        "Think about how you add numbers manually with pen and paper. You start from the rightmost digit, add them together, and if the sum is 10 or more, you carry over to the next digit. Apply the same logic here, but remember the digits are already stored in reverse order.",
+                        "Use a dummy head node to simplify your code. Keep track of the carry using a variable. As you traverse both lists, add the current digits along with any carry from the previous addition. If the sum is 10 or more, update the carry for the next iteration."
                     },
                     TimeComplexityHint = "O(max(m,n))",
                     SpaceComplexityHint = "O(max(m,n))",
@@ -1139,7 +1139,7 @@ public static class DbSeeder
             {
                 largeNums.Add(i);
             }
-            var largeInput = $"{{\"nums\": [{string.Join(",", largeNums)}], \"target\": 1999}}";
+            var largeInput = $"{{\"nums\": [{string.Join(",", largeNums)}], \"target\": 1997}}";
             
             // Two Sum test cases: 3 visible + 7 hidden = 10 total
             var twoSumTestCases = new List<QuestionTestCase>
@@ -1212,7 +1212,7 @@ public static class DbSeeder
                     QuestionId = twoSum.Id,
                     TestCaseNumber = 7,
                     Input = "{\"nums\": [1,5,3,7,9,2,8,4,6], \"target\": 10}",
-                    ExpectedOutput = "[0,5]",
+                    ExpectedOutput = "[2,3]",
                     IsHidden = true,
                     CreatedAt = now
                 },
@@ -1242,7 +1242,7 @@ public static class DbSeeder
                     QuestionId = twoSum.Id,
                     TestCaseNumber = 10,
                     Input = largeInput,
-                    ExpectedOutput = "[999,1000]",
+                    ExpectedOutput = "[998,999]",
                     IsHidden = true,
                     CreatedAt = now
                 }
@@ -1318,8 +1318,128 @@ public static class DbSeeder
                 };
                 questionSolutionsMap["Add Two Numbers"] = new Dictionary<string, string>
                 {
-                    ["JavaScript"] = "function addTwoNumbers(l1, l2) {\n    let dummy = new ListNode(0);\n    let current = dummy;\n    let carry = 0;\n    \n    while (l1 || l2 || carry) {\n        let sum = (l1?.val || 0) + (l2?.val || 0) + carry;\n        carry = Math.floor(sum / 10);\n        current.next = new ListNode(sum % 10);\n        current = current.next;\n        l1 = l1?.next;\n        l2 = l2?.next;\n    }\n    \n    return dummy.next;\n}",
-                    ["Python"] = "def addTwoNumbers(l1, l2):\n    dummy = ListNode(0)\n    current = dummy\n    carry = 0\n    \n    while l1 or l2 or carry:\n        sum_val = (l1.val if l1 else 0) + (l2.val if l2 else 0) + carry\n        carry = sum_val // 10\n        current.next = ListNode(sum_val % 10)\n        current = current.next\n        l1 = l1.next if l1 else None\n        l2 = l2.next if l2 else None\n    \n    return dummy.next"
+                    ["JavaScript"] = @"class ListNode {
+    constructor(val, next = null) {
+        this.val = val;
+        this.next = next;
+    }
+}
+
+function addTwoNumbers(l1, l2) {
+    let dummy = new ListNode(0);
+    let current = dummy;
+    let carry = 0;
+    
+    while (l1 || l2 || carry) {
+        let sum = (l1?.val || 0) + (l2?.val || 0) + carry;
+        carry = Math.floor(sum / 10);
+        current.next = new ListNode(sum % 10);
+        current = current.next;
+        l1 = l1?.next;
+        l2 = l2?.next;
+    }
+    
+    return dummy.next;
+}",
+                    ["Python"] = @"class ListNode:
+    def __init__(self, val=0, next=None):
+        self.val = val
+        self.next = next
+
+def addTwoNumbers(l1, l2):
+    dummy = ListNode(0)
+    current = dummy
+    carry = 0
+    
+    while l1 or l2 or carry:
+        sum_val = (l1.val if l1 else 0) + (l2.val if l2 else 0) + carry
+        carry = sum_val // 10
+        current.next = ListNode(sum_val % 10)
+        current = current.next
+        l1 = l1.next if l1 else None
+        l2 = l2.next if l2 else None
+    
+    return dummy.next",
+                    ["Java"] = @"public class ListNode {
+    int val;
+    ListNode next;
+    ListNode() {}
+    ListNode(int val) { this.val = val; }
+    ListNode(int val, ListNode next) { this.val = val; this.next = next; }
+}
+
+public class Solution {
+    public ListNode addTwoNumbers(ListNode l1, ListNode l2) {
+        ListNode dummy = new ListNode(0);
+        ListNode current = dummy;
+        int carry = 0;
+        
+        while (l1 != null || l2 != null || carry != 0) {
+            int sum = (l1 != null ? l1.val : 0) + (l2 != null ? l2.val : 0) + carry;
+            carry = sum / 10;
+            current.next = new ListNode(sum % 10);
+            current = current.next;
+            l1 = l1 != null ? l1.next : null;
+            l2 = l2 != null ? l2.next : null;
+        }
+        
+        return dummy.next;
+    }
+}",
+                    ["C++"] = @"struct ListNode {
+    int val;
+    ListNode *next;
+    ListNode() : val(0), next(nullptr) {}
+    ListNode(int x) : val(x), next(nullptr) {}
+    ListNode(int x, ListNode *next) : val(x), next(next) {}
+};
+
+class Solution {
+public:
+    ListNode* addTwoNumbers(ListNode* l1, ListNode* l2) {
+        ListNode* dummy = new ListNode(0);
+        ListNode* current = dummy;
+        int carry = 0;
+        
+        while (l1 || l2 || carry) {
+            int sum = (l1 ? l1->val : 0) + (l2 ? l2->val : 0) + carry;
+            carry = sum / 10;
+            current->next = new ListNode(sum % 10);
+            current = current->next;
+            l1 = l1 ? l1->next : nullptr;
+            l2 = l2 ? l2->next : nullptr;
+        }
+        
+        return dummy->next;
+    }
+};",
+                    ["C#"] = @"public class ListNode {
+    public int val;
+    public ListNode next;
+    public ListNode(int val=0, ListNode next=null) {
+        this.val = val;
+        this.next = next;
+    }
+}
+
+public class Solution {
+    public ListNode AddTwoNumbers(ListNode l1, ListNode l2) {
+        ListNode dummy = new ListNode(0);
+        ListNode current = dummy;
+        int carry = 0;
+        
+        while (l1 != null || l2 != null || carry != 0) {
+            int sum = (l1 != null ? l1.val : 0) + (l2 != null ? l2.val : 0) + carry;
+            carry = sum / 10;
+            current.next = new ListNode(sum % 10);
+            current = current.next;
+            l1 = l1 != null ? l1.next : null;
+            l2 = l2 != null ? l2.next : null;
+        }
+        
+        return dummy.next;
+    }
+}"
                 };
             }
 

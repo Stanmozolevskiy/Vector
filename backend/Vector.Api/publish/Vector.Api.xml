@@ -140,6 +140,51 @@
             </summary>
             <returns>Success message</returns>
         </member>
+        <member name="M:Vector.Api.Controllers.ChallengeController.GetDailyChallenge(System.Nullable{System.DateTime})">
+            <summary>
+            Get today's daily challenge
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.ChallengeController.GetPastChallenges(System.Int32)">
+            <summary>
+            Get past daily challenges
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.ChallengeController.StartChallenge(System.Guid)">
+            <summary>
+            Start a challenge attempt
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.ChallengeController.CompleteChallenge(System.Guid,Vector.Api.Controllers.CompleteChallengeRequest)">
+            <summary>
+            Complete a challenge attempt
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.ChallengeController.GetChallengeHistory(System.Int32)">
+            <summary>
+            Get user's challenge history
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.ChallengeController.GetChallengeStats">
+            <summary>
+            Get user's challenge statistics
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.ChallengeController.GetRecommendations(System.Int32)">
+            <summary>
+            Get recommended questions for the user
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.ChallengeController.GetPersonalizedSet">
+            <summary>
+            Get personalized problem set
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Controllers.ChallengeController.GetWeakAreaQuestions(System.Int32)">
+            <summary>
+            Get questions to improve weak areas
+            </summary>
+        </member>
         <member name="M:Vector.Api.Controllers.CoachController.SubmitApplication(Vector.Api.DTOs.Coach.SubmitCoachApplicationDto)">
             <summary>
             Submit a coach application
@@ -980,6 +1025,18 @@
         <member name="M:Vector.Api.Data.Migrations.AddQuestionBookmarks.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
             <inheritdoc />
         </member>
+        <member name="T:Vector.Api.Data.Migrations.AddDailyChallenges">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddDailyChallenges.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddDailyChallenges.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:Vector.Api.Data.Migrations.AddDailyChallenges.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
         <member name="T:Vector.Api.DTOs.Coach.CoachApplicationResponseDto">
             <summary>
             DTO for coach application response
@@ -1456,6 +1513,51 @@
         <member name="P:Vector.Api.Models.CoinTransaction.RelatedEntityType">
             <summary>
             Type of related entity (e.g., 'Question', 'Interview')
+            </summary>
+        </member>
+        <member name="T:Vector.Api.Models.DailyChallenge">
+            <summary>
+            Represents a daily coding challenge for users
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.DailyChallenge.Date">
+            <summary>
+            The date this challenge is active for
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.DailyChallenge.QuestionId">
+            <summary>
+            Reference to the interview question for this challenge
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.DailyChallenge.Difficulty">
+            <summary>
+            Difficulty level (Easy, Medium, Hard)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.DailyChallenge.Category">
+            <summary>
+            Category of the challenge (Arrays, Strings, etc.)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.DailyChallenge.AttemptCount">
+            <summary>
+            Number of users who attempted this challenge
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.DailyChallenge.CompletionCount">
+            <summary>
+            Number of users who completed this challenge
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.DailyChallenge.CreatedAt">
+            <summary>
+            When this challenge was created
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.DailyChallenge.IsActive">
+            <summary>
+            Whether this challenge is active
             </summary>
         </member>
         <member name="T:Vector.Api.Models.InterviewFeedback">
@@ -2056,6 +2158,66 @@
             Question assigned to this user when scheduling (only for data-structures-algorithms interview type)
             </summary>
         </member>
+        <member name="T:Vector.Api.Models.UserChallengeAttempt">
+            <summary>
+            Represents a user's attempt at a daily challenge
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.UserChallengeAttempt.UserId">
+            <summary>
+            Reference to the user
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.UserChallengeAttempt.ChallengeId">
+            <summary>
+            Reference to the daily challenge
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.UserChallengeAttempt.StartedAt">
+            <summary>
+            When the user started this challenge
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.UserChallengeAttempt.CompletedAt">
+            <summary>
+            When the user completed this challenge (null if not completed)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.UserChallengeAttempt.IsCompleted">
+            <summary>
+            Whether the user successfully completed the challenge
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.UserChallengeAttempt.TimeSpentSeconds">
+            <summary>
+            Time taken to complete in seconds (null if not completed)
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.UserChallengeAttempt.Language">
+            <summary>
+            Programming language used
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.UserChallengeAttempt.Code">
+            <summary>
+            User's submitted code
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.UserChallengeAttempt.TestCasesPassed">
+            <summary>
+            Number of test cases passed
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.UserChallengeAttempt.TotalTestCases">
+            <summary>
+            Total number of test cases
+            </summary>
+        </member>
+        <member name="P:Vector.Api.Models.UserChallengeAttempt.CoinsEarned">
+            <summary>
+            Coins earned for completing this challenge
+            </summary>
+        </member>
         <member name="T:Vector.Api.Models.UserCodeDraft">
             <summary>
             Represents a user's code draft (work in progress) for a question and language
@@ -2309,6 +2471,46 @@
             Rebuild analytics from existing data for a user
             </summary>
         </member>
+        <member name="M:Vector.Api.Services.IChallengeService.GetDailyChallengeAsync(System.Nullable{System.DateTime})">
+            <summary>
+            Get the daily challenge for a specific date (defaults to today)
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.IChallengeService.GetUserChallengeAttemptAsync(System.Guid,System.Guid)">
+            <summary>
+            Get user's challenge attempt for a specific challenge
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.IChallengeService.StartChallengeAttemptAsync(System.Guid,System.Guid)">
+            <summary>
+            Start a challenge attempt for a user
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.IChallengeService.CompleteChallengeAttemptAsync(System.Guid,System.Guid,System.String,System.String,System.Int32,System.Int32)">
+            <summary>
+            Complete a challenge attempt
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.IChallengeService.GetChallengeHistoryAsync(System.Guid,System.Int32)">
+            <summary>
+            Get user's challenge history
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.IChallengeService.GetChallengeStatsAsync(System.Guid)">
+            <summary>
+            Get challenge statistics
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.IChallengeService.CreateOrUpdateDailyChallengeAsync(System.DateTime,System.Guid)">
+            <summary>
+            Create or update daily challenge for a date
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.IChallengeService.GetPastChallengesAsync(System.Int32)">
+            <summary>
+            Get all past challenges
+            </summary>
+        </member>
         <member name="T:Vector.Api.Services.ICoachService">
             <summary>
             Service interface for coach application management
@@ -2463,6 +2665,21 @@
         <member name="T:Vector.Api.Services.IPeerInterviewService">
             <summary>
             Service interface for peer interview functionality
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.IRecommendationService.GetRecommendedQuestionsAsync(System.Guid,System.Int32)">
+            <summary>
+            Get personalized question recommendations based on user's performance
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.IRecommendationService.GetPersonalizedSetAsync(System.Guid)">
+            <summary>
+            Get a personalized problem set for the user
+            </summary>
+        </member>
+        <member name="M:Vector.Api.Services.IRecommendationService.GetWeakAreaQuestionsAsync(System.Guid,System.Int32)">
+            <summary>
+            Get questions to improve weak areas
             </summary>
         </member>
         <member name="T:Vector.Api.Services.IRedisService">

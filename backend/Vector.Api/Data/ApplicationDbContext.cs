@@ -38,6 +38,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<QuestionVote> QuestionVotes { get; set; }
     public DbSet<Referral> Referrals { get; set; }
     public DbSet<QuestionBookmark> QuestionBookmarks { get; set; }
+    public DbSet<DailyChallenge> DailyChallenges { get; set; }
+    public DbSet<UserChallengeAttempt> UserChallengeAttempts { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -533,6 +535,41 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(e => e.UserId); // For getting user's bookmarks
             entity.HasIndex(e => e.QuestionId); // For statistics
             entity.HasIndex(e => e.CreatedAt); // For sorting by date
+        });
+
+        // Configure DailyChallenge entity
+        modelBuilder.Entity<DailyChallenge>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.Question)
+                .WithMany()
+                .HasForeignKey(e => e.QuestionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.Difficulty).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.Category).HasMaxLength(100).IsRequired();
+            entity.HasIndex(e => e.Date).IsUnique(); // One challenge per day
+            entity.HasIndex(e => e.QuestionId); // For lookups
+            entity.HasIndex(e => new { e.Date, e.IsActive }); // For active challenges
+        });
+
+        // Configure UserChallengeAttempt entity
+        modelBuilder.Entity<UserChallengeAttempt>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Challenge)
+                .WithMany()
+                .HasForeignKey(e => e.ChallengeId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.Language).HasMaxLength(50);
+            // User can only attempt a challenge once
+            entity.HasIndex(e => new { e.UserId, e.ChallengeId }).IsUnique();
+            entity.HasIndex(e => e.UserId); // For user history
+            entity.HasIndex(e => e.ChallengeId); // For challenge statistics
+            entity.HasIndex(e => e.CompletedAt); // For completion queries
         });
 
     }

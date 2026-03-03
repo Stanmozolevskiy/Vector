@@ -21,6 +21,7 @@ import { QuestionDetailPage } from './pages/questions/QuestionDetailPage';
 import { AddQuestionPage } from './pages/questions/AddQuestionPage';
 import { EditQuestionPage } from './pages/questions/EditQuestionPage';
 import BookmarkedQuestionsPage from './pages/questions/BookmarkedQuestionsPage';
+import { DailyChallengePage } from './pages/challenges/DailyChallengePage';
 import { SolutionHistoryPage } from './pages/solutions/SolutionHistoryPage';
 import { ProgressPage } from './pages/progress/ProgressPage';
 import FindPeerPage from './pages/peer-interviews/FindPeerPage';
@@ -122,6 +123,11 @@ function App() {
         <Route path="/questions/bookmarks" element={
           <ProtectedRoute requireAuth>
             <BookmarkedQuestionsPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/challenges/daily" element={
+          <ProtectedRoute requireAuth>
+            <DailyChallengePage />
           </ProtectedRoute>
         } />
         <Route path={ROUTES.SOLUTION_HISTORY} element={

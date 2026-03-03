@@ -139,6 +139,8 @@ builder.Services.AddScoped<ICoinService, CoinService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<IQuestionVoteService, QuestionVoteService>();
 builder.Services.AddScoped<IReferralService, ReferralService>();
+builder.Services.AddScoped<IChallengeService, ChallengeService>();
+builder.Services.AddScoped<IRecommendationService, RecommendationService>();
 
 // SignalR for real-time collaboration
 builder.Services.AddSignalR();

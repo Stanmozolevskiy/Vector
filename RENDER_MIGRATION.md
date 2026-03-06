@@ -16,17 +16,29 @@ Instead of manually clicking through the Render dashboard for Phases 1–7, you 
 - [ ] **A.3** Select the `Vecotr` repository — Render reads `render.yaml` automatically
 - [ ] **A.4** Review the services list and click **Apply**
 - [ ] **A.5** Wait ~5 minutes for all services to provision
-- [ ] **A.6** After provisioning, fill in the `sync: false` secrets in each service's **Environment** tab:
-  - `SendGrid__ApiKey`
-  - `SendGrid__FromEmail`
-  - `AWS__S3__BucketName`
-  - `AWS_ACCESS_KEY_ID`
-  - `AWS_SECRET_ACCESS_KEY`
-- [ ] **A.7** Copy deploy hook URLs from each service → **Settings → Deploy Hook** and add as GitHub Secrets (see Phase 8)
+- [ ] **A.6** After provisioning, fill in the `sync: false` secrets in each backend's **Environment** tab:
+  - `SendGrid__ApiKey`, `SendGrid__FromEmail`
+  - `Storage__ServiceUrl`, `Storage__BucketName`, `Storage__AccessKeyId`, `Storage__SecretAccessKey`, `Storage__PublicUrl`
+- [ ] **A.7** Copy deploy hook URLs → each service **Settings → Deploy Hook** → add as GitHub Secrets (see below)
 
 > **Note on service names:** The blueprint uses `vector-backend-qa`, `vector-backend-prod`, etc. If those names are taken on Render (by another user), rename them in `render.yaml` and update the matching `VITE_API_URL` env vars and `Frontend__Url` env vars accordingly.
 
 > **Note on free-tier QA:** QA backend and Redis use `free` plan — they spin down after 15 min of inactivity. Upgrade to `starter` if you need always-on QA.
+
+### GitHub Secrets for CI/CD Deploy Hooks
+
+After services are created, add these 4 secrets so pushes auto-deploy:
+
+| GitHub Secret | Where to get it |
+|---------------|-----------------|
+| `RENDER_DEPLOY_HOOK_BACKEND_QA` | Render → vector-backend-qa → Settings → Deploy Hook → copy URL |
+| `RENDER_DEPLOY_HOOK_BACKEND_PROD` | Render → vector-backend-prod → Settings → Deploy Hook → copy URL |
+| `RENDER_DEPLOY_HOOK_FRONTEND_QA` | Render → vector-frontend-qa → Settings → Deploy Hook → copy URL |
+| `RENDER_DEPLOY_HOOK_FRONTEND_PROD` | Render → vector-frontend-prod → Settings → Deploy Hook → copy URL |
+
+**Add at:** Repo → Settings → Secrets and variables → Actions → New repository secret
+
+`QA_API_URL` is already set for frontend CI build validation.
 
 ---
 
@@ -52,8 +64,8 @@ PostgreSQL ◄───┤
 Render         │
 Redis      ◄───┘
     │
-AWS S3
-(file uploads — keep as-is)
+Cloudflare R2
+(file uploads — S3-compatible, free tier)
 ```
 
 ### Services per Environment
@@ -64,7 +76,7 @@ AWS S3
 | Frontend (React) | Render Static Site | Render Static Site |
 | PostgreSQL | Render Managed PostgreSQL | Render Managed PostgreSQL |
 | Redis | Render Managed Redis | Render Managed Redis |
-| File Uploads | AWS S3 (keep existing bucket) | AWS S3 (keep existing bucket) |
+| File Uploads | Cloudflare R2 | Cloudflare R2 |
 | Container Registry | Render builds from GitHub (no ECR needed) | Render builds from GitHub (no ECR needed) |
 
 ---

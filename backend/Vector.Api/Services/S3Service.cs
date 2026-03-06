@@ -5,15 +5,18 @@ using Amazon.S3.Transfer;
 namespace Vector.Api.Services;
 
 /// <summary>
-/// Service for handling S3 file operations
+/// File storage service backed by any S3-compatible provider (AWS S3 or Cloudflare R2).
+/// Configure Storage:ServiceUrl + Storage:PublicUrl to use Cloudflare R2.
+/// Leave those empty to fall back to standard AWS S3.
 /// </summary>
 public class S3Service : IS3Service
 {
     private readonly IAmazonS3 _s3Client;
-    private readonly IConfiguration _configuration;
     private readonly ILogger<S3Service> _logger;
     private readonly string _bucketName;
     private readonly string _region;
+    private readonly string? _publicBaseUrl;
+    private readonly bool _useCustomProvider;
 
     public S3Service(
         IAmazonS3 s3Client,
@@ -21,59 +24,64 @@ public class S3Service : IS3Service
         ILogger<S3Service> logger)
     {
         _s3Client = s3Client;
-        _configuration = configuration;
         _logger = logger;
-        _bucketName = _configuration["AWS:S3:BucketName"] ?? throw new InvalidOperationException("S3 BucketName not configured");
-        _region = _configuration["AWS:Region"] ?? "us-east-1";
+
+        _bucketName = configuration["Storage:BucketName"]
+            ?? configuration["AWS:S3:BucketName"]
+            ?? throw new InvalidOperationException("Storage bucket name is not configured. Set Storage:BucketName or AWS:S3:BucketName.");
+
+        _region = configuration["AWS:Region"] ?? "us-east-1";
+        _publicBaseUrl = configuration["Storage:PublicUrl"];
+        _useCustomProvider = !string.IsNullOrEmpty(configuration["Storage:ServiceUrl"]);
     }
 
     public async Task<string> UploadFileAsync(Stream fileStream, string fileName, string contentType, string folder = "")
     {
         try
         {
-            // Generate unique file name
             var fileExtension = Path.GetExtension(fileName);
             var uniqueFileName = $"{Guid.NewGuid()}{fileExtension}";
             var key = string.IsNullOrEmpty(folder) ? uniqueFileName : $"{folder}/{uniqueFileName}";
 
-            _logger.LogInformation("Uploading file to S3: {Key}", key);
+            _logger.LogInformation("Uploading file: {Key}", key);
 
-            var transferUtility = new TransferUtility(_s3Client);
             var uploadRequest = new TransferUtilityUploadRequest
             {
                 InputStream = fileStream,
                 Key = key,
                 BucketName = _bucketName,
-                ContentType = contentType,
-                // Public assets (rendered directly in the UI)
-                // Other files remain private by default
-                CannedACL = (folder == "profile-pictures" || folder == "coach-applications" || folder == "question-videos") 
-                    ? S3CannedACL.PublicRead 
-                    : S3CannedACL.Private
+                ContentType = contentType
             };
 
-            // Add tags for profile pictures
-            if (folder == "profile-pictures")
+            // ACLs are not supported on Cloudflare R2 — use bucket-level public access instead.
+            // For standard AWS S3, apply per-object ACLs as before.
+            if (!_useCustomProvider)
             {
-                uploadRequest.TagSet = new List<Tag>
+                uploadRequest.CannedACL = (folder == "profile-pictures" || folder == "coach-applications" || folder == "question-videos")
+                    ? S3CannedACL.PublicRead
+                    : S3CannedACL.Private;
+
+                if (folder == "profile-pictures")
                 {
-                    new Tag { Key = "public", Value = "true" },
-                    new Tag { Key = "content-type", Value = "profile-picture" }
-                };
+                    uploadRequest.TagSet =
+                    [
+                        new Tag { Key = "public", Value = "true" },
+                        new Tag { Key = "content-type", Value = "profile-picture" }
+                    ];
+                }
             }
 
+            var transferUtility = new TransferUtility(_s3Client);
             await transferUtility.UploadAsync(uploadRequest);
 
-            // Return the URL
-            var url = $"https://{_bucketName}.s3.{_region}.amazonaws.com/{key}";
-            
-            _logger.LogInformation("File uploaded successfully: {Url}", url);
+            var url = BuildPublicUrl(key);
+            _logger.LogInformation("File uploaded: {Url}", url);
             return url;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to upload file to S3: {FileName}", fileName);
-            throw new InvalidOperationException("Failed to upload file to S3", ex);
+            _logger.LogError(ex, "Failed to upload file: {FileName}", fileName);
+            throw new InvalidOperationException("Failed to upload file", ex);
         }
     }
 
@@ -81,26 +89,23 @@ public class S3Service : IS3Service
     {
         try
         {
-            // Extract key from URL
             var uri = new Uri(fileUrl);
             var key = uri.AbsolutePath.TrimStart('/');
 
-            _logger.LogInformation("Deleting file from S3: {Key}", key);
+            _logger.LogInformation("Deleting file: {Key}", key);
 
-            var deleteRequest = new DeleteObjectRequest
+            await _s3Client.DeleteObjectAsync(new DeleteObjectRequest
             {
                 BucketName = _bucketName,
                 Key = key
-            };
+            });
 
-            await _s3Client.DeleteObjectAsync(deleteRequest);
-
-            _logger.LogInformation("File deleted successfully: {Key}", key);
+            _logger.LogInformation("File deleted: {Key}", key);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to delete file from S3: {FileUrl}", fileUrl);
+            _logger.LogError(ex, "Failed to delete file: {FileUrl}", fileUrl);
             return false;
         }
     }
@@ -109,14 +114,12 @@ public class S3Service : IS3Service
     {
         try
         {
-            var request = new GetPreSignedUrlRequest
+            var url = await _s3Client.GetPreSignedURLAsync(new GetPreSignedUrlRequest
             {
                 BucketName = _bucketName,
                 Key = fileKey,
                 Expires = DateTime.UtcNow.AddMinutes(expirationMinutes)
-            };
-
-            var url = await _s3Client.GetPreSignedURLAsync(request);
+            });
             return url;
         }
         catch (Exception ex)
@@ -124,5 +127,13 @@ public class S3Service : IS3Service
             _logger.LogError(ex, "Failed to generate presigned URL for: {FileKey}", fileKey);
             throw new InvalidOperationException("Failed to generate presigned URL", ex);
         }
+    }
+
+    private string BuildPublicUrl(string key)
+    {
+        if (!string.IsNullOrEmpty(_publicBaseUrl))
+            return $"{_publicBaseUrl.TrimEnd('/')}/{key}";
+
+        return $"https://{_bucketName}.s3.{_region}.amazonaws.com/{key}";
     }
 }

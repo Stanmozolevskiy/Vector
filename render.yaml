@@ -103,14 +103,18 @@ services:
       - key: SendGrid__FromName
         value: Vector
 
-      - key: AWS__Region
-        value: us-east-1
-      - key: AWS__S3__BucketName
-        sync: false
-      - key: AWS_ACCESS_KEY_ID
-        sync: false
-      - key: AWS_SECRET_ACCESS_KEY
-        sync: false
+      # Cloudflare R2 file storage (S3-compatible, replaces AWS S3)
+      # Get these from: Cloudflare Dashboard → R2 → Manage API Tokens
+      - key: Storage__ServiceUrl
+        sync: false   # https://<account-id>.r2.cloudflarestorage.com
+      - key: Storage__BucketName
+        sync: false   # e.g. vector-uploads
+      - key: Storage__AccessKeyId
+        sync: false   # R2 API Token Access Key ID
+      - key: Storage__SecretAccessKey
+        sync: false   # R2 API Token Secret Access Key
+      - key: Storage__PublicUrl
+        sync: false   # https://pub-<hash>.r2.dev  (or your custom domain)
 
       - key: Judge0__BaseUrl
         value: https://ce.judge0.com
@@ -167,13 +171,16 @@ services:
       - key: SendGrid__FromName
         value: Vector
 
-      - key: AWS__Region
-        value: us-east-1
-      - key: AWS__S3__BucketName
+      # Cloudflare R2 file storage (S3-compatible, replaces AWS S3)
+      - key: Storage__ServiceUrl
         sync: false
-      - key: AWS_ACCESS_KEY_ID
+      - key: Storage__BucketName
         sync: false
-      - key: AWS_SECRET_ACCESS_KEY
+      - key: Storage__AccessKeyId
+        sync: false
+      - key: Storage__SecretAccessKey
+        sync: false
+      - key: Storage__PublicUrl
         sync: false
 
       - key: Judge0__BaseUrl

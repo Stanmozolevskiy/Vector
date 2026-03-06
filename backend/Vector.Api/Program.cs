@@ -148,9 +148,31 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// AWS Services
-builder.Services.AddDefaultAWSOptions(builder.Configuration.GetAWSOptions());
-builder.Services.AddAWSService<IAmazonS3>();
+// S3-compatible storage — works with AWS S3 and Cloudflare R2
+// Set Storage:ServiceUrl in config to use R2 (or any S3-compatible provider).
+// Leave it empty to fall back to standard AWS S3.
+var storageServiceUrl = builder.Configuration["Storage:ServiceUrl"];
+if (!string.IsNullOrEmpty(storageServiceUrl))
+{
+    builder.Services.AddSingleton<IAmazonS3>(_ =>
+    {
+        var accessKey = builder.Configuration["Storage:AccessKeyId"]
+            ?? Environment.GetEnvironmentVariable("AWS_ACCESS_KEY_ID") ?? "";
+        var secretKey = builder.Configuration["Storage:SecretAccessKey"]
+            ?? Environment.GetEnvironmentVariable("AWS_SECRET_ACCESS_KEY") ?? "";
+        var s3Config = new AmazonS3Config
+        {
+            ServiceURL = storageServiceUrl,
+            ForcePathStyle = true   // Required for R2 and most S3-compatible providers
+        };
+        return new AmazonS3Client(accessKey, secretKey, s3Config);
+    });
+}
+else
+{
+    builder.Services.AddDefaultAWSOptions(builder.Configuration.GetAWSOptions());
+    builder.Services.AddAWSService<IAmazonS3>();
+}
 
 // Services
 builder.Services.AddScoped<IAuthService, AuthService>();

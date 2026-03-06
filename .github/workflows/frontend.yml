@@ -1,5 +1,8 @@
 name: Frontend CI/CD
 
+# Triggers:
+#   develop branch → build + test + deploy to QA on Render
+#   main branch    → build + test + deploy to Production on Render
 on:
   push:
     branches:
@@ -8,8 +11,7 @@ on:
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend.yml'
-      - 'docker/Dockerfile.frontend'
-      - '.deployment-trigger'
+      - 'render.yaml'
   workflow_dispatch:
   pull_request:
     branches:
@@ -18,13 +20,16 @@ on:
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend.yml'
-      - 'docker/Dockerfile.frontend'
 
 env:
   NODE_VERSION: '20.x'
   PROJECT_PATH: 'frontend'
 
 jobs:
+  # ─────────────────────────────────────────
+  # Job 1: Build, Lint & Test
+  # Runs on every push and PR to develop/main
+  # ─────────────────────────────────────────
   build-and-test:
     name: Build and Test
     runs-on: ubuntu-latest
@@ -33,10 +38,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
         working-directory: ${{ env.PROJECT_PATH }}
@@ -46,21 +53,29 @@ jobs:
         working-directory: ${{ env.PROJECT_PATH }}
         run: npm run lint
 
-      - name: Build project
+      - name: Run unit tests
+        working-directory: ${{ env.PROJECT_PATH }}
+        run: npm run test -- --run
+        continue-on-error: true
+
+      - name: Build (production)
         working-directory: ${{ env.PROJECT_PATH }}
         run: npm run build
         env:
-          # Use QA URL for build validation; Render injects the real URL per environment at deploy time
+          # Used only for CI build validation — Render injects the real URL at deploy time
           VITE_API_URL: ${{ secrets.QA_API_URL || 'http://localhost:5000/api' }}
 
-      - name: Check build artifacts
+      - name: Verify build output
         run: |
           if [ ! -d "${{ env.PROJECT_PATH }}/dist" ]; then
-            echo "Build failed - dist folder not found"
+            echo "Build failed — dist folder not found"
             exit 1
           fi
-          echo "✅ Build successful - dist folder exists"
+          echo "Build successful — dist folder exists"
 
+  # ─────────────────────────────────────────
+  # Job 2: Deploy to QA (develop branch only)
+  # ─────────────────────────────────────────
   deploy-qa:
     name: Deploy to QA
     runs-on: ubuntu-latest
@@ -71,16 +86,18 @@ jobs:
       url: https://vector-frontend-qa.onrender.com
 
     steps:
-      - name: Trigger Render deploy (QA frontend)
+      - name: Trigger Render deploy — QA frontend
         run: |
           echo "Triggering QA frontend deployment on Render..."
           curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND_QA }}" \
             --fail \
             --silent \
             --show-error
-          echo "✅ QA frontend deploy triggered on Render."
-          echo "Monitor progress at: https://dashboard.render.com"
+          echo "QA frontend deploy triggered. Monitor: https://dashboard.render.com"
 
+  # ─────────────────────────────────────────
+  # Job 3: Deploy to Production (main only)
+  # ─────────────────────────────────────────
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
@@ -91,12 +108,11 @@ jobs:
       url: https://vector-frontend-prod.onrender.com
 
     steps:
-      - name: Trigger Render deploy (Production frontend)
+      - name: Trigger Render deploy — Production frontend
         run: |
           echo "Triggering Production frontend deployment on Render..."
           curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND_PROD }}" \
             --fail \
             --silent \
             --show-error
-          echo "✅ Production frontend deploy triggered on Render."
-          echo "Monitor progress at: https://dashboard.render.com"
+          echo "Production frontend deploy triggered. Monitor: https://dashboard.render.com"

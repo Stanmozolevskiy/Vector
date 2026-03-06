@@ -75,30 +75,38 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     }
 });
 
-// Redis
+// Redis / Valkey (Render Key Value)
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 {
     var rawRedis = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
 
-    // Normalize Redis URI format (e.g. from Render: redis://red-xxx:6379 or rediss://...)
-    var redisConnection = rawRedis;
+    // StackExchange.Redis doesn't support redis:// URLs — convert to host:port[,options]
+    // Render Key Value internal: redis://red-xxx:6379
+    // Render Key Value external: rediss://user:pass@host:6379
+    var configString = rawRedis;
     if (rawRedis.StartsWith("redis://") || rawRedis.StartsWith("rediss://"))
     {
         var uri = new Uri(rawRedis);
         var host = uri.Host;
         var port = uri.Port > 0 ? uri.Port : 6379;
-        redisConnection = $"{host}:{port}";
+        configString = $"{host}:{port}";
         if (!string.IsNullOrEmpty(uri.UserInfo))
         {
             var parts = uri.UserInfo.Split(':', 2);
             if (parts.Length > 1 && !string.IsNullOrEmpty(parts[1]))
-                redisConnection += $",password={Uri.UnescapeDataString(parts[1])}";
+                configString += $",password={Uri.UnescapeDataString(parts[1])}";
         }
         if (rawRedis.StartsWith("rediss://"))
-            redisConnection += ",ssl=true,sslprotocols=tls12";
+            configString += ",ssl=true,sslprotocols=tls12";
     }
 
-    return ConnectionMultiplexer.Connect(redisConnection);
+    var options = ConfigurationOptions.Parse(configString);
+    options.AbortOnConnectFail = false;  // Allow app to start while Redis spins up (Render free tier)
+    options.ConnectTimeout = 15000;
+    options.ConnectRetry = 5;
+    options.KeepAlive = 10;
+
+    return ConnectionMultiplexer.Connect(options);
 });
 builder.Services.AddSingleton<IRedisService, RedisService>();
 

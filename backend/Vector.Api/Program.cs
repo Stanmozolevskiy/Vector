@@ -237,13 +237,19 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy.WithOrigins(
-                builder.Configuration["Frontend:Url"] ?? "http://localhost:3000",
-                "http://localhost:3000",
-                "http://localhost:5173",
-                "http://127.0.0.1:3000",
-                "http://127.0.0.1:5173"
-              )
+        var origins = new List<string>
+        {
+            builder.Configuration["Frontend:Url"] ?? "http://localhost:3000",
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:5173",
+            // Render deployed frontends
+            "https://vector-frontend-qa.onrender.com",
+            "https://vector-frontend-prod.onrender.com"
+        }.Where(o => !string.IsNullOrEmpty(o)).Distinct().ToArray();
+
+        policy.WithOrigins(origins)
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials()

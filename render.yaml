@@ -7,10 +7,9 @@
 #   3. Render auto-creates all services below.
 #   4. After creation, fill in the env vars marked  sync: false  in the Render dashboard.
 #
-# Cost estimate (~$38/month):
-#   QA:   backend free ($0) + frontend static ($0) + postgres starter ($7) + redis free ($0)
-#   Prod: backend starter ($7) + frontend static ($0) + postgres starter ($7) + redis starter ($10)
-#         + optional second backend/Redis upgrade = total $31–$38/month
+# Cost estimate (~$31/month):
+#   QA:   backend free ($0) + frontend static ($0) + postgres basic-256mb ($7) + keyvalue free ($0)
+#   Prod: backend starter ($7) + frontend static ($0) + postgres basic-256mb ($7) + keyvalue starter ($10)
 
 # ─────────────────────────────────────────────
 # DATABASES
@@ -19,13 +18,13 @@ databases:
   - name: vector-postgres-qa
     databaseName: vector_db
     user: vectoruser
-    plan: starter
+    plan: basic-256mb
     region: oregon
 
   - name: vector-postgres-prod
     databaseName: vector_db
     user: vectoruser
-    plan: starter
+    plan: basic-256mb
     region: oregon
 
 # ─────────────────────────────────────────────
@@ -33,16 +32,16 @@ databases:
 # ─────────────────────────────────────────────
 services:
 
-  # ── Redis (QA) ────────────────────────────
-  - type: redis
+  # ── Key Value / Redis (QA) ────────────────
+  - type: keyvalue
     name: vector-redis-qa
     plan: free
     region: oregon
     maxmemoryPolicy: allkeys-lru
     ipAllowList: []
 
-  # ── Redis (Production) ────────────────────
-  - type: redis
+  # ── Key Value / Redis (Production) ────────
+  - type: keyvalue
     name: vector-redis-prod
     plan: starter
     region: oregon
@@ -73,11 +72,11 @@ services:
           name: vector-postgres-qa
           property: connectionString
 
-      # Auto-wired from managed Redis
+      # Auto-wired from managed Key Value (Redis)
       - key: ConnectionStrings__Redis
         fromService:
           name: vector-redis-qa
-          type: redis
+          type: keyvalue
           property: connectionString
 
       # Auto-generated secure JWT secret
@@ -144,7 +143,7 @@ services:
       - key: ConnectionStrings__Redis
         fromService:
           name: vector-redis-prod
-          type: redis
+          type: keyvalue
           property: connectionString
 
       - key: Jwt__Secret

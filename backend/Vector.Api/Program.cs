@@ -43,7 +43,21 @@ builder.Services.AddMemoryCache();
 // Database with connection pooling
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
-    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    var rawConnectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+        ?? "Host=localhost;Database=vector_db;Username=postgres;Password=postgres";
+
+    // Normalize PostgreSQL URI format (e.g. from Render: postgres://user:pass@host:5432/db)
+    var connectionString = rawConnectionString;
+    if (rawConnectionString.StartsWith("postgres://") || rawConnectionString.StartsWith("postgresql://"))
+    {
+        var uri = new Uri(rawConnectionString);
+        var userParts = uri.UserInfo.Split(':', 2);
+        var user = Uri.UnescapeDataString(userParts[0]);
+        var password = userParts.Length > 1 ? Uri.UnescapeDataString(userParts[1]) : "";
+        var database = uri.AbsolutePath.TrimStart('/');
+        connectionString = $"Host={uri.Host};Port={uri.Port};Database={database};Username={user};Password={password}";
+    }
+
     options.UseNpgsql(connectionString, npgsqlOptions =>
     {
         // Enable connection pooling for better performance
@@ -64,8 +78,27 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Redis
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 {
-    var connectionString = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
-    return ConnectionMultiplexer.Connect(connectionString);
+    var rawRedis = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
+
+    // Normalize Redis URI format (e.g. from Render: redis://red-xxx:6379 or rediss://...)
+    var redisConnection = rawRedis;
+    if (rawRedis.StartsWith("redis://") || rawRedis.StartsWith("rediss://"))
+    {
+        var uri = new Uri(rawRedis);
+        var host = uri.Host;
+        var port = uri.Port > 0 ? uri.Port : 6379;
+        redisConnection = $"{host}:{port}";
+        if (!string.IsNullOrEmpty(uri.UserInfo))
+        {
+            var parts = uri.UserInfo.Split(':', 2);
+            if (parts.Length > 1 && !string.IsNullOrEmpty(parts[1]))
+                redisConnection += $",password={Uri.UnescapeDataString(parts[1])}";
+        }
+        if (rawRedis.StartsWith("rediss://"))
+            redisConnection += ",ssl=true,sslprotocols=tls12";
+    }
+
+    return ConnectionMultiplexer.Connect(redisConnection);
 });
 builder.Services.AddSingleton<IRedisService, RedisService>();
 

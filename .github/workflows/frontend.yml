@@ -4,27 +4,21 @@ on:
   push:
     branches:
       - develop
-      - staging
       - main
-    # Trigger on frontend code, workflow files, Dockerfiles, infrastructure, or deployment trigger
-    # Exclude documentation-only changes by not including them in paths
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend.yml'
       - 'docker/Dockerfile.frontend'
-      - 'infrastructure/**'
       - '.deployment-trigger'
-  workflow_dispatch:  # Allow manual triggering
+  workflow_dispatch:
   pull_request:
     branches:
       - develop
-      - staging
       - main
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend.yml'
       - 'docker/Dockerfile.frontend'
-      - 'infrastructure/**'
 
 env:
   NODE_VERSION: '20.x'
@@ -34,7 +28,7 @@ jobs:
   build-and-test:
     name: Build and Test
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -43,9 +37,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          # Disable cache to avoid path resolution issues
-          # cache: 'npm'
-          # cache-dependency-path: ${{ env.PROJECT_PATH }}/package-lock.json
 
       - name: Install dependencies
         working-directory: ${{ env.PROJECT_PATH }}
@@ -59,7 +50,8 @@ jobs:
         working-directory: ${{ env.PROJECT_PATH }}
         run: npm run build
         env:
-          VITE_API_URL: ${{ secrets.DEV_API_URL || 'http://localhost:5000/api' }}
+          # Use QA URL for build validation; Render injects the real URL per environment at deploy time
+          VITE_API_URL: ${{ secrets.QA_API_URL || 'http://localhost:5000/api' }}
 
       - name: Check build artifacts
         run: |
@@ -67,196 +59,44 @@ jobs:
             echo "Build failed - dist folder not found"
             exit 1
           fi
-          echo "Build successful - dist folder exists"
+          echo "✅ Build successful - dist folder exists"
 
-  build-docker-image:
-    name: Build Docker Image
+  deploy-qa:
+    name: Deploy to QA
     runs-on: ubuntu-latest
     needs: build-and-test
-    if: github.event_name == 'push'
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./docker/Dockerfile.frontend
-          push: false
-          tags: vector-frontend:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  deploy-dev:
-    name: Deploy to Dev
-    runs-on: ubuntu-latest
-    needs: [build-and-test, build-docker-image]
     if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
     environment:
-      name: dev
-      url: https://dev.vector.com  # Update with actual dev URL
-    
+      name: qa
+      url: https://vector-frontend-qa.onrender.com
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Get ECR repository URL
-        id: ecr-repo
+      - name: Trigger Render deploy (QA frontend)
         run: |
-          REPO_URL=$(aws ecr describe-repositories --repository-names vector-frontend --region us-east-1 --query 'repositories[0].repositoryUri' --output text 2>/dev/null || echo "")
-          if [ -z "$REPO_URL" ]; then
-            echo "ECR repository not found. Please run 'terraform apply' in infrastructure/terraform to create it."
-            exit 1
-          fi
-          echo "repository_url=$REPO_URL" >> $GITHUB_OUTPUT
-          echo "registry=${REPO_URL%/*}" >> $GITHUB_OUTPUT
-
-      - name: Build and push Docker image to ECR
-        env:
-          ECR_REGISTRY: ${{ steps.ecr-repo.outputs.registry }}
-          ECR_REPOSITORY: vector-frontend
-          IMAGE_TAG: ${{ github.sha }}
-          VITE_API_URL: ${{ secrets.DEV_API_URL || 'http://dev-vector-alb-1842167636.us-east-1.elb.amazonaws.com/api' }}
-        run: |
-          # Build and push image with API URL
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
-            --build-arg VITE_API_URL="$VITE_API_URL" \
-            -f docker/Dockerfile.frontend .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          echo "Image pushed: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-
-      - name: Update ECS service
-        run: |
-          CLUSTER_NAME="dev-vector-cluster"
-          SERVICE_NAME="dev-vector-frontend-service"
-          
-          # Force new deployment to pick up new image
-          aws ecs update-service \
-            --cluster $CLUSTER_NAME \
-            --service $SERVICE_NAME \
-            --force-new-deployment \
-            --region us-east-1
-          echo "Deployment initiated. Service will update to new image."
-          
-          # Wait for service to stabilize
-          echo "Waiting for service to stabilize..."
-          aws ecs wait services-stable \
-            --cluster $CLUSTER_NAME \
-            --services $SERVICE_NAME \
-            --region us-east-1 || echo "Service stabilization check completed (may still be deploying)"
-
-  deploy-staging:
-    name: Deploy to Staging
-    runs-on: ubuntu-latest
-    needs: [build-and-test, build-docker-image]
-    if: false  # DISABLED: Staging environment is disabled
-    environment:
-      name: staging
-      url: https://staging.vector.com  # Update with actual staging URL
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Get ECR repository URL
-        id: ecr-repo
-        run: |
-          REPO_URL=$(aws ecr describe-repositories --repository-names vector-frontend --region us-east-1 --query 'repositories[0].repositoryUri' --output text 2>/dev/null || echo "")
-          if [ -z "$REPO_URL" ]; then
-            echo "ECR repository not found. Please run 'terraform apply' in infrastructure/terraform to create it."
-            exit 1
-          fi
-          echo "repository_url=$REPO_URL" >> $GITHUB_OUTPUT
-          echo "registry=${REPO_URL%/*}" >> $GITHUB_OUTPUT
-
-      - name: Build and push Docker image to ECR
-        env:
-          ECR_REGISTRY: ${{ steps.ecr-repo.outputs.registry }}
-          ECR_REPOSITORY: vector-frontend
-          IMAGE_TAG: ${{ github.sha }}
-          VITE_API_URL: ${{ secrets.STAGING_API_URL || 'http://staging-vector-alb-2020798622.us-east-1.elb.amazonaws.com/api' }}
-        run: |
-          # Build and push image with API URL
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
-            --build-arg VITE_API_URL="$VITE_API_URL" \
-            -f docker/Dockerfile.frontend .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          echo "Image pushed: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-
-      - name: Update ECS service
-        run: |
-          CLUSTER_NAME="staging-vector-cluster"
-          SERVICE_NAME="staging-vector-frontend-service"
-          
-          # Force new deployment to pick up new image
-          aws ecs update-service \
-            --cluster $CLUSTER_NAME \
-            --service $SERVICE_NAME \
-            --force-new-deployment \
-            --region us-east-1
-          echo "Deployment initiated. Service will update to new image."
-          
-          # Wait for service to stabilize
-          echo "Waiting for service to stabilize..."
-          aws ecs wait services-stable \
-            --cluster $CLUSTER_NAME \
-            --services $SERVICE_NAME \
-            --region us-east-1 || echo "Service stabilization check completed (may still be deploying)"
+          echo "Triggering QA frontend deployment on Render..."
+          curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND_QA }}" \
+            --fail \
+            --silent \
+            --show-error
+          echo "✅ QA frontend deploy triggered on Render."
+          echo "Monitor progress at: https://dashboard.render.com"
 
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
-    needs: [build-and-test, build-docker-image]
+    needs: build-and-test
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment:
       name: production
-      url: https://vector.com  # Update with actual production URL
-    
+      url: https://vector-frontend-prod.onrender.com
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-
-      - name: Deploy to S3/CloudFront (placeholder)
+      - name: Trigger Render deploy (Production frontend)
         run: |
-          echo "Deployment to AWS Production environment"
-          echo "⚠️  Production deployments should have additional safety checks"
-          echo "This step will be configured when AWS deployment is set up"
-
+          echo "Triggering Production frontend deployment on Render..."
+          curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND_PROD }}" \
+            --fail \
+            --silent \
+            --show-error
+          echo "✅ Production frontend deploy triggered on Render."
+          echo "Monitor progress at: https://dashboard.render.com"

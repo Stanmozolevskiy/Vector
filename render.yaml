@@ -191,7 +191,6 @@ services:
     buildCommand: cd frontend && npm ci && npm run build
     staticPublishPath: frontend/dist
     branch: develop
-    region: oregon
     headers:
       - path: /*
         name: X-Frame-Options
@@ -215,7 +214,6 @@ services:
     buildCommand: cd frontend && npm ci && npm run build
     staticPublishPath: frontend/dist
     branch: main
-    region: oregon
     headers:
       - path: /*
         name: X-Frame-Options

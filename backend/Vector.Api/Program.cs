@@ -54,8 +54,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
         var userParts = uri.UserInfo.Split(':', 2);
         var user = Uri.UnescapeDataString(userParts[0]);
         var password = userParts.Length > 1 ? Uri.UnescapeDataString(userParts[1]) : "";
-        var database = uri.AbsolutePath.TrimStart('/');
-        connectionString = $"Host={uri.Host};Port={uri.Port};Database={database};Username={user};Password={password}";
+        var database = uri.AbsolutePath.TrimStart('/').Split('?')[0]; // strip query string if present
+        var port = uri.Port > 0 ? uri.Port : 5432; // Uri.Port is -1 when not specified
+        connectionString = $"Host={uri.Host};Port={port};Database={database};Username={user};Password={password}";
     }
 
     options.UseNpgsql(connectionString, npgsqlOptions =>

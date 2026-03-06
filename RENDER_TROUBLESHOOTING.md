@@ -78,6 +78,25 @@ Migrations and seeding run automatically when the backend starts. If the DB is e
 | CORS error in browser | Frontend origin not allowed | Backend CORS includes Render frontend URLs; redeploy backend to pick up changes |
 | Network error / timeout | Backend not running or wrong URL | Verify backend URL in frontend (VITE_API_URL) and that the service is deployed |
 | 500 on login | Backend exception (DB, Redis, etc.) | Check backend logs for the exact error |
+| "Invalid port: -1" on login | PostgreSQL connection string missing port | Fixed in code — redeploy backend. Render URLs without explicit port now default to 5432. |
+
+---
+
+## Programmatic Access (Render API)
+
+To fetch logs or manage services from scripts:
+
+1. **Create API key:** [Render Dashboard](https://dashboard.render.com) → Account Settings → API Keys → Create API Key
+2. **Get Owner ID:** Dashboard URL or `curl -H "Authorization: Bearer $RENDER_API_KEY" https://api.render.com/v1/owners`
+3. **Get Service ID:** Service page URL (e.g. `srv-xxx`) or `GET /v1/services`
+4. **Run script:**
+   ```powershell
+   $env:RENDER_API_KEY = "rnd_xxx"
+   $env:RENDER_OWNER_ID = "your-owner-id"
+   .\scripts\render-fetch-logs.ps1 -ServiceId "srv-xxx" -Limit 100
+   ```
+
+**API docs:** https://api-docs.render.com
 
 ---
 

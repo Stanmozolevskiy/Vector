@@ -1,0 +1,18 @@
+# Global owners
+* @Stanmozolevskiy
+
+# Backend
+/backend/ @Stanmozolevskiy
+
+# Frontend
+/frontend/ @Stanmozolevskiy
+
+# Infrastructure
+/infrastructure/ @Stanmozolevskiy
+
+# Docker
+/docker/ @Stanmozolevskiy
+
+# Documentation
+*.md @Stanmozolevskiy
+

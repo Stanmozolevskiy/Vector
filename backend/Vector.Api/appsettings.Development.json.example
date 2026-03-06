@@ -1,0 +1,22 @@
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Database=vector_db;Username=postgres;Password=postgres",
+    "Redis": "localhost:6379"
+  },
+  "SendGrid": {
+    "ApiKey": "SG.your_sendgrid_api_key_here",
+    "FromEmail": "noreply@yourdomain.com",
+    "FromName": "Vector"
+  },
+  "Frontend": {
+    "Url": "http://localhost:3000"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning",
+      "Microsoft.EntityFrameworkCore.Database.Command": "Information"
+    }
+  }
+}
+

@@ -1,0 +1,92 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: vector-postgres
+    environment:
+      POSTGRES_DB: vector_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - vector-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: vector-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - vector-network
+
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    container_name: vector-backend
+    ports:
+      - "5000:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - Development__AutoVerifyEmails=true
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=vector_db;Username=postgres;Password=postgres
+      - ConnectionStrings__Redis=redis:6379
+      - Jwt__Secret=${JWT_SECRET:-your-super-secret-key-change-in-production}
+      - Jwt__Issuer=${JWT_ISSUER:-Vector}
+      - Jwt__Audience=${JWT_AUDIENCE:-Vector}
+      - Frontend__Url=http://localhost:3000
+      - SendGrid__ApiKey=${SENDGRID_API_KEY}
+      - SendGrid__FromEmail=${SENDGRID_FROM_EMAIL:-stanmozolevskiy90@gmail.com}
+      - SendGrid__FromName=${SENDGRID_FROM_NAME:-Vector}
+      - AWS__Region=${AWS_REGION:-us-east-1}
+      - AWS__S3__BucketName=${AWS_S3_BUCKET_NAME:-dev-vector-user-uploads}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - Judge0__BaseUrl=${JUDGE0_BASE_URL:-https://ce.judge0.com}
+      - Judge0__ApiKey=${JUDGE0_API_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - vector-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.frontend
+    container_name: vector-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - vector-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  vector-network:
+    driver: bridge
+

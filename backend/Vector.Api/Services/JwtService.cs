@@ -90,6 +90,40 @@ public class JwtService : IJwtService
         }
     }
 
+    public ClaimsPrincipal? ValidateRefreshToken(string token)
+    {
+        try
+        {
+            var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Secret"] ?? throw new InvalidOperationException("JWT Secret is not configured"));
+            var validationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ValidateIssuer = true,
+                ValidIssuer = _configuration["Jwt:Issuer"],
+                ValidateAudience = true,
+                ValidAudience = _configuration["Jwt:Audience"],
+                ValidateLifetime = true, // Check if refresh token is expired
+                ClockSkew = TimeSpan.Zero
+            };
+
+            var principal = _tokenHandler.ValidateToken(token, validationParameters, out _);
+            
+            // Verify this is actually a refresh token (not an access token)
+            var tokenType = principal.FindFirst("type")?.Value;
+            if (tokenType != "refresh")
+            {
+                return null; // Not a refresh token
+            }
+
+            return principal;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     public Guid? GetUserIdFromToken(string token)
     {
         var principal = ValidateToken(token);

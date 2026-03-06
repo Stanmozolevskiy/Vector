@@ -1,0 +1,102 @@
+name: Frontend CI/CD
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend.yml'
+      - 'docker/Dockerfile.frontend'
+      - '.deployment-trigger'
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - develop
+      - main
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend.yml'
+      - 'docker/Dockerfile.frontend'
+
+env:
+  NODE_VERSION: '20.x'
+  PROJECT_PATH: 'frontend'
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        working-directory: ${{ env.PROJECT_PATH }}
+        run: npm ci
+
+      - name: Run linter
+        working-directory: ${{ env.PROJECT_PATH }}
+        run: npm run lint
+
+      - name: Build project
+        working-directory: ${{ env.PROJECT_PATH }}
+        run: npm run build
+        env:
+          # Use QA URL for build validation; Render injects the real URL per environment at deploy time
+          VITE_API_URL: ${{ secrets.QA_API_URL || 'http://localhost:5000/api' }}
+
+      - name: Check build artifacts
+        run: |
+          if [ ! -d "${{ env.PROJECT_PATH }}/dist" ]; then
+            echo "Build failed - dist folder not found"
+            exit 1
+          fi
+          echo "✅ Build successful - dist folder exists"
+
+  deploy-qa:
+    name: Deploy to QA
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    environment:
+      name: qa
+      url: https://vector-frontend-qa.onrender.com
+
+    steps:
+      - name: Trigger Render deploy (QA frontend)
+        run: |
+          echo "Triggering QA frontend deployment on Render..."
+          curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND_QA }}" \
+            --fail \
+            --silent \
+            --show-error
+          echo "✅ QA frontend deploy triggered on Render."
+          echo "Monitor progress at: https://dashboard.render.com"
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+      url: https://vector-frontend-prod.onrender.com
+
+    steps:
+      - name: Trigger Render deploy (Production frontend)
+        run: |
+          echo "Triggering Production frontend deployment on Render..."
+          curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND_PROD }}" \
+            --fail \
+            --silent \
+            --show-error
+          echo "✅ Production frontend deploy triggered on Render."
+          echo "Monitor progress at: https://dashboard.render.com"

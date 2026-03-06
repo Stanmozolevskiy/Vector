@@ -1,0 +1,196 @@
+# Cursor Rules for Vector Project
+
+## Build Failure Auto-Fix
+
+When a CI/CD build fails, the `.github/workflows/auto-fix-issues.yml` workflow will:
+1. Create a GitHub issue with error details
+2. Create a `.cursor-fix-tasks.md` file in the repository root
+
+**If you see `.cursor-fix-tasks.md` in the repository:**
+- Review the file for build failure details
+- Fix the issues mentioned
+- Delete the file after fixing
+- Push changes to trigger a new build
+
+## React Best Practices
+
+### Async/Await Rules - Non-Blocking Calls
+- **DO NOT** use `await` for non-critical API calls that could block page rendering
+- **DO** use `.then()/.catch()` for background operations that don't need to block the UI
+- **DO** use `await` only for critical data that the page cannot render without
+- **DO** make solved status checks, analytics, and similar non-critical calls non-blocking
+
+### Example - Correct Pattern:
+```typescript
+// ✅ Good: Non-blocking background check
+if (user?.id) {
+  solutionService.getSolutionsForQuestion(id)
+    .then((solutions) => {
+      setIsSolved(solutions.some(sol => sol.status === 'Accepted'));
+    })
+    .catch((error) => {
+      // Silently fail - don't block page
+      setIsSolved(false);
+    });
+}
+
+// ✅ Good: Critical data that must load before rendering
+const [questionData, testCasesData] = await Promise.all([
+  questionService.getQuestionById(id),
+  questionService.getTestCases(id, false),
+]);
+```
+
+### Example - Incorrect Pattern:
+```typescript
+// ❌ Bad: Blocking page load for non-critical data
+const userSolutions = await solutionService.getSolutionsForQuestion(id);
+setIsSolved(userSolutions.some(sol => sol.status === 'Accepted'));
+// Page hangs until this completes!
+```
+
+### useEffect Rules
+- **DO NOT** call setState synchronously in useEffect body
+- **DO** use useState initializer function for initial state based on props/params
+- **DO** use setTimeout/requestAnimationFrame if state update is needed in effect
+- **DO** use cleanup functions for timers/subscriptions
+
+### Example - Correct Pattern:
+```typescript
+// ✅ Good: Initialize state based on prop/param
+const [error, setError] = useState(() => 
+  !token ? 'Error message' : ''
+);
+
+// ✅ Good: Use existing hook state
+const { isLoading } = useAuth();
+if (isLoading) return <Loading />;
+
+// ✅ Good: Async state update in effect
+useEffect(() => {
+  const timer = setTimeout(() => {
+    setState(value);
+  }, 0);
+  return () => clearTimeout(timer);
+}, [dependency]);
+```
+
+### Example - Incorrect Pattern:
+```typescript
+// ❌ Bad: Synchronous setState in effect
+useEffect(() => {
+  setError('Error message'); // Triggers cascading renders
+}, [token]);
+```
+
+## Deployment Rules
+
+### AWS Deployment Requirements
+
+**CRITICAL: When pushing to `develop`, `staging`, or `main` branches, ALL components MUST be deployed together:**
+
+1. **Database Changes (PostgreSQL):**
+   - Create EF Core migrations for any model changes
+   - Migrations run automatically on container startup via `DbInitializer.cs`
+   - **ALWAYS verify migration files are committed to git before pushing**
+   - List pending migrations: `dotnet ef migrations list`
+   - Review migration: `dotnet ef migrations script`
+
+2. **Backend Changes:**
+   - All controller, service, and model changes
+   - Configuration updates (appsettings, environment variables)
+   - New dependencies in `.csproj` file
+   - **Unit tests MUST pass**: `dotnet test`
+
+3. **Frontend Changes:**
+   - UI/UX changes
+   - API integration changes
+   - New npm dependencies in `package.json`
+   - **Rebuild without cache for Docker**: `docker-compose build --no-cache frontend`
+
+4. **Redis Changes:**
+   - Any cache invalidation logic
+   - Session management updates
+   - Rate limiting configuration
+
+**IMPORTANT:** Never push backend/frontend changes without corresponding database migrations if schema changed!
+
+### Deployment Checklist
+
+**BEFORE pushing to `develop`, `staging`, or `main`:**
+
+**Database (PostgreSQL):**
+- [ ] Database migrations created (if DB schema changed): `dotnet ef migrations add <Name>`
+- [ ] All migration files committed to git
+- [ ] Review migration SQL: `dotnet ef migrations script`
+- [ ] Test migrations locally: Check Docker PostgreSQL
+
+**Backend:**
+- [ ] All backend code changes committed
+- [ ] Unit tests pass: `dotnet test` (ALL tests must pass)
+- [ ] No compile errors or warnings
+
+**Frontend:**
+- [ ] All frontend code changes committed
+- [ ] Linting passes: `npm run lint`
+- [ ] Frontend rebuilt without cache for Docker: `docker-compose build --no-cache frontend`
+
+**General:**
+- [ ] Local Docker build succeeds for both frontend and backend
+- [ ] No secrets in code or documentation
+- [ ] Environment variables configured in GitHub Secrets
+- [ ] Redis configuration updated if needed
+
+**PUSH ALL CHANGES TOGETHER:**
+```bash
+git add -A
+git commit -m "Deploy: backend, frontend, and database changes"
+git push origin develop  # This triggers automatic deployment
+```
+
+### Verification After Deployment
+
+After CI/CD completes:
+1. Check that backend deployed: `curl https://dev-api-url/health`
+2. Check that frontend deployed: Visit frontend URL
+3. Verify database migration ran: Check ECS logs
+4. Test all changed functionality end-to-end
+
+## Code Quality
+
+- All ESLint errors must be fixed before committing
+- Run `npm run lint` locally before pushing
+- Unit tests must pass before deployment
+- No secrets in code or documentation
+
+## Docker Deployment
+
+- **ALWAYS rebuild frontend without cache** to avoid serving stale assets
+- **REQUIRED for every frontend deployment to Docker**
+- Command: `docker-compose build --no-cache frontend`
+- After rebuild, restart container: `docker-compose up -d frontend`
+- Verify container is running: `docker ps --filter "name=vector-frontend"`
+- **DO NOT use regular `docker-compose build frontend`** - it caches old assets
+
+## Database Migrations
+
+### Creating Migrations
+```powershell
+cd backend/Vector.Api
+dotnet ef migrations add MigrationName --output-dir Data/Migrations
+```
+
+### Verifying Migrations
+```powershell
+# List pending migrations
+dotnet ef migrations list
+
+# Check migration SQL
+dotnet ef migrations script
+```
+
+### Important Notes
+- Migrations run automatically on container startup (`Program.cs`)
+- Always test migrations locally first
+- Never modify existing migration files
+- Use descriptive migration names

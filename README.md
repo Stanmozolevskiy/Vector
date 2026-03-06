@@ -96,6 +96,19 @@ Technology stack comparison:
 4. Read **DATABASE_SCHEMA.md** for database design details
 5. Read **IMPLEMENTATION_PLAN.md** for development roadmap
 
+## 🎯 Recent Updates
+
+### Peer Interview Backend (In Progress)
+- ✅ **Phase 1 Complete**: Database models and migrations created
+  - 5 new models: ScheduledInterviewSession, InterviewMatchingRequest, LiveInterviewSession, LiveInterviewParticipant, InterviewFeedback
+  - EF Core migration: `20251228163030_AddPeerInterviewTables`
+- ✅ **Phase 2 Complete**: DTOs and service interface created
+  - 7 DTO classes for all interview operations
+  - IPeerInterviewService interface defined
+- 📋 **Next**: Service implementation (Phase 3)
+
+See [PEER_INTERVIEW_TODO.md](./PEER_INTERVIEW_TODO.md) for full progress.
+
 ## 🏗️ Architecture Highlights
 
 ### Technology Stack (MVP)

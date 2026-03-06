@@ -1,27 +1,105 @@
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using SendGrid;
 using SendGrid.Helpers.Mail;
+using System;
 
 namespace Vector.Api.Services;
 
 public class EmailService : IEmailService
 {
     private readonly IConfiguration _configuration;
-    private readonly SendGridClient _client;
+    private readonly ILogger<EmailService> _logger;
+    private readonly SendGridClient? _client;
+    private readonly bool _isEnabled;
 
-    public EmailService(IConfiguration configuration)
+    public EmailService(IConfiguration configuration, ILogger<EmailService> logger)
     {
         _configuration = configuration;
-        var apiKey = _configuration["SendGrid:ApiKey"] ?? throw new InvalidOperationException("SendGrid API Key is not configured");
-        _client = new SendGridClient(apiKey);
+        _logger = logger;
+        
+        // Try multiple ways to read the API key (environment variables use __ instead of :)
+        var apiKey = _configuration["SendGrid:ApiKey"] 
+                  ?? Environment.GetEnvironmentVariable("SendGrid__ApiKey")
+                  ?? _configuration["SendGrid__ApiKey"];
+        
+        // Also read FromEmail and FromName with fallbacks
+        var fromEmail = _configuration["SendGrid:FromEmail"] 
+                     ?? Environment.GetEnvironmentVariable("SendGrid__FromEmail")
+                     ?? _configuration["SendGrid__FromEmail"]
+                     ?? "noreply@vector.com";
+        
+        var fromName = _configuration["SendGrid:FromName"] 
+                    ?? Environment.GetEnvironmentVariable("SendGrid__FromName")
+                    ?? _configuration["SendGrid__FromName"]
+                    ?? "Vector";
+        
+        // Debug logging to see what we're getting - use Warning level so it always shows
+        _logger.LogWarning("=== SendGrid Configuration Debug ===");
+        _logger.LogWarning("ApiKey length: {Length}", apiKey?.Length ?? 0);
+        _logger.LogWarning("ApiKey IsNullOrEmpty: {IsEmpty}", string.IsNullOrEmpty(apiKey));
+        if (!string.IsNullOrEmpty(apiKey) && apiKey.Length > 10)
+        {
+            _logger.LogWarning("ApiKey first 10 chars: '{Prefix}'", apiKey.Substring(0, 10));
+        }
+        else
+        {
+            _logger.LogWarning("ApiKey value: '{ApiKey}'", apiKey ?? "(null)");
+        }
+        _logger.LogWarning("FromEmail: {FromEmail}", fromEmail);
+        _logger.LogWarning("FromName: {FromName}", fromName);
+        
+        if (string.IsNullOrEmpty(apiKey) || apiKey == "your_sendgrid_api_key" || apiKey == "your_sendgrid_api_key_here")
+        {
+            _isEnabled = false;
+            _logger.LogWarning("SendGrid API Key is not configured. Email sending is disabled. Emails will be logged to console instead.");
+            _logger.LogWarning("ApiKey value: '{ApiKey}'", apiKey ?? "(null)");
+        }
+        else
+        {
+            _isEnabled = true;
+            try
+            {
+                _client = new SendGridClient(apiKey);
+                _logger.LogWarning("SendGrid email service initialized successfully!");
+                _logger.LogWarning("FromEmail: {FromEmail}, FromName: {FromName}", fromEmail, fromName);
+            }
+            catch (Exception ex)
+            {
+                _isEnabled = false;
+                _logger.LogError(ex, "Failed to initialize SendGrid client: {Message}", ex.Message);
+            }
+        }
+        _logger.LogWarning("=== End SendGrid Configuration Debug ===");
     }
 
     public async Task SendVerificationEmailAsync(string email, string token)
     {
         var frontendUrl = _configuration["Frontend:Url"] ?? "http://localhost:3000";
         var verificationUrl = $"{frontendUrl}/verify-email?token={token}";
-        var fromEmail = _configuration["SendGrid:FromEmail"] ?? "noreply@vector.com";
-        var fromName = _configuration["SendGrid:FromName"] ?? "Vector";
+        
+        // Read FromEmail and FromName with fallbacks (same logic as constructor)
+        var fromEmail = _configuration["SendGrid:FromEmail"] 
+                     ?? Environment.GetEnvironmentVariable("SendGrid__FromEmail")
+                     ?? _configuration["SendGrid__FromEmail"]
+                     ?? "noreply@vector.com";
+        
+        var fromName = _configuration["SendGrid:FromName"] 
+                    ?? Environment.GetEnvironmentVariable("SendGrid__FromName")
+                    ?? _configuration["SendGrid__FromName"]
+                    ?? "Vector";
+
+        if (!_isEnabled || _client == null)
+        {
+            // Log email to console in development
+            _logger.LogWarning("=== EMAIL VERIFICATION (SendGrid not configured) ===");
+            _logger.LogWarning("To: {Email}", email);
+            _logger.LogWarning("Subject: Verify your email address");
+            _logger.LogWarning("Verification URL: {Url}", verificationUrl);
+            _logger.LogWarning("Token: {Token}", token);
+            _logger.LogWarning("===================================================");
+            return;
+        }
 
         var msg = new SendGridMessage
         {
@@ -36,15 +114,60 @@ public class EmailService : IEmailService
         };
         msg.AddTo(new EmailAddress(email));
 
-        await _client.SendEmailAsync(msg);
+        try
+        {
+            _logger.LogWarning("Sending email via SendGrid to {Email}", email);
+            _logger.LogWarning("From: {FromEmail} ({FromName})", fromEmail, fromName);
+            _logger.LogWarning("Subject: Verify your email address");
+            
+            var response = await _client.SendEmailAsync(msg);
+            
+            _logger.LogWarning("SendGrid response status code: {StatusCode}", response.StatusCode);
+            _logger.LogWarning("SendGrid response body: {Body}", await response.Body.ReadAsStringAsync());
+            
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogInformation("Verification email sent successfully to {Email}", email);
+            }
+            else
+            {
+                _logger.LogError("SendGrid returned error status {StatusCode} when sending to {Email}", response.StatusCode, email);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send verification email to {Email}. Error: {Message}", email, ex.Message);
+            _logger.LogError("Exception type: {ExceptionType}", ex.GetType().Name);
+            _logger.LogError("Stack trace: {StackTrace}", ex.StackTrace);
+            // Don't throw - email sending failure shouldn't break registration
+        }
     }
 
     public async Task SendPasswordResetEmailAsync(string email, string token)
     {
         var frontendUrl = _configuration["Frontend:Url"] ?? "http://localhost:3000";
         var resetUrl = $"{frontendUrl}/reset-password?token={token}";
-        var fromEmail = _configuration["SendGrid:FromEmail"] ?? "noreply@vector.com";
-        var fromName = _configuration["SendGrid:FromName"] ?? "Vector";
+        
+        var fromEmail = _configuration["SendGrid:FromEmail"] 
+                     ?? Environment.GetEnvironmentVariable("SendGrid__FromEmail")
+                     ?? _configuration["SendGrid__FromEmail"]
+                     ?? "noreply@vector.com";
+        
+        var fromName = _configuration["SendGrid:FromName"] 
+                    ?? Environment.GetEnvironmentVariable("SendGrid__FromName")
+                    ?? _configuration["SendGrid__FromName"]
+                    ?? "Vector";
+
+        if (!_isEnabled || _client == null)
+        {
+            _logger.LogWarning("=== PASSWORD RESET EMAIL (SendGrid not configured) ===");
+            _logger.LogWarning("To: {Email}", email);
+            _logger.LogWarning("Subject: Reset your password");
+            _logger.LogWarning("Reset URL: {Url}", resetUrl);
+            _logger.LogWarning("Token: {Token}", token);
+            _logger.LogWarning("=====================================================");
+            return;
+        }
 
         var msg = new SendGridMessage
         {
@@ -60,13 +183,38 @@ public class EmailService : IEmailService
         };
         msg.AddTo(new EmailAddress(email));
 
-        await _client.SendEmailAsync(msg);
+        try
+        {
+            await _client.SendEmailAsync(msg);
+            _logger.LogInformation("Password reset email sent to {Email}", email);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send password reset email to {Email}", email);
+        }
     }
 
     public async Task SendWelcomeEmailAsync(string email, string name)
     {
-        var fromEmail = _configuration["SendGrid:FromEmail"] ?? "noreply@vector.com";
-        var fromName = _configuration["SendGrid:FromName"] ?? "Vector";
+        if (!_isEnabled || _client == null)
+        {
+            _logger.LogWarning("=== WELCOME EMAIL (SendGrid not configured) ===");
+            _logger.LogWarning("To: {Email}", email);
+            _logger.LogWarning("Subject: Welcome to Vector!");
+            _logger.LogWarning("Name: {Name}", name);
+            _logger.LogWarning("==============================================");
+            return;
+        }
+
+        var fromEmail = _configuration["SendGrid:FromEmail"] 
+                     ?? Environment.GetEnvironmentVariable("SendGrid__FromEmail")
+                     ?? _configuration["SendGrid__FromEmail"]
+                     ?? "noreply@vector.com";
+        
+        var fromName = _configuration["SendGrid:FromName"] 
+                    ?? Environment.GetEnvironmentVariable("SendGrid__FromName")
+                    ?? _configuration["SendGrid__FromName"]
+                    ?? "Vector";
 
         var msg = new SendGridMessage
         {
@@ -80,13 +228,38 @@ public class EmailService : IEmailService
         };
         msg.AddTo(new EmailAddress(email));
 
-        await _client.SendEmailAsync(msg);
+        try
+        {
+            await _client.SendEmailAsync(msg);
+            _logger.LogInformation("Welcome email sent to {Email}", email);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send welcome email to {Email}", email);
+        }
     }
 
     public async Task SendSubscriptionConfirmationEmailAsync(string email, string planName)
     {
-        var fromEmail = _configuration["SendGrid:FromEmail"] ?? "noreply@vector.com";
-        var fromName = _configuration["SendGrid:FromName"] ?? "Vector";
+        if (!_isEnabled || _client == null)
+        {
+            _logger.LogWarning("=== SUBSCRIPTION CONFIRMATION EMAIL (SendGrid not configured) ===");
+            _logger.LogWarning("To: {Email}", email);
+            _logger.LogWarning("Subject: Subscription Confirmed");
+            _logger.LogWarning("Plan: {PlanName}", planName);
+            _logger.LogWarning("================================================================");
+            return;
+        }
+
+        var fromEmail = _configuration["SendGrid:FromEmail"] 
+                     ?? Environment.GetEnvironmentVariable("SendGrid__FromEmail")
+                     ?? _configuration["SendGrid__FromEmail"]
+                     ?? "noreply@vector.com";
+        
+        var fromName = _configuration["SendGrid:FromName"] 
+                    ?? Environment.GetEnvironmentVariable("SendGrid__FromName")
+                    ?? _configuration["SendGrid__FromName"]
+                    ?? "Vector";
 
         var msg = new SendGridMessage
         {
@@ -100,7 +273,63 @@ public class EmailService : IEmailService
         };
         msg.AddTo(new EmailAddress(email));
 
-        await _client.SendEmailAsync(msg);
+        try
+        {
+            await _client.SendEmailAsync(msg);
+            _logger.LogInformation("Subscription confirmation email sent to {Email}", email);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send subscription confirmation email to {Email}", email);
+        }
+    }
+
+    public async Task SendEmailAsync(string email, string subject, string body)
+    {
+        if (!_isEnabled || _client == null)
+        {
+            _logger.LogWarning("=== GENERIC EMAIL (SendGrid not configured) ===");
+            _logger.LogWarning("To: {Email}", email);
+            _logger.LogWarning("Subject: {Subject}", subject);
+            _logger.LogWarning("Body: {Body}", body);
+            _logger.LogWarning("==============================================");
+            return;
+        }
+
+        var fromEmail = _configuration["SendGrid:FromEmail"] 
+                     ?? Environment.GetEnvironmentVariable("SendGrid__FromEmail")
+                     ?? _configuration["SendGrid__FromEmail"]
+                     ?? "noreply@vector.com";
+        
+        var fromName = _configuration["SendGrid:FromName"] 
+                    ?? Environment.GetEnvironmentVariable("SendGrid__FromName")
+                    ?? _configuration["SendGrid__FromName"]
+                    ?? "Vector";
+
+        // If caller passes HTML, preserve it. Also include a usable plain-text fallback.
+        var isLikelyHtml = body.Contains('<') && body.Contains('>');
+        var plainText = isLikelyHtml
+            ? System.Text.RegularExpressions.Regex.Replace(body, "<.*?>", string.Empty)
+            : body;
+
+        var msg = new SendGridMessage
+        {
+            From = new EmailAddress(fromEmail, fromName),
+            Subject = subject,
+            PlainTextContent = plainText,
+            HtmlContent = isLikelyHtml ? body : $"<p>{System.Net.WebUtility.HtmlEncode(body).Replace("\n", "<br>")}</p>"
+        };
+        msg.AddTo(new EmailAddress(email));
+
+        try
+        {
+            await _client.SendEmailAsync(msg);
+            _logger.LogInformation("Email sent to {Email} with subject: {Subject}", email, subject);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send email to {Email}", email);
+        }
     }
 }
 

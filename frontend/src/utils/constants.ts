@@ -5,15 +5,25 @@ export const ROUTES = {
   LOGIN: '/login',
   REGISTER: '/register',
   DASHBOARD: '/dashboard',
-  PROFILE: '/profile',
-  VERIFY_EMAIL: '/verify-email',
   FORGOT_PASSWORD: '/forgot-password',
+  VERIFY_EMAIL: '/verify-email',
   RESET_PASSWORD: '/reset-password',
-} as const;
-
-export const USER_ROLES = {
-  STUDENT: 'student',
-  COACH: 'coach',
-  ADMIN: 'admin',
-} as const;
-
+  RESEND_VERIFICATION: '/resend-verification',
+  PROFILE: '/profile',
+  COACH_APPLY: '/coach/apply',
+  ADMIN: '/admin',
+  SUBSCRIPTION_PLANS: '/subscription/plans',
+  QUESTIONS: '/questions',
+  ADD_QUESTION: '/questions/add',
+  EDIT_QUESTION: '/questions/edit',
+  PENDING_QUESTIONS: '/admin/pending-questions',
+  SOLUTION_HISTORY: '/solutions',
+  PROGRESS: '/progress',
+  FIND_PEER: '/peer-interviews/find',
+  PEER_INTERVIEWS: '/peer-interviews',
+  PEER_INTERVIEW_SESSION: '/peer-interviews/sessions/:id',
+  SYSTEM_DESIGN_INTERVIEW: '/system-design-interview/:sessionId',
+  WHITEBOARD: '/whiteboard',
+  LEADERBOARD: '/leaderboard',
+  HOW_TO_EARN: '/how-to-earn',
+};

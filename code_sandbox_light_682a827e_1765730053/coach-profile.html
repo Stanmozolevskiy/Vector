@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - Coach Dashboard - Vector</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/profile.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="index.html">
+                    <i class="fas fa-vector-square"></i>
+                    <span>Vector</span>
+                </a>
+            </div>
+            <div class="nav-menu">
+                <a href="coach-dashboard.html">Dashboard</a>
+                <a href="coach-course-create.html">My Courses</a>
+                <a href="coach-profile.html" class="active">My Profile</a>
+                <div class="user-menu">
+                    <button class="user-avatar" id="userMenuBtn">
+                        <img src="https://ui-avatars.com/api/?name=Coach&background=667eea&color=fff" alt="Coach">
+                    </button>
+                    <div class="dropdown-menu" id="userDropdown">
+                        <div class="dropdown-inner">
+                            <a href="coach-dashboard.html" class="dropdown-item">
+                                <i class="fas fa-tachometer-alt"></i> Dashboard
+                            </a>
+                            <a href="coach-profile.html" class="dropdown-item">
+                                <i class="fas fa-user"></i> My Profile
+                            </a>
+                            <a href="profile.html" class="dropdown-item">
+                                <i class="fas fa-cog"></i> Settings
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a href="login.html" class="dropdown-item">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Profile Content -->
+    <section class="profile-section">
+        <div class="container" style="max-width: 1000px;">
+            <div class="profile-header">
+                <h1><i class="fas fa-user-circle"></i> Coach Profile</h1>
+                <p>Manage your public coach profile visible to students</p>
+            </div>
+
+            <!-- Profile Form -->
+            <div class="profile-card">
+                <div class="profile-card-header">
+                    <h2>Profile Information</h2>
+                    <button class="btn btn-outline" id="toggleEditBtn" onclick="toggleEditMode()">
+                        <i class="fas fa-edit"></i> Edit Profile
+                    </button>
+                </div>
+
+                <form id="coachProfileForm">
+                    <!-- Basic Info -->
+                    <div class="form-section">
+                        <h3>Basic Information</h3>
+                        <div class="profile-avatar-section" style="display: flex; align-items: center; gap: 2rem; margin-bottom: 2rem;">
+                            <img src="https://ui-avatars.com/api/?name=Coach&background=667eea&color=fff&size=120" alt="Avatar" id="profileAvatar" style="width: 120px; height: 120px; border-radius: 50%; border: 4px solid #e5e7eb;">
+                            <div>
+                                <button type="button" class="btn btn-secondary btn-sm" id="changeAvatarBtn" disabled>
+                                    <i class="fas fa-camera"></i> Change Photo
+                                </button>
+                                <p style="font-size: 0.875rem; color: var(--text-light); margin-top: 0.5rem;">JPG, PNG or GIF. Max size 5MB.</p>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Full Name *</label>
+                                <input type="text" id="fullName" value="John Doe" disabled required>
+                            </div>
+                            <div class="form-group">
+                                <label>Professional Title *</label>
+                                <input type="text" id="title" value="Senior Software Engineer" disabled required>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Current Company *</label>
+                                <input type="text" id="company" value="Google" disabled required>
+                            </div>
+                            <div class="form-group">
+                                <label>Years of Experience *</label>
+                                <input type="number" id="experience" value="8" disabled required min="1">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Bio *</label>
+                            <textarea id="bio" rows="5" disabled required>With over 8 years of experience at Google, I specialize in helping engineers ace their technical interviews. I've conducted 200+ interviews and coached hundreds of candidates to land offers at top tech companies.</textarea>
+                            <small class="char-count">0 / 500 characters</small>
+                        </div>
+                    </div>
+
+                    <!-- Coaching Info -->
+                    <div class="form-section">
+                        <h3>Coaching Information</h3>
+                        
+                        <div class="form-group">
+                            <label>Specializations *</label>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; margin-top: 0.5rem;">
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox" name="specialization" value="algorithms" checked disabled>
+                                    <span>Algorithms & DS</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox" name="specialization" value="system-design" checked disabled>
+                                    <span>System Design</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox" name="specialization" value="frontend" disabled>
+                                    <span>Frontend</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox" name="specialization" value="backend" checked disabled>
+                                    <span>Backend</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox" name="specialization" value="mobile" disabled>
+                                    <span>Mobile</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="checkbox" name="specialization" value="behavioral" disabled>
+                                    <span>Behavioral</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Hourly Rate (USD) *</label>
+                                <input type="number" id="hourlyRate" value="150" disabled required min="50" max="500">
+                            </div>
+                            <div class="form-group">
+                                <label>Available Hours per Week *</label>
+                                <input type="number" id="availability" value="10" disabled required min="1" max="40">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Languages</label>
+                                <input type="text" id="languages" value="English, Spanish" disabled>
+                                <small>Comma separated</small>
+                            </div>
+                            <div class="form-group">
+                                <label>Timezone</label>
+                                <select id="timezone" disabled>
+                                    <option value="PST" selected>PST (UTC-8)</option>
+                                    <option value="EST">EST (UTC-5)</option>
+                                    <option value="CST">CST (UTC-6)</option>
+                                    <option value="MST">MST (UTC-7)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Social Links -->
+                    <div class="form-section">
+                        <h3>Professional Links</h3>
+                        <div class="form-group">
+                            <label>LinkedIn URL</label>
+                            <input type="url" id="linkedin" value="https://linkedin.com/in/johndoe" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label>GitHub URL</label>
+                            <input type="url" id="github" value="https://github.com/johndoe" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label>Personal Website</label>
+                            <input type="url" id="website" value="" disabled>
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="form-actions" id="formActions" style="display: none;">
+                        <button type="button" class="btn btn-secondary" onclick="cancelEdit()">
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Preview Card -->
+            <div class="profile-card">
+                <div class="profile-card-header">
+                    <h2>Profile Preview</h2>
+                    <span style="color: var(--text-light); font-size: 0.875rem;">How students see your profile</span>
+                </div>
+                <div style="padding: 1.5rem; background: #f9fafb; border-radius: 8px;">
+                    <p style="text-align: center; color: var(--text-light);">
+                        <i class="fas fa-eye" style="font-size: 2rem; margin-bottom: 0.5rem; display: block; opacity: 0.5;"></i>
+                        Preview will appear here
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMessage">Changes saved successfully</span>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <div class="footer-brand">
+                        <i class="fas fa-vector-square"></i>
+                        <span>Vector</span>
+                    </div>
+                    <p>Master your interview skills and land your dream job.</p>
+                </div>
+                <div class="footer-col">
+                    <h4>Product</h4>
+                    <ul>
+                        <li><a href="courses.html">Courses</a></li>
+                        <li><a href="questions.html">Questions</a></li>
+                        <li><a href="coaches.html">Coaches</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Company</h4>
+                    <ul>
+                        <li><a href="#">About</a></li>
+                        <li><a href="#">Careers</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Terms</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Vector. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+    <script>
+        let isEditMode = false;
+
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            const form = document.getElementById('coachProfileForm');
+            const inputs = form.querySelectorAll('input, textarea, select');
+            const toggleBtn = document.getElementById('toggleEditBtn');
+            const formActions = document.getElementById('formActions');
+            const changeAvatarBtn = document.getElementById('changeAvatarBtn');
+
+            if (isEditMode) {
+                // Enable edit mode
+                inputs.forEach(input => input.disabled = false);
+                changeAvatarBtn.disabled = false;
+                toggleBtn.innerHTML = '<i class="fas fa-times"></i> Cancel';
+                toggleBtn.classList.add('btn-secondary');
+                toggleBtn.classList.remove('btn-outline');
+                formActions.style.display = 'flex';
+            } else {
+                // Disable edit mode
+                inputs.forEach(input => input.disabled = true);
+                changeAvatarBtn.disabled = true;
+                toggleBtn.innerHTML = '<i class="fas fa-edit"></i> Edit Profile';
+                toggleBtn.classList.remove('btn-secondary');
+                toggleBtn.classList.add('btn-outline');
+                formActions.style.display = 'none';
+            }
+        }
+
+        function cancelEdit() {
+            toggleEditMode();
+            // Reset form values
+            document.getElementById('coachProfileForm').reset();
+        }
+
+        // Form submission
+        document.getElementById('coachProfileForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Validate specializations
+            const specs = document.querySelectorAll('input[name="specialization"]:checked');
+            if (specs.length === 0) {
+                window.vectorApp.showToast('Please select at least one specialization', 'error');
+                return;
+            }
+
+            // Show success message
+            window.vectorApp.showToast('Profile updated successfully!', 'success');
+            
+            // Exit edit mode
+            setTimeout(() => {
+                toggleEditMode();
+            }, 1000);
+        });
+
+        // Bio character count
+        const bioTextarea = document.getElementById('bio');
+        const charCount = document.querySelector('.char-count');
+
+        bioTextarea.addEventListener('input', function() {
+            const length = this.value.length;
+            charCount.textContent = `${length} / 500 characters`;
+            
+            if (length > 500) {
+                charCount.style.color = 'var(--error-color)';
+            } else {
+                charCount.style.color = 'var(--text-light)';
+            }
+        });
+
+        // Initialize character count
+        bioTextarea.dispatchEvent(new Event('input'));
+    </script>
+</body>
+</html>

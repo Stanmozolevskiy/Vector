@@ -14,6 +14,32 @@ public class ApplicationDbContext : DbContext
     public DbSet<Subscription> Subscriptions { get; set; }
     public DbSet<Payment> Payments { get; set; }
     public DbSet<EmailVerification> EmailVerifications { get; set; }
+    public DbSet<PasswordReset> PasswordResets { get; set; }
+    public DbSet<RefreshToken> RefreshTokens { get; set; }
+    public DbSet<CoachApplication> CoachApplications { get; set; }
+    public DbSet<InterviewQuestion> InterviewQuestions { get; set; }
+    public DbSet<InterviewQuestionComment> InterviewQuestionComments { get; set; }
+    public DbSet<InterviewQuestionCommentVote> InterviewQuestionCommentVotes { get; set; }
+    public DbSet<QuestionTestCase> QuestionTestCases { get; set; }
+    public DbSet<QuestionSolution> QuestionSolutions { get; set; }
+    public DbSet<UserSolution> UserSolutions { get; set; }
+    public DbSet<UserCodeDraft> UserCodeDrafts { get; set; }
+    public DbSet<LearningAnalytics> LearningAnalytics { get; set; }
+    public DbSet<UserSolvedQuestion> UserSolvedQuestions { get; set; }
+    public DbSet<ScheduledInterviewSession> ScheduledInterviewSessions { get; set; }
+    public DbSet<InterviewMatchingRequest> InterviewMatchingRequests { get; set; }
+    public DbSet<LiveInterviewSession> LiveInterviewSessions { get; set; }
+    public DbSet<LiveInterviewParticipant> LiveInterviewParticipants { get; set; }
+    public DbSet<InterviewFeedback> InterviewFeedbacks { get; set; }
+    public DbSet<WhiteboardData> WhiteboardData { get; set; }
+    public DbSet<UserCoins> UserCoins { get; set; }
+    public DbSet<CoinTransaction> CoinTransactions { get; set; }
+    public DbSet<AchievementDefinition> AchievementDefinitions { get; set; }
+    public DbSet<QuestionVote> QuestionVotes { get; set; }
+    public DbSet<Referral> Referrals { get; set; }
+    public DbSet<QuestionBookmark> QuestionBookmarks { get; set; }
+    public DbSet<DailyChallenge> DailyChallenges { get; set; }
+    public DbSet<UserChallengeAttempt> UserChallengeAttempts { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -27,6 +53,10 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
             entity.Property(e => e.PasswordHash).IsRequired();
             entity.Property(e => e.Role).HasMaxLength(20).HasDefaultValue("student");
+            entity.Property(e => e.FirstName).HasMaxLength(100);
+            entity.Property(e => e.LastName).HasMaxLength(100);
+            entity.Property(e => e.PhoneNumber).HasMaxLength(20);
+            entity.Property(e => e.Location).HasMaxLength(200);
         });
 
         // Configure Subscription entity
@@ -65,6 +95,483 @@ public class ApplicationDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(e => e.Token).IsUnique();
         });
+
+        // Configure PasswordReset entity
+        modelBuilder.Entity<PasswordReset>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(e => e.Token).IsUnique();
+        });
+
+        // Configure RefreshToken entity
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(e => e.Token).IsUnique();
+        });
+
+        // Configure CoachApplication entity
+        modelBuilder.Entity<CoachApplication>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Reviewer)
+                .WithMany()
+                .HasForeignKey(e => e.ReviewedBy)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.Property(e => e.Motivation).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.Experience).HasMaxLength(1000);
+            entity.Property(e => e.Specialization).HasMaxLength(500);
+            entity.Property(e => e.ImageUrls).HasMaxLength(2000); // Comma-separated URLs
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("pending");
+            entity.Property(e => e.AdminNotes).HasMaxLength(500);
+            entity.HasIndex(e => e.UserId).IsUnique(); // One application per user
+        });
+
+        // Configure InterviewQuestion entity
+        modelBuilder.Entity<InterviewQuestion>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Description).IsRequired();
+            entity.Property(e => e.Difficulty).IsRequired().HasMaxLength(20);
+            entity.Property(e => e.QuestionType).IsRequired().HasMaxLength(50).HasDefaultValue("Coding");
+            entity.Property(e => e.Category).IsRequired().HasMaxLength(50);
+            entity.HasIndex(e => e.QuestionType); // For filtering by question type
+            entity.Property(e => e.TimeComplexityHint).HasMaxLength(50);
+            entity.Property(e => e.SpaceComplexityHint).HasMaxLength(50);
+            entity.HasOne(e => e.Creator)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedBy)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(e => e.Approver)
+                .WithMany()
+                .HasForeignKey(e => e.ApprovedBy)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.Property(e => e.ApprovalStatus).IsRequired().HasMaxLength(20).HasDefaultValue("Pending");
+            entity.HasIndex(e => e.Category); // For filtering
+            entity.HasIndex(e => e.ApprovalStatus); // For filtering by approval status
+            entity.HasIndex(e => e.Difficulty); // For filtering
+            entity.HasIndex(e => e.IsActive); // For filtering active questions
+        });
+
+        // Configure InterviewQuestionComment entity
+        modelBuilder.Entity<InterviewQuestionComment>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.Question)
+                .WithMany()
+                .HasForeignKey(e => e.QuestionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.ParentComment)
+                .WithMany(e => e.Replies)
+                .HasForeignKey(e => e.ParentCommentId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.Content).IsRequired().HasMaxLength(2000);
+            entity.HasIndex(e => e.QuestionId);
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => e.ParentCommentId);
+        });
+
+        // Configure InterviewQuestionCommentVote entity
+        modelBuilder.Entity<InterviewQuestionCommentVote>(entity =>
+        {
+            entity.HasKey(e => new { e.CommentId, e.UserId });
+            entity.HasOne(e => e.Comment)
+                .WithMany(c => c.Votes)
+                .HasForeignKey(e => e.CommentId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(e => e.UserId);
+        });
+
+        // Configure QuestionTestCase entity
+        modelBuilder.Entity<QuestionTestCase>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.Question)
+                .WithMany(q => q.TestCases)
+                .HasForeignKey(e => e.QuestionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.Input).IsRequired();
+            entity.Property(e => e.ExpectedOutput).IsRequired();
+            entity.HasIndex(e => e.QuestionId); // For querying test cases by question
+        });
+
+        // Configure QuestionSolution entity
+        modelBuilder.Entity<QuestionSolution>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.Question)
+                .WithMany(q => q.Solutions)
+                .HasForeignKey(e => e.QuestionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.Language).IsRequired().HasMaxLength(20);
+            entity.Property(e => e.Code).IsRequired();
+            entity.Property(e => e.TimeComplexity).HasMaxLength(50);
+            entity.Property(e => e.SpaceComplexity).HasMaxLength(50);
+            entity.HasOne(e => e.Creator)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedBy)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasIndex(e => e.QuestionId); // For querying solutions by question
+            entity.HasIndex(e => e.Language); // For filtering by language
+        });
+
+        // Configure UserSolution entity
+        modelBuilder.Entity<UserSolution>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Question)
+                .WithMany()
+                .HasForeignKey(e => e.QuestionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.Language).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Code).IsRequired();
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(50);
+            entity.HasIndex(e => e.UserId); // For querying user's solutions
+            entity.HasIndex(e => e.QuestionId); // For querying solutions by question
+            entity.HasIndex(e => new { e.UserId, e.QuestionId }); // Composite index for user-question queries
+            entity.HasIndex(e => e.Status); // For filtering by status
+            entity.HasIndex(e => e.SubmittedAt); // For sorting by submission date
+        });
+
+        // Configure LearningAnalytics entity
+        modelBuilder.Entity<LearningAnalytics>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(e => e.UserId).IsUnique(); // One analytics record per user
+            entity.HasIndex(e => e.LastActivityDate); // For streak calculations
+        });
+
+        // Configure UserSolvedQuestion entity
+        modelBuilder.Entity<UserSolvedQuestion>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Question)
+                .WithMany()
+                .HasForeignKey(e => e.QuestionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.Language).HasMaxLength(50);
+            // Unique constraint: one record per user-question pair
+            entity.HasIndex(e => new { e.UserId, e.QuestionId }).IsUnique();
+            entity.HasIndex(e => e.UserId); // For querying user's solved questions
+            entity.HasIndex(e => e.QuestionId); // For querying question statistics
+            entity.HasIndex(e => e.SolvedAt); // For sorting by solve date
+        });
+
+        // Configure ScheduledInterviewSession entity
+        modelBuilder.Entity<ScheduledInterviewSession>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.InterviewType).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.PracticeType).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.InterviewLevel).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue("Scheduled");
+            entity.HasIndex(e => e.UserId); // For querying user's scheduled sessions
+            entity.HasIndex(e => e.ScheduledStartAt); // For sorting by scheduled time
+            entity.HasIndex(e => e.Status); // For filtering by status
+            entity.HasIndex(e => new { e.InterviewType, e.PracticeType, e.InterviewLevel }); // For matching queries
+        });
+        
+        // Configure one-to-one relationship: ScheduledInterviewSession <-> LiveInterviewSession
+        // LiveInterviewSession holds the foreign key (ScheduledSessionId) pointing to ScheduledInterviewSession
+        modelBuilder.Entity<LiveInterviewSession>()
+            .HasOne(l => l.ScheduledSession)
+            .WithOne(s => s.LiveSession)
+            .HasForeignKey<LiveInterviewSession>(l => l.ScheduledSessionId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // Configure InterviewMatchingRequest entity
+        modelBuilder.Entity<InterviewMatchingRequest>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.MatchedUser)
+                .WithMany()
+                .HasForeignKey(e => e.MatchedUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(e => e.ScheduledSession)
+                .WithMany()
+                .HasForeignKey(e => e.ScheduledSessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.LiveSession)
+                .WithMany()
+                .HasForeignKey(e => e.LiveSessionId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.Property(e => e.InterviewType).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.PracticeType).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.InterviewLevel).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue("Pending");
+            entity.HasIndex(e => e.UserId); // For querying user's matching requests
+            entity.HasIndex(e => e.Status); // For filtering by status
+            entity.HasIndex(e => e.ExpiresAt); // For cleanup queries
+            entity.HasIndex(e => new { e.InterviewType, e.PracticeType, e.Status, e.ExpiresAt }); // For matching queries
+        });
+
+        // Configure LiveInterviewSession entity
+        modelBuilder.Entity<LiveInterviewSession>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.FirstQuestion)
+                .WithMany()
+                .HasForeignKey(e => e.FirstQuestionId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(e => e.SecondQuestion)
+                .WithMany()
+                .HasForeignKey(e => e.SecondQuestionId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue("InProgress");
+            entity.HasIndex(e => e.ScheduledSessionId); // For querying by scheduled session
+            entity.HasIndex(e => e.Status); // For filtering by status
+            entity.HasIndex(e => e.StartedAt); // For sorting by start time
+        });
+
+        // Configure LiveInterviewParticipant entity
+        modelBuilder.Entity<LiveInterviewParticipant>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.LiveSession)
+                .WithMany(s => s.Participants)
+                .HasForeignKey(e => e.LiveSessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.Role).IsRequired().HasMaxLength(20).HasDefaultValue("Interviewee");
+            // Unique constraint: one participant record per user per session
+            entity.HasIndex(e => new { e.LiveSessionId, e.UserId }).IsUnique();
+            entity.HasIndex(e => e.LiveSessionId); // For querying session participants
+            entity.HasIndex(e => e.UserId); // For querying user's sessions
+            entity.HasIndex(e => e.Role); // For filtering by role
+        });
+
+        // Configure InterviewFeedback entity
+        modelBuilder.Entity<InterviewFeedback>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.LiveSession)
+                .WithMany(s => s.Feedbacks)
+                .HasForeignKey(e => e.LiveSessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Reviewer)
+                .WithMany()
+                .HasForeignKey(e => e.ReviewerId)
+                .OnDelete(DeleteBehavior.Restrict); // Don't delete user if feedback exists
+            entity.HasOne(e => e.Reviewee)
+                .WithMany()
+                .HasForeignKey(e => e.RevieweeId)
+                .OnDelete(DeleteBehavior.Restrict); // Don't delete user if feedback exists
+            // Unique constraint: one feedback per reviewer-reviewee-session combination
+            entity.HasIndex(e => new { e.LiveSessionId, e.ReviewerId, e.RevieweeId }).IsUnique();
+            entity.HasIndex(e => e.LiveSessionId); // For querying session feedback
+            entity.HasIndex(e => e.ReviewerId); // For querying reviewer's feedback
+            entity.HasIndex(e => e.RevieweeId); // For querying feedback about a user
+        });
+
+        // Configure WhiteboardData entity
+        modelBuilder.Entity<WhiteboardData>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Question)
+                .WithMany()
+                .HasForeignKey(e => e.QuestionId)
+                .OnDelete(DeleteBehavior.SetNull);
+            // Index for session-based queries
+            entity.HasIndex(e => e.SessionId);
+            entity.Property(e => e.Elements).IsRequired().HasColumnType("text");
+            entity.Property(e => e.AppState).IsRequired().HasColumnType("text");
+            entity.Property(e => e.Files).IsRequired().HasColumnType("text");
+            // One whiteboard per user (main whiteboard), or one per user-question combination
+            entity.HasIndex(e => e.UserId); // For querying user's whiteboard
+            entity.HasIndex(e => new { e.UserId, e.QuestionId }); // For querying whiteboard by user and question
+            entity.HasIndex(e => e.UpdatedAt); // For sorting by update date
+        });
+
+        // Configure UserCoins entity
+        modelBuilder.Entity<UserCoins>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.TotalCoins).HasDefaultValue(0);
+            // Unique index: one coins record per user
+            entity.HasIndex(e => e.UserId).IsUnique();
+            // Index for leaderboard queries (descending order)
+            entity.HasIndex(e => e.TotalCoins);
+            entity.HasIndex(e => e.Rank);
+        });
+
+        // Configure CoinTransaction entity
+        modelBuilder.Entity<CoinTransaction>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.ActivityType).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.RelatedEntityType).HasMaxLength(50);
+            // Indexes for efficient queries
+            entity.HasIndex(e => e.UserId); // For user transaction history
+            entity.HasIndex(e => e.ActivityType); // For filtering by activity type
+            entity.HasIndex(e => e.CreatedAt); // For sorting by date
+        });
+
+        // Configure AchievementDefinition entity
+        modelBuilder.Entity<AchievementDefinition>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ActivityType).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.DisplayName).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.Icon).HasMaxLength(50);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            // Unique index on ActivityType
+            entity.HasIndex(e => e.ActivityType).IsUnique();
+            entity.HasIndex(e => e.IsActive); // For filtering active achievements
+        });
+
+        // Configure QuestionVote entity
+        modelBuilder.Entity<QuestionVote>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.Question)
+                .WithMany()
+                .HasForeignKey(e => e.QuestionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            // Unique index: one vote per user per question
+            entity.HasIndex(e => new { e.QuestionId, e.UserId }).IsUnique();
+            entity.HasIndex(e => e.QuestionId); // For counting votes on a question
+            entity.HasIndex(e => e.UserId); // For getting user's votes
+        });
+
+        // Configure Referral entity
+        modelBuilder.Entity<Referral>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.Referrer)
+                .WithMany()
+                .HasForeignKey(e => e.ReferrerId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.ReferredUser)
+                .WithMany()
+                .HasForeignKey(e => e.ReferredUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.Property(e => e.ReferralCode).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.ReferredEmail).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.Status).HasDefaultValue("Pending").HasMaxLength(20);
+            // Unique index on referral code
+            entity.HasIndex(e => e.ReferralCode).IsUnique();
+            entity.HasIndex(e => e.ReferrerId); // For getting user's referrals
+            entity.HasIndex(e => e.ReferredEmail); // For checking if email was already referred
+            entity.HasIndex(e => e.Status); // For filtering by status
+        });
+
+        // Configure QuestionBookmark entity
+        modelBuilder.Entity<QuestionBookmark>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Question)
+                .WithMany()
+                .HasForeignKey(e => e.QuestionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.Notes).HasMaxLength(500);
+            // Unique index on UserId + QuestionId (one bookmark per user per question)
+            entity.HasIndex(e => new { e.UserId, e.QuestionId }).IsUnique();
+            entity.HasIndex(e => e.UserId); // For getting user's bookmarks
+            entity.HasIndex(e => e.QuestionId); // For statistics
+            entity.HasIndex(e => e.CreatedAt); // For sorting by date
+        });
+
+        // Configure DailyChallenge entity
+        modelBuilder.Entity<DailyChallenge>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.Question)
+                .WithMany()
+                .HasForeignKey(e => e.QuestionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.Difficulty).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.Category).HasMaxLength(100).IsRequired();
+            entity.HasIndex(e => e.Date).IsUnique(); // One challenge per day
+            entity.HasIndex(e => e.QuestionId); // For lookups
+            entity.HasIndex(e => new { e.Date, e.IsActive }); // For active challenges
+        });
+
+        // Configure UserChallengeAttempt entity
+        modelBuilder.Entity<UserChallengeAttempt>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Challenge)
+                .WithMany()
+                .HasForeignKey(e => e.ChallengeId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.Language).HasMaxLength(50);
+            // User can only attempt a challenge once
+            entity.HasIndex(e => new { e.UserId, e.ChallengeId }).IsUnique();
+            entity.HasIndex(e => e.UserId); // For user history
+            entity.HasIndex(e => e.ChallengeId); // For challenge statistics
+            entity.HasIndex(e => e.CompletedAt); // For completion queries
+        });
+
     }
 }
 

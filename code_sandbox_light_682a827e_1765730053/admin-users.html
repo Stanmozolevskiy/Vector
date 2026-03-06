@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - Admin - Vector</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="index.html">
+                    <i class="fas fa-vector-square"></i>
+                    <span>Vector</span>
+                </a>
+            </div>
+            <div class="nav-menu">
+                <a href="admin-dashboard.html">Dashboard</a>
+                <a href="admin-users.html" class="active">Users</a>
+                <a href="admin-questions.html">Questions</a>
+                <a href="admin-courses.html">Courses</a>
+                <a href="admin-analytics.html">Analytics</a>
+                <div class="user-menu">
+                    <div class="user-avatar admin-badge">AD</div>
+                    <span>Admin</span>
+                    <i class="fas fa-chevron-down"></i>
+                    <div class="dropdown-menu">
+                        <div class="dropdown-inner">
+                            <a href="admin-dashboard.html"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                            <a href="profile.html"><i class="fas fa-user"></i> Profile</a>
+                            <a href="#"><i class="fas fa-cog"></i> Settings</a>
+                            <a href="index.html"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Users Management Section -->
+    <section class="admin-section">
+        <div class="container-wide">
+            <div class="admin-header">
+                <div>
+                    <h1><i class="fas fa-users-cog"></i> User Management</h1>
+                    <p>Manage all platform users and their roles</p>
+                </div>
+                <button class="btn-primary" id="addUserBtn">
+                    <i class="fas fa-user-plus"></i> Add New User
+                </button>
+            </div>
+
+            <!-- Filters and Search -->
+            <div class="admin-card">
+                <div class="filters-bar">
+                    <div class="search-box-admin">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="userSearch" placeholder="Search users by name, email...">
+                    </div>
+                    <div class="filters-group">
+                        <select id="roleFilter">
+                            <option value="">All Roles</option>
+                            <option value="student">Students</option>
+                            <option value="coach">Coaches</option>
+                            <option value="admin">Admins</option>
+                        </select>
+                        <select id="statusFilter">
+                            <option value="">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="suspended">Suspended</option>
+                        </select>
+                        <select id="planFilter">
+                            <option value="">All Plans</option>
+                            <option value="free">Free</option>
+                            <option value="pro">Pro</option>
+                            <option value="enterprise">Enterprise</option>
+                        </select>
+                        <button class="btn-outline" id="resetFilters">
+                            <i class="fas fa-redo"></i> Reset
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users Table -->
+            <div class="admin-card">
+                <div class="card-header">
+                    <h2><i class="fas fa-table"></i> Users List</h2>
+                    <div class="table-actions">
+                        <button class="btn-outline btn-sm" id="exportUsers">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                        <button class="btn-outline btn-sm" id="bulkActions">
+                            <i class="fas fa-tasks"></i> Bulk Actions
+                        </button>
+                    </div>
+                </div>
+                <div class="users-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="selectAll"></th>
+                                <th>User</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Plan</th>
+                                <th>Status</th>
+                                <th>Joined</th>
+                                <th>Last Active</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <tr>
+                                <td><input type="checkbox" class="user-select"></td>
+                                <td>
+                                    <div class="user-info">
+                                        <div class="user-avatar">SM</div>
+                                        <div>
+                                            <div class="user-name">Sarah Martinez</div>
+                                            <div class="user-id">#USR-1001</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>sarah.m@example.com</td>
+                                <td><span class="role-badge student">Student</span></td>
+                                <td><span class="plan-badge pro">Pro</span></td>
+                                <td><span class="status-badge active">Active</span></td>
+                                <td>Jan 15, 2025</td>
+                                <td>2 hours ago</td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn-icon" title="View" onclick="viewUser(1001)"><i class="fas fa-eye"></i></button>
+                                        <button class="btn-icon" title="Edit" onclick="editUser(1001)"><i class="fas fa-edit"></i></button>
+                                        <button class="btn-icon" title="Delete" onclick="deleteUser(1001)"><i class="fas fa-trash"></i></button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" class="user-select"></td>
+                                <td>
+                                    <div class="user-info">
+                                        <div class="user-avatar">JD</div>
+                                        <div>
+                                            <div class="user-name">John Davis</div>
+                                            <div class="user-id">#USR-1002</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>john.davis@example.com</td>
+                                <td><span class="role-badge coach">Coach</span></td>
+                                <td><span class="plan-badge enterprise">Enterprise</span></td>
+                                <td><span class="status-badge active">Active</span></td>
+                                <td>Jan 14, 2025</td>
+                                <td>1 hour ago</td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn-icon" title="View" onclick="viewUser(1002)"><i class="fas fa-eye"></i></button>
+                                        <button class="btn-icon" title="Edit" onclick="editUser(1002)"><i class="fas fa-edit"></i></button>
+                                        <button class="btn-icon" title="Delete" onclick="deleteUser(1002)"><i class="fas fa-trash"></i></button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" class="user-select"></td>
+                                <td>
+                                    <div class="user-info">
+                                        <div class="user-avatar">EP</div>
+                                        <div>
+                                            <div class="user-name">Emily Park</div>
+                                            <div class="user-id">#USR-1003</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>emily.p@example.com</td>
+                                <td><span class="role-badge student">Student</span></td>
+                                <td><span class="plan-badge free">Free</span></td>
+                                <td><span class="status-badge inactive">Inactive</span></td>
+                                <td>Jan 13, 2025</td>
+                                <td>3 days ago</td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn-icon" title="View" onclick="viewUser(1003)"><i class="fas fa-eye"></i></button>
+                                        <button class="btn-icon" title="Edit" onclick="editUser(1003)"><i class="fas fa-edit"></i></button>
+                                        <button class="btn-icon" title="Delete" onclick="deleteUser(1003)"><i class="fas fa-trash"></i></button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><input type="checkbox" class="user-select"></td>
+                                <td>
+                                    <div class="user-info">
+                                        <div class="user-avatar">MC</div>
+                                        <div>
+                                            <div class="user-name">Michael Chen</div>
+                                            <div class="user-id">#USR-1004</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>m.chen@example.com</td>
+                                <td><span class="role-badge student">Student</span></td>
+                                <td><span class="plan-badge pro">Pro</span></td>
+                                <td><span class="status-badge suspended">Suspended</span></td>
+                                <td>Jan 12, 2025</td>
+                                <td>5 days ago</td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn-icon" title="View" onclick="viewUser(1004)"><i class="fas fa-eye"></i></button>
+                                        <button class="btn-icon" title="Edit" onclick="editUser(1004)"><i class="fas fa-edit"></i></button>
+                                        <button class="btn-icon" title="Delete" onclick="deleteUser(1004)"><i class="fas fa-trash"></i></button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="table-pagination">
+                    <div class="pagination-info">
+                        Showing <strong>1-10</strong> of <strong>52,348</strong> users
+                    </div>
+                    <div class="pagination">
+                        <button class="page-btn disabled"><i class="fas fa-chevron-left"></i></button>
+                        <button class="page-btn active">1</button>
+                        <button class="page-btn">2</button>
+                        <button class="page-btn">3</button>
+                        <button class="page-btn">...</button>
+                        <button class="page-btn">5,235</button>
+                        <button class="page-btn"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Add/Edit User Modal -->
+    <div class="modal" id="userModal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3 id="modalTitle"><i class="fas fa-user-plus"></i> Add New User</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="userForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="userFirstName">First Name *</label>
+                            <input type="text" id="userFirstName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="userLastName">Last Name *</label>
+                            <input type="text" id="userLastName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="userEmail">Email Address *</label>
+                            <input type="email" id="userEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="userPhone">Phone Number</label>
+                            <input type="tel" id="userPhone">
+                        </div>
+                        <div class="form-group">
+                            <label for="userRole">Role *</label>
+                            <select id="userRole" required>
+                                <option value="student">Student</option>
+                                <option value="coach">Coach</option>
+                                <option value="admin">Administrator</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="userPlan">Plan</label>
+                            <select id="userPlan">
+                                <option value="free">Free</option>
+                                <option value="pro">Pro</option>
+                                <option value="enterprise">Enterprise</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="userStatus">Status</label>
+                            <select id="userStatus">
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                                <option value="suspended">Suspended</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="userPassword">Password *</label>
+                            <input type="password" id="userPassword" placeholder="Leave blank to auto-generate">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="sendWelcomeEmail" checked>
+                            Send welcome email to user
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-outline modal-cancel">Cancel</button>
+                <button class="btn-primary" id="saveUserBtn">Save User</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <p>&copy; 2025 Vector. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+    <script src="js/admin-users.js"></script>
+</body>
+</html>

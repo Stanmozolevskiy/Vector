@@ -1,0 +1,267 @@
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using Moq;
+using System;
+using System.Security.Claims;
+using System.Threading.Tasks;
+using Vector.Api.Controllers;
+using Vector.Api.Models;
+using Vector.Api.Services;
+using Xunit;
+
+namespace Vector.Api.Tests.Controllers;
+
+public class UserControllerTests
+{
+    private readonly Mock<IUserService> _userServiceMock;
+    private readonly Mock<IJwtService> _jwtServiceMock;
+    private readonly Mock<IRedisService> _redisServiceMock;
+    private readonly Mock<ILogger<UserController>> _mockLogger;
+    private readonly UserController _controller;
+
+    public UserControllerTests()
+    {
+        _userServiceMock = new Mock<IUserService>();
+        _jwtServiceMock = new Mock<IJwtService>();
+        _redisServiceMock = new Mock<IRedisService>();
+        _mockLogger = new Mock<ILogger<UserController>>();
+        
+        // Setup Redis mocks
+        _redisServiceMock.Setup(r => r.GetCachedUserSessionAsync<User>(It.IsAny<Guid>()))
+            .ReturnsAsync((User?)null); // Default: cache miss
+        _redisServiceMock.Setup(r => r.CacheUserSessionAsync(It.IsAny<Guid>(), It.IsAny<object>(), It.IsAny<TimeSpan>()))
+            .ReturnsAsync(true);
+        
+        _controller = new UserController(_userServiceMock.Object, _jwtServiceMock.Object, _redisServiceMock.Object, _mockLogger.Object);
+    }
+
+    [Fact]
+    public async Task GetCurrentUser_WithValidToken_ReturnsOk()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var user = new User
+        {
+            Id = userId,
+            Email = "test@example.com",
+            FirstName = "Test",
+            LastName = "User",
+            Role = "User",
+            EmailVerified = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+            new Claim(ClaimTypes.Role, "User")
+        };
+        var identity = new ClaimsIdentity(claims, "TestAuth");
+        var principal = new ClaimsPrincipal(identity);
+        
+        var httpContext = new DefaultHttpContext
+        {
+            User = principal
+        };
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContext
+        };
+
+        _userServiceMock.Setup(x => x.GetUserByIdAsync(userId))
+            .ReturnsAsync(user);
+
+        // Act
+        var result = await _controller.GetCurrentUser();
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(200, okResult.StatusCode);
+        _userServiceMock.Verify(x => x.GetUserByIdAsync(userId), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetCurrentUser_WithInvalidToken_ReturnsUnauthorized()
+    {
+        // Arrange
+        var claims = new ClaimsIdentity();
+        var principal = new ClaimsPrincipal(claims);
+        
+        var httpContext = new DefaultHttpContext
+        {
+            User = principal
+        };
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContext
+        };
+
+        // Act
+        var result = await _controller.GetCurrentUser();
+
+        // Assert
+        var unauthorizedResult = Assert.IsType<UnauthorizedObjectResult>(result);
+        Assert.Equal(401, unauthorizedResult.StatusCode);
+        _userServiceMock.Verify(x => x.GetUserByIdAsync(It.IsAny<Guid>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetCurrentUser_WithNonExistentUser_ReturnsNotFound()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+            new Claim(ClaimTypes.Role, "User")
+        };
+        var identity = new ClaimsIdentity(claims, "TestAuth");
+        var principal = new ClaimsPrincipal(identity);
+        
+        var httpContext = new DefaultHttpContext
+        {
+            User = principal
+        };
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContext
+        };
+
+        _userServiceMock.Setup(x => x.GetUserByIdAsync(userId))
+            .ReturnsAsync((User?)null);
+
+        // Act
+        var result = await _controller.GetCurrentUser();
+
+        // Assert
+        var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
+        Assert.Equal(404, notFoundResult.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteAccount_WithValidToken_ReturnsOk()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+            new Claim(ClaimTypes.Role, "User")
+        };
+        var identity = new ClaimsIdentity(claims, "TestAuth");
+        var principal = new ClaimsPrincipal(identity);
+        
+        var httpContext = new DefaultHttpContext
+        {
+            User = principal
+        };
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContext
+        };
+
+        _userServiceMock.Setup(x => x.DeleteUserAsync(userId))
+            .ReturnsAsync(true);
+
+        // Act
+        var result = await _controller.DeleteAccount();
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(200, okResult.StatusCode);
+        _userServiceMock.Verify(x => x.DeleteUserAsync(userId), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteAccount_WithInvalidToken_ReturnsUnauthorized()
+    {
+        // Arrange
+        var claims = new ClaimsIdentity();
+        var principal = new ClaimsPrincipal(claims);
+        
+        var httpContext = new DefaultHttpContext
+        {
+            User = principal
+        };
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContext
+        };
+
+        // Act
+        var result = await _controller.DeleteAccount();
+
+        // Assert
+        var unauthorizedResult = Assert.IsType<UnauthorizedObjectResult>(result);
+        Assert.Equal(401, unauthorizedResult.StatusCode);
+        _userServiceMock.Verify(x => x.DeleteUserAsync(It.IsAny<Guid>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteAccount_WithNonExistentUser_ReturnsNotFound()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+            new Claim(ClaimTypes.Role, "User")
+        };
+        var identity = new ClaimsIdentity(claims, "TestAuth");
+        var principal = new ClaimsPrincipal(identity);
+        
+        var httpContext = new DefaultHttpContext
+        {
+            User = principal
+        };
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContext
+        };
+
+        _userServiceMock.Setup(x => x.DeleteUserAsync(userId))
+            .ReturnsAsync(false);
+
+        // Act
+        var result = await _controller.DeleteAccount();
+
+        // Assert
+        var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
+        Assert.Equal(404, notFoundResult.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteAccount_WithServiceException_ReturnsInternalServerError()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+            new Claim(ClaimTypes.Role, "User")
+        };
+        var identity = new ClaimsIdentity(claims, "TestAuth");
+        var principal = new ClaimsPrincipal(identity);
+        
+        var httpContext = new DefaultHttpContext
+        {
+            User = principal
+        };
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContext
+        };
+
+        _userServiceMock.Setup(x => x.DeleteUserAsync(userId))
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act
+        var result = await _controller.DeleteAccount();
+
+        // Assert
+        var statusCodeResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(500, statusCodeResult.StatusCode);
+    }
+}
+

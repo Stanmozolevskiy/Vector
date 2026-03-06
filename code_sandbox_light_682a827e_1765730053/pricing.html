@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricing - Vector</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/pricing.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="index.html">
+                    <i class="fas fa-vector-square"></i>
+                    <span>Vector</span>
+                </a>
+            </div>
+            <div class="nav-menu" id="navMenu">
+                <a href="courses.html">Courses</a>
+                <a href="questions.html">Questions</a>
+                <a href="mock-interviews.html">Mock Interviews</a>
+                <a href="pricing.html" class="active">Pricing</a>
+                <a href="login.html" class="btn-secondary">Log In</a>
+                <a href="register.html" class="btn-primary">Get Started</a>
+            </div>
+            <div class="nav-toggle" id="navToggle">
+                <i class="fas fa-bars"></i>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Pricing Header -->
+    <section class="pricing-header">
+        <div class="container">
+            <h1>Choose Your Plan</h1>
+            <p>Get started for free or upgrade for unlimited access</p>
+            <div class="billing-toggle">
+                <span>Monthly</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="billingToggle">
+                    <span class="slider"></span>
+                </label>
+                <span>Annual <span class="save-badge">Save 30%</span></span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Plans -->
+    <section class="pricing-section">
+        <div class="container">
+            <div class="pricing-grid">
+                <!-- Free Plan -->
+                <div class="pricing-card">
+                    <div class="plan-header">
+                        <h3>Free</h3>
+                        <div class="plan-price">
+                            <span class="price">$0</span>
+                            <span class="period">/ forever</span>
+                        </div>
+                        <p>Perfect for getting started</p>
+                    </div>
+                    <button class="btn-outline btn-full">Get Started</button>
+                    <div class="plan-features">
+                        <h4>Features:</h4>
+                        <ul>
+                            <li><i class="fas fa-check"></i> Access to 50 free questions</li>
+                            <li><i class="fas fa-check"></i> 3 free courses</li>
+                            <li><i class="fas fa-check"></i> Community support</li>
+                            <li><i class="fas fa-check"></i> Basic progress tracking</li>
+                            <li class="disabled"><i class="fas fa-times"></i> Mock interviews</li>
+                            <li class="disabled"><i class="fas fa-times"></i> Premium courses</li>
+                            <li class="disabled"><i class="fas fa-times"></i> Code execution</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Pro Plan -->
+                <div class="pricing-card featured">
+                    <div class="popular-badge">Most Popular</div>
+                    <div class="plan-header">
+                        <h3>Pro</h3>
+                        <div class="plan-price">
+                            <span class="price monthly-price">$29</span>
+                            <span class="price annual-price">$20</span>
+                            <span class="period">/ month</span>
+                        </div>
+                        <p>For serious learners</p>
+                    </div>
+                    <button class="btn-primary btn-full">Start Pro Trial</button>
+                    <div class="plan-features">
+                        <h4>Everything in Free, plus:</h4>
+                        <ul>
+                            <li><i class="fas fa-check"></i> Access to 1000+ questions</li>
+                            <li><i class="fas fa-check"></i> All premium courses</li>
+                            <li><i class="fas fa-check"></i> 2 mock interviews/month</li>
+                            <li><i class="fas fa-check"></i> Code execution environment</li>
+                            <li><i class="fas fa-check"></i> Advanced analytics</li>
+                            <li><i class="fas fa-check"></i> Priority support</li>
+                            <li><i class="fas fa-check"></i> Interview preparation guide</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Enterprise Plan -->
+                <div class="pricing-card">
+                    <div class="plan-header">
+                        <h3>Enterprise</h3>
+                        <div class="plan-price">
+                            <span class="price monthly-price">$99</span>
+                            <span class="price annual-price">$69</span>
+                            <span class="period">/ month</span>
+                        </div>
+                        <p>For teams and companies</p>
+                    </div>
+                    <button class="btn-primary btn-full">Contact Sales</button>
+                    <div class="plan-features">
+                        <h4>Everything in Pro, plus:</h4>
+                        <ul>
+                            <li><i class="fas fa-check"></i> Unlimited mock interviews</li>
+                            <li><i class="fas fa-check"></i> Team management dashboard</li>
+                            <li><i class="fas fa-check"></i> Custom learning paths</li>
+                            <li><i class="fas fa-check"></i> Dedicated account manager</li>
+                            <li><i class="fas fa-check"></i> API access</li>
+                            <li><i class="fas fa-check"></i> SSO integration</li>
+                            <li><i class="fas fa-check"></i> Bulk discounts</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="faq-section">
+        <div class="container">
+            <h2>Frequently Asked Questions</h2>
+            <div class="faq-grid">
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>Can I cancel my subscription anytime?</h3>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Yes! You can cancel your subscription at any time. If you cancel, you'll continue to have access until the end of your billing period.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>What payment methods do you accept?</h3>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>We accept all major credit cards (Visa, MasterCard, American Express), PayPal, and for Enterprise plans, we can arrange for invoicing.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>Do you offer student discounts?</h3>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Yes! We offer a 50% discount for students with a valid .edu email address. Contact our support team to apply for the discount.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>How do mock interviews work?</h3>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Mock interviews are 1-on-1 video sessions with experienced interviewers from top tech companies. You'll receive detailed feedback after each session to help you improve.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>Is there a free trial?</h3>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Yes! We offer a 7-day free trial for the Pro plan. No credit card required to start. You can upgrade at any time.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>Can I switch plans?</h3>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Absolutely! You can upgrade or downgrade your plan at any time. Changes will be reflected in your next billing cycle.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="container">
+            <div class="cta-content">
+                <h2>Ready to Land Your Dream Job?</h2>
+                <p>Join thousands of students who have transformed their interview skills</p>
+                <a href="register.html" class="btn-primary btn-large">Start Your Free Trial</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <div class="footer-brand">
+                        <i class="fas fa-vector-square"></i>
+                        <span>Vector</span>
+                    </div>
+                    <p>Master your interview skills and land your dream job with expert guidance and realistic practice.</p>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-linkedin"></i></a>
+                        <a href="#"><i class="fab fa-youtube"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+                <div class="footer-col">
+                    <h4>Product</h4>
+                    <ul>
+                        <li><a href="courses.html">Courses</a></li>
+                        <li><a href="questions.html">Question Bank</a></li>
+                        <li><a href="mock-interviews.html">Mock Interviews</a></li>
+                        <li><a href="pricing.html">Pricing</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Company</h4>
+                    <ul>
+                        <li><a href="#">About Us</a></li>
+                        <li><a href="#">Careers</a></li>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Cookie Policy</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Vector. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+    <script src="js/pricing.js"></script>
+</body>
+</html>

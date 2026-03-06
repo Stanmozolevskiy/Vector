@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Design Question - Vector</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/question-detail.css">
+    <link rel="stylesheet" href="css/question-design.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="index.html">
+                    <i class="fas fa-vector-square"></i>
+                    <span>Vector</span>
+                </a>
+            </div>
+            <div class="nav-menu">
+                <a href="courses.html">Courses</a>
+                <a href="questions.html" class="active">Questions</a>
+                <a href="mock-interviews.html">Mock Interviews</a>
+                <a href="pricing.html">Pricing</a>
+                <a href="dashboard.html" class="btn-secondary">Dashboard</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Question Container -->
+    <div class="question-container">
+        <!-- Back Button -->
+        <div class="question-header-bar">
+            <a href="questions.html" class="back-btn">
+                <i class="fas fa-arrow-left"></i> Back to Questions
+            </a>
+            <div class="question-actions">
+                <button class="action-btn" title="Bookmark">
+                    <i class="far fa-bookmark"></i>
+                </button>
+                <button class="action-btn" title="Share">
+                    <i class="fas fa-share-alt"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Layout -->
+        <div class="design-layout">
+            <!-- Left Panel - Problem Description -->
+            <div class="design-panel description-panel">
+                <div class="panel-header">
+                    <h1 class="question-title-main">
+                        <span class="question-number">#128</span>
+                        Design a URL Shortener
+                    </h1>
+                    <div class="question-meta">
+                        <span class="difficulty-badge medium">Medium</span>
+                        <span class="type-badge design">
+                            <i class="fas fa-drafting-compass"></i>
+                            Whiteboard Design
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Tab Navigation -->
+                <div class="tabs">
+                    <button class="tab active" data-tab="description">
+                        <i class="fas fa-file-alt"></i> Description
+                    </button>
+                    <button class="tab" data-tab="requirements">
+                        <i class="fas fa-list-check"></i> Requirements
+                    </button>
+                    <button class="tab" data-tab="hints">
+                        <i class="fas fa-lightbulb"></i> Hints
+                    </button>
+                    <button class="tab" data-tab="solutions">
+                        <i class="fas fa-diagram-project"></i> Solutions
+                    </button>
+                </div>
+
+                <!-- Tab Content -->
+                <div class="tab-content">
+                    <!-- Description Tab -->
+                    <div class="tab-pane active" id="description">
+                        <div class="content-section">
+                            <h2>Problem Statement</h2>
+                            <p>Design a URL shortening service like bit.ly. Your system should be able to:</p>
+                            <ul>
+                                <li>Generate short URLs from long URLs</li>
+                                <li>Redirect users from short URLs to original URLs</li>
+                                <li>Handle high traffic with millions of requests per day</li>
+                                <li>Track analytics (clicks, locations, devices)</li>
+                                <li>Support custom short URLs</li>
+                                <li>Expire URLs after a certain time period</li>
+                            </ul>
+                        </div>
+
+                        <div class="content-section">
+                            <h2>Functional Requirements</h2>
+                            <ul class="requirements-list">
+                                <li>
+                                    <i class="fas fa-check-circle"></i>
+                                    <div>
+                                        <strong>URL Shortening:</strong> Users can submit a long URL and receive a shortened version
+                                    </div>
+                                </li>
+                                <li>
+                                    <i class="fas fa-check-circle"></i>
+                                    <div>
+                                        <strong>URL Redirection:</strong> When accessing a short URL, users are redirected to the original URL
+                                    </div>
+                                </li>
+                                <li>
+                                    <i class="fas fa-check-circle"></i>
+                                    <div>
+                                        <strong>Custom Aliases:</strong> Users can optionally choose custom short URLs
+                                    </div>
+                                </li>
+                                <li>
+                                    <i class="fas fa-check-circle"></i>
+                                    <div>
+                                        <strong>Link Expiration:</strong> URLs can have expiration dates
+                                    </div>
+                                </li>
+                                <li>
+                                    <i class="fas fa-check-circle"></i>
+                                    <div>
+                                        <strong>Analytics:</strong> Track number of clicks, geographic locations, referrers
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="content-section">
+                            <h2>Non-Functional Requirements</h2>
+                            <ul class="requirements-list">
+                                <li>
+                                    <i class="fas fa-bolt"></i>
+                                    <div>
+                                        <strong>High Availability:</strong> System should be highly available (99.99% uptime)
+                                    </div>
+                                </li>
+                                <li>
+                                    <i class="fas fa-gauge-high"></i>
+                                    <div>
+                                        <strong>Low Latency:</strong> URL redirection should happen with minimal latency (&lt;100ms)
+                                    </div>
+                                </li>
+                                <li>
+                                    <i class="fas fa-arrow-up-right-dots"></i>
+                                    <div>
+                                        <strong>Scalability:</strong> System should handle millions of URLs and requests
+                                    </div>
+                                </li>
+                                <li>
+                                    <i class="fas fa-shield"></i>
+                                    <div>
+                                        <strong>Security:</strong> Prevent abuse, malicious URLs, and spam
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="content-section">
+                            <h2>Scale Estimation</h2>
+                            <div class="estimation-grid">
+                                <div class="estimation-card">
+                                    <div class="estimation-icon">📊</div>
+                                    <div class="estimation-label">Read:Write Ratio</div>
+                                    <div class="estimation-value">100:1</div>
+                                    <div class="estimation-desc">More reads than writes</div>
+                                </div>
+                                <div class="estimation-card">
+                                    <div class="estimation-icon">📝</div>
+                                    <div class="estimation-label">New URLs/Day</div>
+                                    <div class="estimation-value">100M</div>
+                                    <div class="estimation-desc">100 million new URLs daily</div>
+                                </div>
+                                <div class="estimation-card">
+                                    <div class="estimation-icon">🔗</div>
+                                    <div class="estimation-label">Redirects/Day</div>
+                                    <div class="estimation-value">10B</div>
+                                    <div class="estimation-desc">10 billion redirects daily</div>
+                                </div>
+                                <div class="estimation-card">
+                                    <div class="estimation-icon">💾</div>
+                                    <div class="estimation-label">Storage (5 years)</div>
+                                    <div class="estimation-value">15TB</div>
+                                    <div class="estimation-desc">Total data storage needed</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="content-section">
+                            <h2>Key Considerations</h2>
+                            <div class="considerations">
+                                <div class="consideration-item">
+                                    <i class="fas fa-key"></i>
+                                    <div>
+                                        <strong>URL Encoding:</strong> How will you generate unique short codes? Base62 encoding, hash functions, or counter-based?
+                                    </div>
+                                </div>
+                                <div class="consideration-item">
+                                    <i class="fas fa-database"></i>
+                                    <div>
+                                        <strong>Database Choice:</strong> SQL vs NoSQL? What about caching strategy?
+                                    </div>
+                                </div>
+                                <div class="consideration-item">
+                                    <i class="fas fa-network-wired"></i>
+                                    <div>
+                                        <strong>Architecture:</strong> How will you design for high availability and low latency?
+                                    </div>
+                                </div>
+                                <div class="consideration-item">
+                                    <i class="fas fa-users"></i>
+                                    <div>
+                                        <strong>Collision Handling:</strong> What happens when two URLs generate the same short code?
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Requirements Tab -->
+                    <div class="tab-pane" id="requirements">
+                        <div class="content-section">
+                            <h2>Core Features Checklist</h2>
+                            <ul class="checklist">
+                                <li>
+                                    <i class="far fa-square"></i>
+                                    <span>API Design: Define RESTful endpoints for creating and retrieving URLs</span>
+                                </li>
+                                <li>
+                                    <i class="far fa-square"></i>
+                                    <span>Database Schema: Design tables for URLs, users, and analytics</span>
+                                </li>
+                                <li>
+                                    <i class="far fa-square"></i>
+                                    <span>URL Encoding Algorithm: Implement Base62 or hash-based encoding</span>
+                                </li>
+                                <li>
+                                    <i class="far fa-square"></i>
+                                    <span>Caching Strategy: Use Redis/Memcached for frequently accessed URLs</span>
+                                </li>
+                                <li>
+                                    <i class="far fa-square"></i>
+                                    <span>Load Balancing: Distribute traffic across multiple servers</span>
+                                </li>
+                                <li>
+                                    <i class="far fa-square"></i>
+                                    <span>Analytics Tracking: Log clicks, referrers, and user agents</span>
+                                </li>
+                                <li>
+                                    <i class="far fa-square"></i>
+                                    <span>Rate Limiting: Prevent abuse and spam</span>
+                                </li>
+                                <li>
+                                    <i class="far fa-square"></i>
+                                    <span>Expiration Mechanism: Implement URL expiry with TTL</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="content-section">
+                            <h2>API Endpoints</h2>
+                            <div class="api-endpoint">
+                                <div class="api-method post">POST</div>
+                                <div class="api-details">
+                                    <div class="api-path">/api/urls</div>
+                                    <div class="api-desc">Create a new short URL</div>
+                                </div>
+                            </div>
+                            <div class="api-endpoint">
+                                <div class="api-method get">GET</div>
+                                <div class="api-details">
+                                    <div class="api-path">/api/urls/:shortCode</div>
+                                    <div class="api-desc">Get original URL from short code</div>
+                                </div>
+                            </div>
+                            <div class="api-endpoint">
+                                <div class="api-method get">GET</div>
+                                <div class="api-details">
+                                    <div class="api-path">/:shortCode</div>
+                                    <div class="api-desc">Redirect to original URL</div>
+                                </div>
+                            </div>
+                            <div class="api-endpoint">
+                                <div class="api-method get">GET</div>
+                                <div class="api-details">
+                                    <div class="api-path">/api/analytics/:shortCode</div>
+                                    <div class="api-desc">Get analytics for a short URL</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hints Tab -->
+                    <div class="tab-pane" id="hints">
+                        <div class="content-section">
+                            <h2>Design Hints</h2>
+                            <div class="hint-card">
+                                <div class="hint-number">1</div>
+                                <div class="hint-content">
+                                    <strong>Start with encoding:</strong> Consider using Base62 (0-9, a-z, A-Z) for generating short codes. This gives you 62^7 = 3.5 trillion possible combinations with a 7-character code.
+                                </div>
+                            </div>
+                            <div class="hint-card">
+                                <div class="hint-number">2</div>
+                                <div class="hint-content">
+                                    <strong>Think about reads vs writes:</strong> Since reads vastly outnumber writes (100:1), focus on optimizing read performance with caching.
+                                </div>
+                            </div>
+                            <div class="hint-card">
+                                <div class="hint-number">3</div>
+                                <div class="hint-content">
+                                    <strong>Database partitioning:</strong> Use consistent hashing to distribute URLs across multiple database shards based on the short code.
+                                </div>
+                            </div>
+                            <div class="hint-card">
+                                <div class="hint-number">4</div>
+                                <div class="hint-content">
+                                    <strong>Cache strategy:</strong> Implement a write-through cache where URLs are written to both cache and database, but reads primarily hit the cache.
+                                </div>
+                            </div>
+                            <div class="hint-card">
+                                <div class="hint-number">5</div>
+                                <div class="hint-content">
+                                    <strong>Consider CDN:</strong> Use a Content Delivery Network for geographic distribution and reduced latency.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Solutions Tab -->
+                    <div class="tab-pane" id="solutions">
+                        <div class="content-section">
+                            <h2>Architecture Diagram</h2>
+                            <div class="diagram-placeholder">
+                                <i class="fas fa-diagram-project"></i>
+                                <p>Draw your system architecture here during the interview</p>
+                                <small>Include: Clients → Load Balancer → App Servers → Cache → Database → Analytics</small>
+                            </div>
+                        </div>
+
+                        <div class="content-section">
+                            <h2>Key Components</h2>
+                            <div class="component-list">
+                                <div class="component-card">
+                                    <div class="component-icon">🌐</div>
+                                    <div class="component-title">Load Balancer</div>
+                                    <div class="component-desc">Distribute traffic across multiple application servers</div>
+                                </div>
+                                <div class="component-card">
+                                    <div class="component-icon">⚙️</div>
+                                    <div class="component-title">Application Servers</div>
+                                    <div class="component-desc">Handle URL creation and redirection logic</div>
+                                </div>
+                                <div class="component-card">
+                                    <div class="component-icon">⚡</div>
+                                    <div class="component-title">Cache Layer (Redis)</div>
+                                    <div class="component-desc">Store frequently accessed URLs for fast retrieval</div>
+                                </div>
+                                <div class="component-card">
+                                    <div class="component-icon">🗄️</div>
+                                    <div class="component-title">Database (Cassandra)</div>
+                                    <div class="component-desc">Persistent storage for URL mappings</div>
+                                </div>
+                                <div class="component-card">
+                                    <div class="component-icon">📊</div>
+                                    <div class="component-title">Analytics Service</div>
+                                    <div class="component-desc">Track and process click data</div>
+                                </div>
+                                <div class="component-card">
+                                    <div class="component-icon">🔢</div>
+                                    <div class="component-title">ID Generation Service</div>
+                                    <div class="component-desc">Generate unique IDs for new URLs</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="content-section">
+                            <h2>Database Schema</h2>
+                            <div class="schema-code">
+<pre><code>URLs Table:
+- id (BIGINT, Primary Key)
+- short_code (VARCHAR(10), Unique Index)
+- original_url (TEXT)
+- user_id (BIGINT, Foreign Key)
+- created_at (TIMESTAMP)
+- expires_at (TIMESTAMP, Nullable)
+- click_count (INT, Default: 0)
+
+Users Table:
+- id (BIGINT, Primary Key)
+- email (VARCHAR(255), Unique)
+- created_at (TIMESTAMP)
+
+Analytics Table:
+- id (BIGINT, Primary Key)
+- short_code (VARCHAR(10), Index)
+- clicked_at (TIMESTAMP)
+- ip_address (VARCHAR(45))
+- user_agent (TEXT)
+- referrer (TEXT)
+- country (VARCHAR(2))
+</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="content-section">
+                            <h2>Discussion Points</h2>
+                            <ul class="discussion-points">
+                                <li>
+                                    <strong>Trade-offs:</strong> Discuss the trade-offs between different encoding schemes (Base62 vs MD5 hash)
+                                </li>
+                                <li>
+                                    <strong>Scalability:</strong> How would you handle 10x traffic growth? Horizontal scaling, sharding strategies
+                                </li>
+                                <li>
+                                    <strong>Failure Handling:</strong> What happens if cache fails? Database goes down? How to ensure data consistency?
+                                </li>
+                                <li>
+                                    <strong>Security:</strong> How to prevent malicious URLs? Rate limiting? Link preview?
+                                </li>
+                                <li>
+                                    <strong>Monitoring:</strong> What metrics would you track? How to detect anomalies?
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel - Whiteboard Area -->
+            <div class="design-panel whiteboard-panel">
+                <div class="whiteboard-header">
+                    <h3><i class="fas fa-pen-fancy"></i> Whiteboard / Notes</h3>
+                    <div class="whiteboard-actions">
+                        <button class="tool-btn active" title="Draw">
+                            <i class="fas fa-pen"></i>
+                        </button>
+                        <button class="tool-btn" title="Erase">
+                            <i class="fas fa-eraser"></i>
+                        </button>
+                        <button class="tool-btn" title="Text">
+                            <i class="fas fa-font"></i>
+                        </button>
+                        <button class="tool-btn" title="Clear All">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="whiteboard-canvas-wrapper">
+                    <canvas id="whiteboard" width="800" height="600"></canvas>
+                    <div class="whiteboard-placeholder">
+                        <i class="fas fa-pen-fancy"></i>
+                        <p>Draw your system design here</p>
+                        <small>Use the whiteboard to sketch architecture diagrams, database schemas, and data flow</small>
+                    </div>
+                </div>
+
+                <div class="notes-area">
+                    <h4><i class="fas fa-note-sticky"></i> Quick Notes</h4>
+                    <textarea id="designNotes" placeholder="Write your key points, assumptions, and calculations here...
+
+Example:
+- Using Base62 encoding for short codes
+- 7-character codes = 62^7 = 3.5T combinations
+- Redis cache with LRU eviction
+- Cassandra for distributed storage
+- Rate limiting: 100 requests/minute per IP"></textarea>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn-outline">
+                        <i class="fas fa-bookmark"></i> Save Progress
+                    </button>
+                    <button class="btn-primary">
+                        <i class="fas fa-check"></i> Submit Solution
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <div class="footer-brand">
+                        <i class="fas fa-vector-square"></i>
+                        <span>Vector</span>
+                    </div>
+                    <p>Master your interview skills and land your dream job.</p>
+                </div>
+                <div class="footer-col">
+                    <h4>Product</h4>
+                    <ul>
+                        <li><a href="courses.html">Courses</a></li>
+                        <li><a href="questions.html">Questions</a></li>
+                        <li><a href="mock-interviews.html">Mock Interviews</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Company</h4>
+                    <ul>
+                        <li><a href="#">About</a></li>
+                        <li><a href="#">Careers</a></li>
+                        <li><a href="#">Blog</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Terms</a></li>
+                        <li><a href="#">Privacy</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Vector. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+    <script src="js/question-design.js"></script>
+</body>
+</html>

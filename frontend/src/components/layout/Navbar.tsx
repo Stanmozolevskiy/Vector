@@ -1,0 +1,94 @@
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
+import { ROUTES } from '../../utils/constants';
+import '../../styles/style.css';
+import '../../styles/dashboard.css';
+import { useEffect, useState } from 'react';
+import coinsService, { type UserCoins } from '../../services/coins.service';
+
+export const Navbar = () => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [coins, setCoins] = useState<UserCoins | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      loadCoins();
+    }
+  }, [user]);
+
+  const loadCoins = async () => {
+    try {
+      const data = await coinsService.getMyCoins();
+      setCoins(data);
+    } catch (error) {
+      console.error('Failed to load coins:', error);
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate(ROUTES.HOME);
+  };
+
+  const getUserInitials = () => {
+    if (user?.firstName && user?.lastName) {
+      return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+    }
+    if (user?.email) {
+      return user.email.substring(0, 2).toUpperCase();
+    }
+    return 'U';
+  };
+
+  return (
+    <nav className="navbar">
+      <div className="container">
+        <div className="nav-brand">
+          <Link to={user ? ROUTES.DASHBOARD : ROUTES.HOME}>
+            <i className="fas fa-vector-square"></i>
+            <span>Vector</span>
+          </Link>
+        </div>
+        <div className="nav-menu">
+          <Link to={ROUTES.QUESTIONS}>Questions</Link>
+          <Link to={ROUTES.WHITEBOARD}>Whiteboard</Link>
+          <Link to={ROUTES.FIND_PEER}>Mock Interviews</Link>
+          {user && (user.role === 'admin' || user.role === 'coach') ? (
+            <Link to={ROUTES.ADD_QUESTION}>Add Question</Link>
+          ) : null}
+          {user && coins && (
+            <Link to={ROUTES.LEADERBOARD} className="coins-display" title="Your karma points">
+              <span className="coin-icon">🪙</span>
+              <span className="coin-count">{coins.displayCoins}</span>
+            </Link>
+          )}
+          <div className="user-menu">
+            <div className="user-avatar">
+              {user?.profilePictureUrl ? (
+                <img src={user.profilePictureUrl} alt="Profile" />
+              ) : (
+                <span>{getUserInitials()}</span>
+              )}
+            </div>
+            <span>{user?.firstName || user?.email?.split('@')[0] || 'User'}</span>
+            <i className="fas fa-chevron-down"></i>
+            <div className="dropdown-menu">
+              <Link to={ROUTES.DASHBOARD}><i className="fas fa-tachometer-alt"></i> Dashboard</Link>
+              <Link to={ROUTES.PROGRESS}><i className="fas fa-chart-line"></i> Progress</Link>
+              <Link to="/questions/bookmarks"><i className="fas fa-bookmark"></i> Bookmarks</Link>
+              <Link to={ROUTES.PROFILE}><i className="fas fa-user"></i> Profile</Link>
+              {user?.role === 'admin' && (
+                <Link to={ROUTES.ADMIN}><i className="fas fa-shield-alt"></i> Admin Panel</Link>
+              )}
+              <button onClick={handleLogout}>
+                <i className="fas fa-sign-out-alt"></i> Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+};
+

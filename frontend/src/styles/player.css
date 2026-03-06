@@ -1,0 +1,629 @@
+/* ===========================
+   Video Player Styles
+   =========================== */
+
+.player-body {
+    overflow: hidden;
+}
+
+.player-navbar {
+    background: var(--text-primary);
+    color: white;
+    padding: var(--spacing-sm) var(--spacing-lg);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.player-nav-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-lg);
+}
+
+.back-btn {
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+    transition: var(--transition);
+}
+
+.back-btn:hover {
+    color: var(--primary-light);
+}
+
+.course-title {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9375rem;
+}
+
+.player-nav-right {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.nav-btn {
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.nav-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Player Layout */
+.player-layout {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    height: calc(100vh - 60px);
+}
+
+.player-main {
+    background: var(--bg-gray-50);
+    overflow-y: auto;
+}
+
+/* Video Container */
+.video-container {
+    background: #000;
+    position: relative;
+}
+
+.video-player {
+    aspect-ratio: 16/9;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.video-placeholder-full {
+    text-align: center;
+    color: white;
+}
+
+.video-placeholder-full i {
+    font-size: 5rem;
+    margin-bottom: var(--spacing-sm);
+    opacity: 0.7;
+}
+
+/* Video Controls */
+.video-controls {
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+    padding: var(--spacing-md);
+}
+
+.progress-bar {
+    height: 4px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+    margin-bottom: var(--spacing-sm);
+    cursor: pointer;
+}
+
+.progress-filled {
+    height: 100%;
+    background: var(--primary-color);
+    border-radius: 2px;
+    transition: width 0.1s;
+}
+
+.controls-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.controls-left, .controls-right {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.control-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    color: white;
+    font-size: 1.125rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.control-btn:hover {
+    color: var(--primary-light);
+}
+
+.time-display {
+    color: white;
+    font-size: 0.875rem;
+    margin-left: var(--spacing-sm);
+}
+
+.speed-control select {
+    padding: 0.375rem 0.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+
+/* Lesson Content */
+.lesson-content {
+    padding: var(--spacing-xl);
+}
+
+.lesson-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--spacing-lg);
+}
+
+.lesson-header h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.lesson-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.action-btn {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border-color);
+    background: var(--bg-white);
+    color: var(--text-secondary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.action-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+/* Tabs */
+.content-tabs {
+    display: flex;
+    gap: var(--spacing-sm);
+    border-bottom: 2px solid var(--border-color);
+    margin-bottom: var(--spacing-lg);
+}
+
+.tab-btn {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-weight: 600;
+    cursor: pointer;
+    position: relative;
+    transition: var(--transition);
+}
+
+.tab-btn:hover {
+    color: var(--primary-color);
+}
+
+.tab-btn.active {
+    color: var(--primary-color);
+}
+
+.tab-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--primary-color);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.tab-content h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: var(--spacing-md);
+    color: var(--text-primary);
+}
+
+.tab-content h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-top: var(--spacing-lg);
+    margin-bottom: var(--spacing-sm);
+    color: var(--text-primary);
+}
+
+.tab-content p {
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin-bottom: var(--spacing-md);
+}
+
+.tab-content ul {
+    list-style: disc;
+    padding-left: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+}
+
+.tab-content ul li {
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+    line-height: 1.6;
+}
+
+/* Practice Problems */
+.practice-problems {
+    display: grid;
+    gap: var(--spacing-md);
+}
+
+.problem-card {
+    background: var(--bg-white);
+    padding: var(--spacing-md);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+}
+
+.problem-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-sm);
+}
+
+.problem-header h4 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.difficulty {
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.difficulty.easy {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success-color);
+}
+
+.difficulty.medium {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning-color);
+}
+
+.difficulty.hard {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--error-color);
+}
+
+/* Notes Section */
+.note-editor {
+    margin-bottom: var(--spacing-lg);
+}
+
+.note-editor textarea {
+    width: 100%;
+    min-height: 150px;
+    padding: var(--spacing-md);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-family: inherit;
+    resize: vertical;
+    margin-bottom: var(--spacing-sm);
+}
+
+.note-item {
+    background: var(--bg-white);
+    padding: var(--spacing-md);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-sm);
+}
+
+.note-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-sm);
+}
+
+.note-time {
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.delete-note {
+    border: none;
+    background: transparent;
+    color: var(--error-color);
+    cursor: pointer;
+    padding: 0.25rem;
+}
+
+/* Q&A Section */
+.qa-item {
+    background: var(--bg-white);
+    padding: var(--spacing-md);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.qa-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-sm);
+}
+
+.qa-user {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 0.875rem;
+}
+
+.user-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.qa-time {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.qa-vote {
+    padding: 0.375rem 0.75rem;
+    border: 1px solid var(--border-color);
+    background: var(--bg-white);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.qa-vote:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.qa-question {
+    color: var(--text-primary);
+    font-weight: 500;
+    margin-bottom: var(--spacing-sm);
+}
+
+.qa-answer {
+    padding: var(--spacing-sm);
+    background: var(--bg-gray-50);
+    border-radius: var(--radius-md);
+    margin-top: var(--spacing-sm);
+}
+
+.answer-label {
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 0.375rem;
+}
+
+/* Resources */
+.resource-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--bg-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-sm);
+}
+
+.resource-item i {
+    font-size: 2rem;
+    color: var(--primary-color);
+}
+
+.resource-info {
+    flex: 1;
+}
+
+.resource-info h4 {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.resource-info span {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+/* Sidebar */
+.player-sidebar {
+    background: var(--bg-white);
+    border-left: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.sidebar-header {
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sidebar-header h3 {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.progress-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 3px solid var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: var(--primary-color);
+    font-size: 0.875rem;
+}
+
+.curriculum-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--spacing-sm);
+}
+
+.curriculum-section {
+    margin-bottom: var(--spacing-sm);
+}
+
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    font-weight: 600;
+    color: var(--text-primary);
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    transition: var(--transition);
+}
+
+.section-title:hover {
+    background: var(--bg-gray-50);
+}
+
+.section-title i {
+    color: var(--text-secondary);
+}
+
+.lessons-list {
+    padding-left: var(--spacing-md);
+}
+
+.lesson-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    transition: var(--transition);
+    font-size: 0.9375rem;
+}
+
+.lesson-item:hover {
+    background: var(--bg-gray-50);
+}
+
+.lesson-item.active {
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.lesson-item.completed i {
+    color: var(--success-color);
+}
+
+.lesson-item.active i {
+    color: var(--primary-color);
+}
+
+.lesson-item.locked {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.lesson-item .duration {
+    margin-left: auto;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.sidebar-footer {
+    padding: var(--spacing-md);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+/* Responsive */
+@media (max-width: 968px) {
+    .player-layout {
+        grid-template-columns: 1fr;
+        height: auto;
+    }
+    
+    .player-sidebar {
+        border-left: none;
+        border-top: 1px solid var(--border-color);
+        max-height: 400px;
+    }
+    
+    .player-nav-left {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .lesson-header {
+        flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+}

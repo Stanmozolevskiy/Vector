@@ -1,0 +1,149 @@
+.feedback-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 2rem;
+}
+
+.feedback-modal {
+  background: white;
+  border-radius: 12px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.feedback-modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.feedback-modal-close:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.feedback-modal-header {
+  padding: 2rem 2rem 1rem 2rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.feedback-modal-header h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.5rem 0;
+}
+
+.feedback-interview-details {
+  font-size: 0.9375rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.feedback-coaching-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 2rem;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.feedback-coaching-section span {
+  font-size: 0.9375rem;
+  color: #374151;
+}
+
+.btn-try-coaching {
+  padding: 0.5rem 1rem;
+  background: #7c3aed;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-try-coaching:hover {
+  background: #6d28d9;
+}
+
+.feedback-content {
+  padding: 2rem;
+}
+
+.feedback-section-item {
+  margin-bottom: 2rem;
+}
+
+.feedback-section-item:last-child {
+  margin-bottom: 0;
+}
+
+.feedback-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.feedback-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.star-rating {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.star-rating i {
+  font-size: 1rem;
+  color: #d1d5db;
+}
+
+.star-rating i.filled {
+  color: #fbbf24;
+}
+
+.feedback-section-description {
+  font-size: 0.9375rem;
+  color: #374151;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.feedback-section-text {
+  font-size: 0.9375rem;
+  color: #374151;
+  margin: 0.5rem 0 0 0;
+  line-height: 1.6;
+}
+

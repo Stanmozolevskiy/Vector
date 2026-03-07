@@ -64,9 +64,6 @@ services:
         value: Staging
       - key: ASPNETCORE_URLS
         value: http://+:80
-      # QA: auto-verify emails so new registrations can log in without verification link
-      - key: Development__AutoVerifyEmails
-        value: "true"
 
       # Auto-wired from managed database
       - key: ConnectionStrings__DefaultConnection
@@ -138,8 +135,6 @@ services:
         value: Production
       - key: ASPNETCORE_URLS
         value: http://+:80
-      - key: Development__AutoVerifyEmails
-        value: "false"
 
       - key: ConnectionStrings__DefaultConnection
         fromDatabase:

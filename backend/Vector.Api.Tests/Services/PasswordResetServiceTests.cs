@@ -19,7 +19,6 @@ public class PasswordResetServiceTests : IDisposable
     private readonly Mock<IJwtService> _jwtServiceMock;
     private readonly Mock<IEmailService> _emailServiceMock;
     private readonly Mock<ILogger<AuthService>> _loggerMock;
-    private readonly Mock<IServiceProvider> _serviceProviderMock;
     private readonly AuthService _authService;
 
     public PasswordResetServiceTests()
@@ -41,7 +40,6 @@ public class PasswordResetServiceTests : IDisposable
         _authService = new AuthService(
             _context,
             _emailServiceMock.Object,
-            _serviceProviderMock.Object,
             _loggerMock.Object,
             _jwtServiceMock.Object,
             redisServiceMock.Object

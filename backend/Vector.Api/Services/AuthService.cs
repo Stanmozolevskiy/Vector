@@ -12,7 +12,6 @@ public class AuthService : IAuthService
 {
     private readonly ApplicationDbContext _context;
     private readonly IEmailService _emailService;
-    private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<AuthService> _logger;
     private readonly IJwtService _jwtService;
     private readonly IRedisService _redisService;
@@ -20,14 +19,12 @@ public class AuthService : IAuthService
     public AuthService(
         ApplicationDbContext context, 
         IEmailService emailService, 
-        IServiceProvider serviceProvider, 
         ILogger<AuthService> logger,
         IJwtService jwtService,
         IRedisService redisService)
     {
         _context = context;
         _emailService = emailService;
-        _serviceProvider = serviceProvider;
         _logger = logger;
         _jwtService = jwtService;
         _redisService = redisService;
@@ -44,11 +41,7 @@ public class AuthService : IAuthService
             throw new InvalidOperationException("A user with this email already exists.");
         }
 
-        // Create new user
-        // Auto-verify emails in development when SendGrid is not available
-        var autoVerifyEmails = _serviceProvider.GetRequiredService<IConfiguration>()
-            .GetValue<bool>("Development:AutoVerifyEmails", true);
-        
+        // Create new user (email verification required before login)
         var user = new User
         {
             Id = Guid.NewGuid(),
@@ -57,7 +50,7 @@ public class AuthService : IAuthService
             FirstName = dto.FirstName,
             LastName = dto.LastName,
             Role = "student",
-            EmailVerified = autoVerifyEmails, // Auto-verify in development
+            EmailVerified = false,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -65,54 +58,36 @@ public class AuthService : IAuthService
         // Save to database
         _context.Users.Add(user);
 
-        // Only create verification token if not auto-verifying
-        if (!autoVerifyEmails)
+        // Generate email verification token and send verification email
+        var verificationToken = Guid.NewGuid().ToString() + Guid.NewGuid().ToString();
+        var emailVerification = new EmailVerification
         {
-            // Generate email verification token
-            var verificationToken = Guid.NewGuid().ToString() + Guid.NewGuid().ToString();
-            var emailVerification = new EmailVerification
-            {
-                Id = Guid.NewGuid(),
-                UserId = user.Id,
-                Token = verificationToken,
-                ExpiresAt = DateTime.UtcNow.AddDays(7), // Token expires in 7 days
-                IsUsed = false,
-                CreatedAt = DateTime.UtcNow
-            };
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            Token = verificationToken,
+            ExpiresAt = DateTime.UtcNow.AddDays(7), // Token expires in 7 days
+            IsUsed = false,
+            CreatedAt = DateTime.UtcNow
+        };
 
-            _context.EmailVerifications.Add(emailVerification);
-            await _context.SaveChangesAsync();
+        _context.EmailVerifications.Add(emailVerification);
+        await _context.SaveChangesAsync();
 
-            // Send verification email (fire and forget - don't wait for it)
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    _logger.LogWarning("=== STARTING EMAIL SEND TASK ===");
-                    _logger.LogWarning("Attempting to send verification email to {Email}", user.Email);
-                    _logger.LogWarning("Verification token: {Token}", verificationToken);
-                    
-                    await _emailService.SendVerificationEmailAsync(user.Email, verificationToken);
-                    
-                    _logger.LogWarning("Verification email task completed successfully for {Email}", user.Email);
-                    _logger.LogWarning("=== EMAIL SEND TASK COMPLETED ===");
-                }
-                catch (Exception ex)
-                {
-                    // Log error but don't fail registration
-                    _logger.LogError(ex, "=== EMAIL SEND TASK FAILED ===");
-                    _logger.LogError("Failed to send verification email to {Email}. Error: {Message}", user.Email, ex.Message);
-                    _logger.LogError("Exception type: {ExceptionType}", ex.GetType().Name);
-                    _logger.LogError("Stack trace: {StackTrace}", ex.StackTrace);
-                    _logger.LogError("=== END EMAIL SEND TASK ERROR ===");
-                }
-            });
-        }
-        else
+        // Send verification email (fire and forget - don't wait for it)
+        _ = Task.Run(async () =>
         {
-            await _context.SaveChangesAsync();
-            _logger.LogInformation("User {Email} registered with auto-verified email (development mode)", user.Email);
-        }
+            try
+            {
+                _logger.LogInformation("Sending verification email to {Email}", user.Email);
+                await _emailService.SendVerificationEmailAsync(user.Email, verificationToken);
+                _logger.LogInformation("Verification email sent to {Email}", user.Email);
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't fail registration
+                _logger.LogError(ex, "Failed to send verification email to {Email}. Error: {Message}", user.Email, ex.Message);
+            }
+        });
 
         return user;
     }

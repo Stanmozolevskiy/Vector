@@ -44,7 +44,6 @@ public class RefreshTokenTests : IDisposable
             .AddInMemoryCollection(configData!)
             .Build();
 
-        var serviceProviderMock = new Mock<IServiceProvider>();
         var redisServiceMock = new Mock<IRedisService>();
         redisServiceMock.Setup(r => r.IsTokenBlacklistedAsync(It.IsAny<string>()))
             .ReturnsAsync(false);
@@ -56,7 +55,6 @@ public class RefreshTokenTests : IDisposable
         _authService = new AuthService(
             _context,
             _emailServiceMock.Object,
-            serviceProviderMock.Object,
             _loggerMock.Object,
             _jwtServiceMock.Object,
             redisServiceMock.Object

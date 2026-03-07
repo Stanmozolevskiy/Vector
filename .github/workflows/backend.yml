@@ -81,17 +81,19 @@ jobs:
     if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
     environment:
       name: qa
-      url: https://vector-backend-qa.onrender.com
+      url: https://qa-api.try-vector.com
 
     steps:
       - name: Trigger Render deploy — QA backend
         run: |
+          HOOK="${{ secrets.RENDER_DEPLOY_HOOK_BACKEND_QA }}"
+          if [ -z "$HOOK" ]; then
+            echo "::error::RENDER_DEPLOY_HOOK_BACKEND_QA secret is not set. Add it in Settings → Secrets."
+            exit 1
+          fi
           echo "Triggering QA backend deployment on Render..."
-          curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_BACKEND_QA }}" \
-            --fail \
-            --silent \
-            --show-error
-          echo "QA backend deploy triggered. Monitor: https://dashboard.render.com"
+          curl -X POST "$HOOK" --fail --silent --show-error
+          echo "QA backend deploy triggered."
 
   # ─────────────────────────────────────────
   # Job 3: Deploy to Production (main only)
@@ -103,14 +105,16 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment:
       name: production
-      url: https://vector-backend-prod.onrender.com
+      url: https://api.try-vector.com
 
     steps:
       - name: Trigger Render deploy — Production backend
         run: |
+          HOOK="${{ secrets.RENDER_DEPLOY_HOOK_BACKEND_PROD }}"
+          if [ -z "$HOOK" ]; then
+            echo "::error::RENDER_DEPLOY_HOOK_BACKEND_PROD secret is not set. Add it in Settings → Secrets."
+            exit 1
+          fi
           echo "Triggering Production backend deployment on Render..."
-          curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_BACKEND_PROD }}" \
-            --fail \
-            --silent \
-            --show-error
-          echo "Production backend deploy triggered. Monitor: https://dashboard.render.com"
+          curl -X POST "$HOOK" --fail --silent --show-error
+          echo "Production backend deploy triggered."

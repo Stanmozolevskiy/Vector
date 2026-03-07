@@ -245,7 +245,10 @@ builder.Services.AddCors(options =>
             "http://localhost:5173",
             "http://127.0.0.1:3000",
             "http://127.0.0.1:5173",
-            // Render deployed frontends
+            // Custom domain
+            "https://qa.try-vector.com",
+            "https://try-vector.com",
+            // Render fallback
             "https://vector-frontend-qa.onrender.com",
             "https://vector-frontend-prod.onrender.com"
         }.Where(o => !string.IsNullOrEmpty(o)).Distinct().ToArray();

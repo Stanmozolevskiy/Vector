@@ -92,9 +92,9 @@ services:
       - key: Jwt__RefreshTokenExpirationDays
         value: "30"
 
-      # Frontend URL for CORS — matches the QA frontend service name below
+      # Frontend URL for CORS — custom domain
       - key: Frontend__Url
-        value: https://vector-frontend-qa.onrender.com
+        value: https://qa.try-vector.com
 
       # ⚠️  Fill these in the Render dashboard after deployment
       - key: SendGrid__ApiKey
@@ -163,7 +163,7 @@ services:
         value: "30"
 
       - key: Frontend__Url
-        value: https://vector-frontend-prod.onrender.com
+        value: https://try-vector.com
 
       - key: SendGrid__ApiKey
         sync: false
@@ -210,9 +210,8 @@ services:
         source: /*
         destination: /index.html
     envVars:
-      # Points to the QA backend — matches service name above
       - key: VITE_API_URL
-        value: https://vector-backend-qa.onrender.com/api
+        value: https://qa-api.try-vector.com/api
 
   # ── Frontend Static Site (Production) ─────
   - type: web
@@ -234,4 +233,4 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_URL
-        value: https://vector-backend-prod.onrender.com/api
+        value: https://api.try-vector.com/api

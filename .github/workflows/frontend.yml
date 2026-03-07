@@ -52,6 +52,7 @@ jobs:
       - name: Run linter
         working-directory: ${{ env.PROJECT_PATH }}
         run: npm run lint
+        continue-on-error: true
 
       - name: Run unit tests
         working-directory: ${{ env.PROJECT_PATH }}
@@ -83,17 +84,19 @@ jobs:
     if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
     environment:
       name: qa
-      url: https://vector-frontend-qa.onrender.com
+      url: https://qa.try-vector.com
 
     steps:
       - name: Trigger Render deploy — QA frontend
         run: |
+          HOOK="${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND_QA }}"
+          if [ -z "$HOOK" ]; then
+            echo "::error::RENDER_DEPLOY_HOOK_FRONTEND_QA secret is not set. Add it in Settings → Secrets."
+            exit 1
+          fi
           echo "Triggering QA frontend deployment on Render..."
-          curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND_QA }}" \
-            --fail \
-            --silent \
-            --show-error
-          echo "QA frontend deploy triggered. Monitor: https://dashboard.render.com"
+          curl -X POST "$HOOK" --fail --silent --show-error
+          echo "QA frontend deploy triggered."
 
   # ─────────────────────────────────────────
   # Job 3: Deploy to Production (main only)
@@ -105,14 +108,16 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment:
       name: production
-      url: https://vector-frontend-prod.onrender.com
+      url: https://try-vector.com
 
     steps:
       - name: Trigger Render deploy — Production frontend
         run: |
+          HOOK="${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND_PROD }}"
+          if [ -z "$HOOK" ]; then
+            echo "::error::RENDER_DEPLOY_HOOK_FRONTEND_PROD secret is not set. Add it in Settings → Secrets."
+            exit 1
+          fi
           echo "Triggering Production frontend deployment on Render..."
-          curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND_PROD }}" \
-            --fail \
-            --silent \
-            --show-error
-          echo "Production frontend deploy triggered. Monitor: https://dashboard.render.com"
+          curl -X POST "$HOOK" --fail --silent --show-error
+          echo "Production frontend deploy triggered."

@@ -44,7 +44,6 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
-      - Development__AutoVerifyEmails=true
       - ConnectionStrings__DefaultConnection=Host=postgres;Database=vector_db;Username=postgres;Password=postgres
       - ConnectionStrings__Redis=redis:6379
       - Jwt__Secret=${JWT_SECRET:-your-super-secret-key-change-in-production}
@@ -54,10 +53,14 @@ services:
       - SendGrid__ApiKey=${SENDGRID_API_KEY}
       - SendGrid__FromEmail=${SENDGRID_FROM_EMAIL:-stanmozolevskiy90@gmail.com}
       - SendGrid__FromName=${SENDGRID_FROM_NAME:-Vector}
+      # Storage: use S3-compatible path with placeholders so app starts without real AWS creds.
+      # File uploads will fail until real R2/S3 credentials are provided.
+      - Storage__ServiceUrl=${STORAGE_SERVICE_URL:-https://localhost}
+      - Storage__AccessKeyId=${STORAGE_ACCESS_KEY_ID:-local-placeholder}
+      - Storage__SecretAccessKey=${STORAGE_SECRET_ACCESS_KEY:-local-placeholder}
+      - Storage__BucketName=${STORAGE_BUCKET_NAME:-vector-uploads}
+      - Storage__PublicUrl=
       - AWS__Region=${AWS_REGION:-us-east-1}
-      - AWS__S3__BucketName=${AWS_S3_BUCKET_NAME:-dev-vector-user-uploads}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - Judge0__BaseUrl=${JUDGE0_BASE_URL:-https://ce.judge0.com}
       - Judge0__ApiKey=${JUDGE0_API_KEY:-}
     depends_on:

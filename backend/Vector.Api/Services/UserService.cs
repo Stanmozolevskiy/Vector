@@ -203,9 +203,15 @@ public class UserService : IUserService
                 return false;
             }
 
-            // Handle foreign key constraints by cleaning up related data
-            // Save changes before deleting user
-            await _context.SaveChangesAsync();
+            // InterviewFeedback has Restrict on Reviewer/Reviewee - must delete those records first
+            var feedbacksToDelete = await _context.InterviewFeedbacks
+                .Where(f => f.ReviewerId == userId || f.RevieweeId == userId)
+                .ToListAsync();
+            if (feedbacksToDelete.Count > 0)
+            {
+                _context.InterviewFeedbacks.RemoveRange(feedbacksToDelete);
+                await _context.SaveChangesAsync();
+            }
 
             // Now delete the user
             _context.Users.Remove(user);

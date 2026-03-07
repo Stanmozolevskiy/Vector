@@ -74,11 +74,57 @@ Migrations and seeding run automatically when the backend starts. If the DB is e
 | Issue | Cause | Fix |
 |-------|-------|-----|
 | "Invalid email or password" | No user with that email, or wrong password | Use `admin@vector.com` / `Admin@123` if you expect the seeded admin, or register first |
-| "Please verify your email" | New user, email not verified | On QA, `Development__AutoVerifyEmails` is `true` so new registrations are auto-verified. On prod, user must click the verification link. |
+| "Please verify your email" | New user, email not verified | User must click the verification link in their email. SendGrid must be configured on Render for emails to be sent. |
 | CORS error in browser | Frontend origin not allowed | Backend CORS includes Render frontend URLs; redeploy backend to pick up changes |
 | Network error / timeout | Backend not running or wrong URL | Verify backend URL in frontend (VITE_API_URL) and that the service is deployed |
 | 500 on login | Backend exception (DB, Redis, etc.) | Check backend logs for the exact error |
 | "Invalid port: -1" on login | PostgreSQL connection string missing port | Fixed in code — redeploy backend. Render URLs without explicit port now default to 5432. |
+
+---
+
+## SendGrid / Email Not Working (QA or Prod)
+
+If email works locally but not on QA or prod, the backend on Render is likely missing or misconfiguring SendGrid env vars.
+
+### 1. Verify env vars in Render Dashboard
+
+For **vector-backend-qa** and **vector-backend-prod** (each service has its own env vars):
+
+1. Go to [Render Dashboard](https://dashboard.render.com)
+2. Click **vector-backend-qa** (or **vector-backend-prod**)
+3. Go to **Environment** in the left sidebar
+4. Confirm these exist and have real values (not empty):
+   - `SendGrid__ApiKey` – must start with `SG.` (your SendGrid API key)
+   - `SendGrid__FromEmail` – must be a **verified sender** in SendGrid
+   - `SendGrid__FromName` – e.g. `Vector`
+
+`sync: false` means these are not in `render.yaml`; you must set them manually.
+
+### 2. Check startup logs
+
+1. Service → **Logs**
+2. Filter or search for `SendGrid`
+3. Expected when configured:
+   - `ApiKey length: 69` (or similar non-zero)
+   - `SendGrid email service initialized successfully!`
+   - `FromEmail: your@email.com`
+4. If misconfigured:
+   - `ApiKey length: 0` or `ApiKey IsNullOrEmpty: True`
+   - `SendGrid API Key is not configured. Email sending is disabled.`
+
+### 3. SendGrid sender verification
+
+- `SendGrid__FromEmail` must be a verified sender in SendGrid.
+- SendGrid Dashboard → **Settings** → **Sender Authentication**
+- Single Sender Verification: add and verify the email you use for `SendGrid__FromEmail`.
+
+### 4. Redeploy after changing env vars
+
+After adding or updating env vars, redeploy:
+
+- **Manual Deploy** → **Deploy latest commit**
+
+The backend reads these values at startup.
 
 ---
 

@@ -1,4 +1,5 @@
 # Render Blueprint — defines all Vector platform services for QA and Production.
+# (redeploy trigger)
 # Docs: https://render.com/docs/blueprint-spec
 #
 # How to use:

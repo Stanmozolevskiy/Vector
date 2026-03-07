@@ -31,7 +31,6 @@ public class PasswordResetServiceTests : IDisposable
         _jwtServiceMock = new Mock<IJwtService>();
         _emailServiceMock = new Mock<IEmailService>();
         _loggerMock = new Mock<ILogger<AuthService>>();
-        _serviceProviderMock = new Mock<IServiceProvider>();
         
         var redisServiceMock = new Mock<IRedisService>();
         redisServiceMock.Setup(r => r.StoreRefreshTokenAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<TimeSpan>()))

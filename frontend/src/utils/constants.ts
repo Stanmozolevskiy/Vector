@@ -26,4 +26,13 @@ export const ROUTES = {
   WHITEBOARD: '/whiteboard',
   LEADERBOARD: '/leaderboard',
   HOW_TO_EARN: '/how-to-earn',
+  // Footer / Coming soon
+  ABOUT: '/about',
+  CAREERS: '/careers',
+  BLOG: '/blog',
+  CONTACT: '/contact',
+  HELP: '/help',
+  TERMS: '/terms',
+  PRIVACY: '/privacy',
+  COOKIES: '/cookies',
 };

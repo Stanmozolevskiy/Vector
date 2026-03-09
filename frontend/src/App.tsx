@@ -34,6 +34,7 @@ import { lazy, Suspense } from 'react';
 const WhiteboardPage = lazy(() => import('./pages/whiteboard/WhiteboardPage').then(module => ({ default: module.WhiteboardPage })));
 const SystemDesignInterviewPage = lazy(() => import('./pages/system-design-interview/SystemDesignInterviewPage').then(module => ({ default: module.SystemDesignInterviewPage })));
 import UnauthorizedPage from './pages/UnauthorizedPage';
+import { ComingSoonPage } from './pages/ComingSoonPage';
 import { SessionNotificationManager } from './components/SessionNotificationManager';
 import { ROUTES } from './utils/constants';
 
@@ -204,6 +205,16 @@ function App() {
         
         {/* Unauthorized page */}
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
+
+        {/* Coming soon placeholder pages */}
+        <Route path={ROUTES.ABOUT} element={<ComingSoonPage />} />
+        <Route path={ROUTES.CAREERS} element={<ComingSoonPage />} />
+        <Route path={ROUTES.BLOG} element={<ComingSoonPage />} />
+        <Route path={ROUTES.CONTACT} element={<ComingSoonPage />} />
+        <Route path={ROUTES.HELP} element={<ComingSoonPage />} />
+        <Route path={ROUTES.TERMS} element={<ComingSoonPage />} />
+        <Route path={ROUTES.PRIVACY} element={<ComingSoonPage />} />
+        <Route path={ROUTES.COOKIES} element={<ComingSoonPage />} />
         </Routes>
       </BrowserRouter>
       </AuthProvider>

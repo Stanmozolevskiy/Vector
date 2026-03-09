@@ -18,15 +18,18 @@ public class AdminController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly ICoachService _coachService;
+    private readonly IS3Service _s3Service;
     private readonly ILogger<AdminController> _logger;
 
     public AdminController(
         ApplicationDbContext context, 
         ICoachService coachService,
+        IS3Service s3Service,
         ILogger<AdminController> logger)
     {
         _context = context;
         _coachService = coachService;
+        _s3Service = s3Service;
         _logger = logger;
     }
 
@@ -289,6 +292,95 @@ public class AdminController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Upload or replace dashboard video (admin only)
+    /// </summary>
+    [HttpPost("site-settings/dashboard-video/upload")]
+    [DisableRequestSizeLimit]
+    [RequestFormLimits(MultipartBodyLengthLimit = 250 * 1024 * 1024)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UploadDashboardVideo(IFormFile file, [FromForm] string? title = null, [FromForm] string? description = null)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest(new { message = "No file uploaded" });
+        }
+
+        var allowedTypes = new[] { "video/mp4", "video/webm", "video/quicktime" };
+        if (!allowedTypes.Contains(file.ContentType.ToLowerInvariant()))
+        {
+            return BadRequest(new { message = "Invalid file type. Only MP4, WebM, and MOV are allowed" });
+        }
+
+        if (file.Length > 250L * 1024 * 1024)
+        {
+            return BadRequest(new { message = "File size exceeds 250MB limit" });
+        }
+
+        try
+        {
+            var userId = GetCurrentUserId();
+            using var stream = file.OpenReadStream();
+            var url = await _s3Service.UploadFileAsync(stream, file.FileName, file.ContentType, "dashboard-videos");
+
+            await UpsertSettingAsync("DashboardVideoUrl", url, userId);
+            if (!string.IsNullOrEmpty(title))
+                await UpsertSettingAsync("DashboardVideoTitle", title, userId);
+            if (!string.IsNullOrEmpty(description))
+                await UpsertSettingAsync("DashboardVideoDescription", description, userId);
+
+            _logger.LogInformation("Dashboard video updated by admin {UserId}", userId);
+            return Ok(new { url, title = title ?? "Dashboard Video", description = description ?? "" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to upload dashboard video");
+            return StatusCode(500, new { message = "Failed to upload video" });
+        }
+    }
+
+    /// <summary>
+    /// Update dashboard video URL manually (admin only)
+    /// </summary>
+    [HttpPut("site-settings/dashboard-video")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> UpdateDashboardVideo([FromBody] UpdateDashboardVideoDto dto)
+    {
+        var userId = GetCurrentUserId();
+        if (!string.IsNullOrEmpty(dto.Url))
+            await UpsertSettingAsync("DashboardVideoUrl", dto.Url, userId);
+        if (dto.Title != null)
+            await UpsertSettingAsync("DashboardVideoTitle", dto.Title, userId);
+        if (dto.Description != null)
+            await UpsertSettingAsync("DashboardVideoDescription", dto.Description, userId);
+        return Ok(new { message = "Dashboard video updated" });
+    }
+
+    private async Task UpsertSettingAsync(string key, string value, Guid? userId)
+    {
+        var setting = await _context.SiteSettings.FirstOrDefaultAsync(s => s.Key == key);
+        if (setting == null)
+        {
+            setting = new SiteSetting
+            {
+                Id = Guid.NewGuid(),
+                Key = key,
+                Value = value,
+                UpdatedAt = DateTime.UtcNow,
+                UpdatedByUserId = userId
+            };
+            _context.SiteSettings.Add(setting);
+        }
+        else
+        {
+            setting.Value = value;
+            setting.UpdatedAt = DateTime.UtcNow;
+            setting.UpdatedByUserId = userId;
+        }
+        await _context.SaveChangesAsync();
+    }
+
     private Guid? GetCurrentUserId()
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
@@ -333,5 +425,12 @@ public class AdminController : ControllerBase
 public class UpdateRoleDto
 {
     public string Role { get; set; } = string.Empty;
+}
+
+public class UpdateDashboardVideoDto
+{
+    public string? Url { get; set; }
+    public string? Title { get; set; }
+    public string? Description { get; set; }
 }
 

@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { ROUTES } from '../../utils/constants';
 import { Navbar } from '../../components/layout/Navbar';
+import { Footer } from '../../components/layout/Footer';
+import { ImageCropModal } from '../../components/ImageCropModal';
 import api from '../../services/api';
 import { coachService } from '../../services/coach.service';
 import subscriptionService from '../../services/subscription.service';
@@ -44,6 +46,8 @@ export const ProfilePage = () => {
   });
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
   const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(null);
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -243,15 +247,26 @@ export const ProfilePage = () => {
         return;
       }
 
-      setProfilePicture(file);
-
       const reader = new FileReader();
       reader.onloadend = () => {
-        setProfilePicturePreview(reader.result as string);
+        setCropImageSrc(reader.result as string);
       };
       reader.readAsDataURL(file);
       setErrorMessage('');
     }
+    // Reset the file input so the same file can be re-selected
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleCropComplete = (croppedBlob: Blob) => {
+    const croppedFile = new File([croppedBlob], 'profile-picture.jpg', { type: 'image/jpeg' });
+    setProfilePicture(croppedFile);
+    setProfilePicturePreview(URL.createObjectURL(croppedBlob));
+    setCropImageSrc(null);
+  };
+
+  const handleCropCancel = () => {
+    setCropImageSrc(null);
   };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -267,25 +282,18 @@ export const ProfilePage = () => {
           const formData = new FormData();
           formData.append('file', profilePicture);
           
-          const response = await api.post('/users/me/profile-picture', formData, {
-            headers: { 
-              'Content-Type': 'multipart/form-data'
-            }
-          });
+          const response = await api.post('/users/me/profile-picture', formData);
           
           if (response.data?.profilePictureUrl) {
             setSuccessMessage('Profile picture updated successfully!');
-            // Update user context if available
-            if (user) {
-              user.profilePictureUrl = response.data.profilePictureUrl;
-            }
             setProfilePicture(null);
             setProfilePicturePreview(null);
           }
         } catch (uploadErr: unknown) {
           console.error('Failed to upload profile picture:', uploadErr);
-          const error = uploadErr as { response?: { data?: { error?: string } } };
-          setErrorMessage(error.response?.data?.error || 'Profile picture upload failed. Please try again.');
+          const errData = (uploadErr as { response?: { data?: Record<string, unknown> } })?.response?.data;
+          const msg = errData && (typeof errData.error === 'string' ? errData.error : typeof errData.message === 'string' ? errData.message : undefined);
+          setErrorMessage(msg || 'Profile picture upload failed. Please try again.');
           setIsSaving(false);
           return; // Stop if image upload fails
         }
@@ -293,7 +301,7 @@ export const ProfilePage = () => {
 
       // Update profile data
       await api.put('/users/me', profileData);
-      setSuccessMessage('Profile updated successfully!');
+      if (!profilePicture) setSuccessMessage('Profile updated successfully!');
 
       // Refresh user context to get updated data
       await refreshUser();
@@ -429,6 +437,7 @@ export const ProfilePage = () => {
                     <div className="profile-picture-actions">
                       <input
                         type="file"
+                        ref={fileInputRef}
                         id="pictureUpload"
                         accept="image/*"
                         style={{ display: 'none' }}
@@ -436,7 +445,7 @@ export const ProfilePage = () => {
                       />
                       <button
                         className="btn-primary"
-                        onClick={() => document.getElementById('pictureUpload')?.click()}
+                        onClick={() => fileInputRef.current?.click()}
                       >
                         <i className="fas fa-upload"></i> Upload New Picture
                       </button>
@@ -1198,45 +1207,18 @@ export const ProfilePage = () => {
         </div>
       )}
 
-      {/* Footer */}
-      <footer className="footer">
-        <div className="container">
-          <div className="footer-grid">
-            <div className="footer-col">
-              <div className="footer-brand">
-                <i className="fas fa-vector-square"></i>
-                <span>Vector</span>
-              </div>
-              <p>Master your interview skills.</p>
-            </div>
-            <div className="footer-col">
-              <h4>Product</h4>
-              <ul>
-                <li><a href="#courses">Courses</a></li>
-                <li><a href="#questions">Questions</a></li>
-                <li><a href="#interviews">Mock Interviews</a></li>
-              </ul>
-            </div>
-            <div className="footer-col">
-              <h4>Company</h4>
-              <ul>
-                <li><a href="#about">About</a></li>
-                <li><a href="#careers">Careers</a></li>
-              </ul>
-            </div>
-            <div className="footer-col">
-              <h4>Support</h4>
-              <ul>
-                <li><a href="#help">Help Center</a></li>
-                <li><a href="#terms">Terms</a></li>
-              </ul>
-            </div>
-          </div>
-          <div className="footer-bottom">
-            <p>&copy; 2025 Vector. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
+      {/* Image Crop Modal */}
+      {cropImageSrc && (
+        <ImageCropModal
+          imageSrc={cropImageSrc}
+          onCropComplete={handleCropComplete}
+          onCancel={handleCropCancel}
+          aspectRatio={1}
+          cropShape="round"
+        />
+      )}
+
+      <Footer variant="compact" />
     </div>
   );
 };

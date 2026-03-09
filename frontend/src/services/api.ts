@@ -2,9 +2,6 @@ import axios from 'axios';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
-  headers: {
-    'Content-Type': 'application/json',
-  },
 });
 
 // Track if we're currently refreshing to avoid infinite loops
@@ -149,6 +146,15 @@ api.interceptors.request.use(async (config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  // For FormData (file uploads): let the browser set multipart/form-data with boundary.
+  // For everything else: default to application/json.
+  if (!(config.data instanceof FormData)) {
+    if (!config.headers['Content-Type']) {
+      config.headers['Content-Type'] = 'application/json';
+    }
+  }
+
   return config;
 });
 

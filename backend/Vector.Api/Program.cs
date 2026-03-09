@@ -1,4 +1,6 @@
 using Amazon.S3;
+using Amazon.S3.Model;
+using Amazon.S3.Util;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -308,6 +310,7 @@ app.MapHub<Vector.Api.Hubs.CollaborationHub>("/api/collaboration");
 // Run database migrations and seed data automatically on startup
 // This works for all environments (dev, staging, prod) when running in containers
 var scope = app.Services.CreateScope();
+try
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
@@ -328,9 +331,30 @@ var scope = app.Services.CreateScope();
             var pendingMigrations = db.Database.GetPendingMigrations().ToList();
             if (pendingMigrations.Any())
             {
-                logger.LogInformation($"Applying {pendingMigrations.Count} pending migration(s)...");
-                db.Database.Migrate();
-                logger.LogInformation("Database migrations completed successfully.");
+                logger.LogInformation($"Applying {pendingMigrations.Count} pending migration(s): {string.Join(", ", pendingMigrations)}");
+                try
+                {
+                    db.Database.Migrate();
+                    logger.LogInformation("Database migrations completed successfully.");
+                }
+                catch (Exception migEx)
+                {
+                    logger.LogWarning(migEx, "Batch migration failed. Attempting individual migrations...");
+                    foreach (var migration in pendingMigrations)
+                    {
+                        try
+                        {
+                            using var migrationScope = app.Services.CreateScope();
+                            var migrationDb = migrationScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                            migrationDb.Database.Migrate();
+                            break;
+                        }
+                        catch (Exception indEx)
+                        {
+                            logger.LogWarning(indEx, "Migration {Migration} failed (may already be applied). Skipping.", migration);
+                        }
+                    }
+                }
             }
             else
             {
@@ -340,7 +364,6 @@ var scope = app.Services.CreateScope();
     }
     catch (Exception ex)
     {
-        // Log migration error but continue - database might already be up to date
         logger.LogWarning(ex, "Migration failed (this is OK if tables already exist). Continuing with seeding...");
     }
 
@@ -357,10 +380,41 @@ var scope = app.Services.CreateScope();
         logger.LogError(ex, "An error occurred while seeding the database. The application will continue to start.");
         logger.LogWarning("Admin user may not have been created. You can create it manually or restart the container.");
     }
-    finally
+    // Ensure S3 bucket exists when using custom provider (e.g. MinIO for local Docker)
+    var useCustomStorage = !string.IsNullOrEmpty(app.Configuration["Storage:ServiceUrl"]);
+    if (useCustomStorage)
     {
-        scope.Dispose();
+        try
+        {
+            var s3 = scope.ServiceProvider.GetRequiredService<IAmazonS3>();
+            var bucketName = app.Configuration["Storage:BucketName"] ?? "vector-uploads";
+            if (!await AmazonS3Util.DoesS3BucketExistV2Async(s3, bucketName))
+            {
+                await s3.PutBucketAsync(new PutBucketRequest { BucketName = bucketName });
+                logger.LogInformation("Created S3 bucket: {BucketName}", bucketName);
+            }
+
+            // For MinIO/R2: allow public read so stored URLs work without presigning
+            try
+            {
+                var policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"PublicReadOnly\",\"Effect\":\"Allow\",\"Principal\":{\"AWS\":[\"*\"]},\"Action\":[\"s3:GetObject\",\"s3:GetObjectVersion\"],\"Resource\":[\"arn:aws:s3:::" + bucketName + "/*\"]}]}";
+                await s3.PutBucketPolicyAsync(new PutBucketPolicyRequest { BucketName = bucketName, Policy = policy });
+                logger.LogInformation("Set public read policy on bucket: {BucketName}", bucketName);
+            }
+            catch (Exception ex)
+            {
+                logger.LogDebug(ex, "Could not set bucket policy (may already exist or provider may not support it)");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not ensure S3 bucket exists. Uploads may fail until bucket is created.");
+        }
     }
+}
+finally
+{
+    scope.Dispose();
 }
 
 app.Run();

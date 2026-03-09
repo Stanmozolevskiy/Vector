@@ -40,6 +40,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<QuestionBookmark> QuestionBookmarks { get; set; }
     public DbSet<DailyChallenge> DailyChallenges { get; set; }
     public DbSet<UserChallengeAttempt> UserChallengeAttempts { get; set; }
+    public DbSet<SiteSetting> SiteSettings { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -572,6 +573,14 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(e => e.CompletedAt); // For completion queries
         });
 
+        // Site settings (key-value for dashboard video, etc.)
+        modelBuilder.Entity<SiteSetting>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.Key).IsUnique();
+            entity.Property(e => e.Key).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Value).IsRequired();
+        });
     }
 }
 

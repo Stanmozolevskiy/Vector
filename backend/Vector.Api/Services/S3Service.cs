@@ -57,7 +57,7 @@ public class S3Service : IS3Service
             // For standard AWS S3, apply per-object ACLs as before.
             if (!_useCustomProvider)
             {
-                uploadRequest.CannedACL = (folder == "profile-pictures" || folder == "coach-applications" || folder == "question-videos")
+                uploadRequest.CannedACL = (folder == "profile-pictures" || folder == "coach-applications" || folder == "question-videos" || folder == "dashboard-videos")
                     ? S3CannedACL.PublicRead
                     : S3CannedACL.Private;
 

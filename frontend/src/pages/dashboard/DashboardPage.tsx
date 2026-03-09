@@ -1,17 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { ROUTES } from '../../utils/constants';
 import { Navbar } from '../../components/layout/Navbar';
+import { Footer } from '../../components/layout/Footer';
+import api from '../../services/api';
 import { analyticsService, type LearningAnalytics } from '../../services/analytics.service';
 import { peerInterviewService, type ScheduledInterviewSession } from '../../services/peerInterview.service';
 import challengeService, { type DailyChallengeResponse } from '../../services/challenge.service';
 import { RecommendationsPanel } from '../../components/recommendations/RecommendationsPanel';
+import { siteSettingsService, type DashboardVideoSettings } from '../../services/siteSettings.service';
 import '../../styles/style.css';
 import '../../styles/dashboard.css';
 
 export const DashboardPage = () => {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [analytics, setAnalytics] = useState<LearningAnalytics | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
@@ -19,6 +22,10 @@ export const DashboardPage = () => {
   const [interviewsLoading, setInterviewsLoading] = useState(true);
   const [dailyChallenge, setDailyChallenge] = useState<DailyChallengeResponse | null>(null);
   const [challengeLoading, setChallengeLoading] = useState(true);
+  const [dashboardVideo, setDashboardVideo] = useState<DashboardVideoSettings | null>(null);
+  const [videoUploading, setVideoUploading] = useState(false);
+  const [videoUploadError, setVideoUploadError] = useState('');
+  const videoFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -68,6 +75,14 @@ export const DashboardPage = () => {
         } finally {
           setChallengeLoading(false);
         }
+
+        // Load dashboard video (public - no auth needed)
+        try {
+          const videoData = await siteSettingsService.getDashboardVideo();
+          setDashboardVideo(videoData);
+        } catch (videoError) {
+          console.error('[Dashboard] Error loading dashboard video:', videoError);
+        }
       } catch (err) {
         console.error('Error loading dashboard data:', err);
       } finally {
@@ -78,6 +93,29 @@ export const DashboardPage = () => {
 
     loadDashboardData();
   }, [isAuthenticated]);
+
+  const handleReplaceVideo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setVideoUploadError('');
+    setVideoUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const { data } = await api.post<{ url: string; title: string; description: string }>(
+        '/admin/site-settings/dashboard-video/upload',
+        formData
+      );
+      setDashboardVideo({ url: data.url, title: data.title || dashboardVideo?.title || '', description: data.description || dashboardVideo?.description || '' });
+    } catch (err: unknown) {
+      const ex = err as { response?: { data?: { message?: string } } };
+      setVideoUploadError(ex.response?.data?.message || 'Failed to upload video');
+    } finally {
+      setVideoUploading(false);
+      e.target.value = '';
+      if (videoFileInputRef.current) videoFileInputRef.current.value = '';
+    }
+  };
 
   if (isLoading) {
     return (
@@ -294,19 +332,51 @@ export const DashboardPage = () => {
                     controls 
                     style={{ width: '100%', borderRadius: '8px', marginBottom: '1rem' }}
                     poster=""
+                    key={dashboardVideo?.url}
                   >
                     <source 
-                      src="https://dev-vector-user-uploads.s3.us-east-1.amazonaws.com/videos/mock-interviews/what-is-exponent.mp4" 
+                      src={dashboardVideo?.url ?? 'https://dev-vector-user-uploads.s3.us-east-1.amazonaws.com/videos/mock-interviews/what-is-exponent.mp4'} 
                       type="video/mp4" 
                     />
                     Your browser does not support the video tag.
                   </video>
                   <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem', color: 'var(--text-primary)' }}>
-                    What Is Exponent? - Introduction to Mock Interviews
+                    {dashboardVideo?.title ?? 'What Is Exponent? - Introduction to Mock Interviews'}
                   </h4>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', margin: '0' }}>
-                    Learn how to prepare for technical interviews effectively with this introduction to mock interviews.
+                    {dashboardVideo?.description ?? 'Learn how to prepare for technical interviews effectively with this introduction to mock interviews.'}
                   </p>
+                  {isAdmin && (
+                    <div style={{ marginTop: '1rem' }}>
+                      <input
+                        ref={videoFileInputRef}
+                        type="file"
+                        accept="video/mp4,video/webm,video/quicktime"
+                        onChange={handleReplaceVideo}
+                        style={{ display: 'none' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => videoFileInputRef.current?.click()}
+                        disabled={videoUploading}
+                        style={{
+                          padding: '0.5rem 1rem',
+                          background: 'var(--primary-color)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: videoUploading ? 'not-allowed' : 'pointer',
+                          fontSize: '0.875rem',
+                          fontWeight: 500,
+                        }}
+                      >
+                        {videoUploading ? 'Uploading...' : 'Replace Video'}
+                      </button>
+                      {videoUploadError && (
+                        <p style={{ color: '#dc2626', fontSize: '0.75rem', marginTop: '0.5rem' }}>{videoUploadError}</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -425,45 +495,7 @@ export const DashboardPage = () => {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="footer">
-        <div className="container">
-          <div className="footer-grid">
-            <div className="footer-col">
-              <div className="footer-brand">
-                <i className="fas fa-vector-square"></i>
-                <span>Vector</span>
-              </div>
-              <p>Master your interview skills.</p>
-            </div>
-            <div className="footer-col">
-              <h4>Product</h4>
-              <ul>
-                <li><a href="#courses">Courses</a></li>
-                <li><a href="#questions">Questions</a></li>
-                <li><a href="#interviews">Mock Interviews</a></li>
-              </ul>
-            </div>
-            <div className="footer-col">
-              <h4>Company</h4>
-              <ul>
-                <li><a href="#about">About</a></li>
-                <li><a href="#careers">Careers</a></li>
-              </ul>
-            </div>
-            <div className="footer-col">
-              <h4>Support</h4>
-              <ul>
-                <li><a href="#help">Help Center</a></li>
-                <li><a href="#terms">Terms</a></li>
-              </ul>
-            </div>
-          </div>
-          <div className="footer-bottom">
-            <p>&copy; 2025 Vector. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
+      <Footer variant="compact" />
     </div>
   );
 };

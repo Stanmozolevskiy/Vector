@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { ROUTES } from '../../utils/constants';
+import { Footer } from '../../components/layout/Footer';
 import '../../styles/style.css';
 
 const IndexPageNavbar = () => {
@@ -253,56 +254,7 @@ export const IndexPage = () => {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="footer">
-        <div className="container">
-          <div className="footer-grid">
-            <div className="footer-col">
-              <div className="footer-brand">
-                <i className="fas fa-vector-square"></i>
-                <span>Vector</span>
-              </div>
-              <p>Master your interview skills and land your dream job with expert guidance and realistic practice.</p>
-              <div className="social-links">
-                <a href="#"><i className="fab fa-twitter"></i></a>
-                <a href="#"><i className="fab fa-linkedin"></i></a>
-                <a href="#"><i className="fab fa-youtube"></i></a>
-                <a href="#"><i className="fab fa-instagram"></i></a>
-              </div>
-            </div>
-            <div className="footer-col">
-              <h4>Product</h4>
-              <ul>
-                <li><a href="#courses">Courses</a></li>
-                <li><a href="#questions">Question Bank</a></li>
-                <li><a href="#interviews">Mock Interviews</a></li>
-                <li><a href="#pricing">Pricing</a></li>
-              </ul>
-            </div>
-            <div className="footer-col">
-              <h4>Company</h4>
-              <ul>
-                <li><a href="#about">About Us</a></li>
-                <li><a href="#careers">Careers</a></li>
-                <li><a href="#blog">Blog</a></li>
-                <li><a href="#contact">Contact</a></li>
-              </ul>
-            </div>
-            <div className="footer-col">
-              <h4>Support</h4>
-              <ul>
-                <li><a href="#help">Help Center</a></li>
-                <li><a href="#terms">Terms of Service</a></li>
-                <li><a href="#privacy">Privacy Policy</a></li>
-                <li><a href="#cookies">Cookie Policy</a></li>
-              </ul>
-            </div>
-          </div>
-          <div className="footer-bottom">
-            <p>&copy; 2025 Vector. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
+      <Footer variant="full" />
     </div>
   );
 };

@@ -27,7 +27,8 @@ public class AdminControllerTests : IDisposable
         _context = new ApplicationDbContext(options);
         _logger = new LoggerFactory().CreateLogger<AdminController>();
         var coachServiceMock = new Mock<ICoachService>();
-        _controller = new AdminController(_context, coachServiceMock.Object, _logger);
+        var s3ServiceMock = new Mock<IS3Service>();
+        _controller = new AdminController(_context, coachServiceMock.Object, s3ServiceMock.Object, _logger);
     }
 
     public void Dispose()

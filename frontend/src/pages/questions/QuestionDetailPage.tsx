@@ -51,7 +51,7 @@ export const QuestionDetailPage = () => {
   const [errorMarkers, setErrorMarkers] = useState<Array<{ line: number; column?: number; endColumn?: number; message: string }>>([]);
   const [selectedCaseIndex, setSelectedCaseIndex] = useState<number>(1);
   const [parameterNames, setParameterNames] = useState<string[]>([]);
-  const [parameterCount, setParameterCount] = useState<number>(2); // Default to 2 for twoSum
+  const [parameterCount, setParameterCount] = useState<number>(1);
   const [selectedTestLine, setSelectedTestLine] = useState<number | null>(null);
   const [cursorLine, setCursorLine] = useState<number>(1);
   const [cursorColumn, setCursorColumn] = useState<number>(1);
@@ -620,7 +620,7 @@ export const QuestionDetailPage = () => {
     const timeoutId = setTimeout(() => {
       const params = extractParameterNames(code, selectedLanguage);
       setParameterNames(params);
-      setParameterCount(params.length > 0 ? params.length : 2);
+      setParameterCount(params.length > 0 ? params.length : 1);
     }, 300); // Debounce parameter extraction
 
     return () => clearTimeout(timeoutId);
@@ -637,16 +637,16 @@ export const QuestionDetailPage = () => {
 
   // Extract parameter names from function signature
   const extractParameterNames = (code: string, language: string): string[] => {
+    if (!code) return [];
     const lang = language.toLowerCase();
+    try {
     
     if (lang === 'javascript' || lang === 'js' || lang === 'nodejs') {
-      // Match: function name(params) or var name = function(params) or const name = (params) =>
       const patterns = [
         /(?:var|let|const)\s+\w+\s*=\s*(?:function\s*)?\(([^)]*)\)/,
         /function\s+\w+\s*\(([^)]*)\)/,
         /\w+\s*=\s*\(([^)]*)\)\s*=>/
       ];
-      
       for (const pattern of patterns) {
         const match = code.match(pattern);
         if (match && match[1]) {
@@ -654,15 +654,65 @@ export const QuestionDetailPage = () => {
         }
       }
     } else if (lang === 'python' || lang === 'python3') {
-      // Match: def function_name(params):
-      const match = code.match(/def\s+\w+\s*\(([^)]*)\)/);
+      // Match module-level def (not indented) — skip __dunder__ methods
+      const matches = [...code.matchAll(/^def\s+(\w+)\s*\(([^)]*)\)/gm)];
+      for (let i = matches.length - 1; i >= 0; i--) {
+        const name = matches[i][1];
+        if (!name.startsWith('__')) {
+          return matches[i][2]
+            .split(',')
+            .map(p => p.trim().split('=')[0].trim().replace(/\*+/, ''))
+            .filter(p => p.length > 0 && p !== 'self');
+        }
+      }
+    } else if (lang === 'cpp' || lang === 'c++') {
+      // Match: ReturnType* methodName(TypeA* paramA, TypeB paramB)
+      const matches = [...code.matchAll(/\w+[\s*]+(\w+)\s*\(([^)]*)\)\s*\{/g)];
+      if (matches.length > 0) {
+        const last = matches[matches.length - 1];
+        return last[2]
+          .split(',')
+          .map(p => p.trim().split(/\s+/).pop()?.replace(/[*&]/g, '') ?? '')
+          .filter(p => p.length > 0);
+      }
+    } else if (lang === 'java') {
+      // Match: public ReturnType methodName(TypeA paramA, TypeB paramB)
+      const matches = [...code.matchAll(/(?:public|private|protected)?\s+\w+\s+(\w+)\s*\(([^)]*)\)\s*\{/g)];
+      for (let i = matches.length - 1; i >= 0; i--) {
+        const params = matches[i][2].trim();
+        if (params) {
+          return params
+            .split(',')
+            .map(p => p.trim().split(/\s+/).pop() ?? '')
+            .filter(p => p.length > 0);
+        }
+      }
+    } else if (lang === 'csharp' || lang === 'c#') {
+      const matches = [...code.matchAll(/(?:public|private|protected)?\s+\w+\s+(\w+)\s*\(([^)]*)\)\s*\{/g)];
+      for (let i = matches.length - 1; i >= 0; i--) {
+        const params = matches[i][2].trim();
+        if (params) {
+          return params
+            .split(',')
+            .map(p => p.trim().split(/\s+/).pop() ?? '')
+            .filter(p => p.length > 0);
+        }
+      }
+    } else if (lang === 'go' || lang === 'golang') {
+      const match = code.match(/func\s+\w+\s*\(([^)]*)\)/);
       if (match && match[1]) {
-        return match[1].split(',').map(p => p.trim().split('=')[0].trim()).filter(p => p.length > 0);
+        return match[1]
+          .split(',')
+          .map(p => p.trim().split(/\s+/)[0]?.replace(/[*&]/g, '') ?? '')
+          .filter(p => p.length > 0);
       }
     }
     
-    // Default fallback
-    return ['nums', 'target']; // For twoSum
+    // Default fallback: return empty so parameterCount defaults to 1
+    return [];
+    } catch {
+      return [];
+    }
   };
 
   // Parse and validate testcases
@@ -739,18 +789,9 @@ export const QuestionDetailPage = () => {
       return { valid: true };
     }
 
-    // For coding questions, check if divisible by parameter count
-    if (lines.length % parameterCount !== 0) {
-      const incompleteCaseStartLine = ((lines.length / parameterCount) | 0) * parameterCount + 1;
-      return {
-        valid: false,
-        error: {
-          type: 'INCOMPLETE_CASE',
-          message: `Expected ${parameterCount} lines per testcase. Found incomplete testcase at end (starting at line ${incompleteCaseStartLine}).`,
-          lineNumber: incompleteCaseStartLine
-        }
-      };
-    }
+    // Note: we no longer validate the line-count divisibility here on the frontend.
+    // The backend performs that check with the authoritative parameterCount extracted
+    // from the submitted source code, so any frontend mismatch just caused false errors.
 
     // Try to parse each line as JSON
     for (const lineInfo of lines) {
@@ -3080,15 +3121,13 @@ export const QuestionDetailPage = () => {
                               </div>
                             </div>
 
-                            {/* Stdout (always show section, even if empty) */}
-                            <div className="case-detail-section" style={{ marginBottom: '16px' }}>
-                              <strong style={{ display: 'block', marginBottom: '8px', fontSize: '0.875rem', color: '#374151' }}>Stdout:</strong>
-                              {selectedCase.stdout && selectedCase.stdout.trim() !== '' ? (
+                            {/* Stdout - only show when there is output */}
+                            {selectedCase.stdout && selectedCase.stdout.trim() !== '' && (
+                              <div className="case-detail-section" style={{ marginBottom: '16px' }}>
+                                <strong style={{ display: 'block', marginBottom: '8px', fontSize: '0.875rem', color: '#374151' }}>Stdout:</strong>
                                 <pre className="case-output-pre" style={{ backgroundColor: '#f9fafb', padding: '12px', borderRadius: '6px', fontFamily: 'monospace', fontSize: '0.875rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowX: 'auto' }}>{selectedCase.stdout}</pre>
-                              ) : (
-                                <pre className="case-output-pre" style={{ backgroundColor: '#f9fafb', padding: '12px', borderRadius: '6px', fontFamily: 'monospace', fontSize: '0.875rem', color: '#9ca3af', fontStyle: 'italic' }}>(no stdout)</pre>
-                              )}
-                            </div>
+                              </div>
+                            )}
 
                             {/* Output */}
                             {selectedCase.output !== undefined && selectedCase.output !== null && (

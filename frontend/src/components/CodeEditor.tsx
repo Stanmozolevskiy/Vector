@@ -250,12 +250,16 @@ export const CodeEditor = ({
     }
 
     // Create markers from errorMarkers prop
+    // Monaco uses 1-based line numbers; getLineLength throws "Illegal value for LineNumber" if invalid
+    const lineCount = model.getLineCount();
     const markers = errorMarkers.map((error) => {
-      const lineLength = model.getLineLength(error.line) || 1;
+      const rawLine = Math.floor(Number(error.line)) || 1;
+      const safeLine = Math.max(1, Math.min(rawLine, lineCount));
+      const lineLength = model.getLineLength(safeLine) || 1;
       return {
-        startLineNumber: error.line,
+        startLineNumber: safeLine,
         startColumn: error.column || 1,
-        endLineNumber: error.line,
+        endLineNumber: safeLine,
         endColumn: error.endColumn || lineLength + 1,
         message: error.message,
         severity: monacoRef.current.MarkerSeverity.Error,

@@ -1,11 +1,11 @@
 # Vector Backend API
 
-**Version:** 1.0  
-**Last Updated:** December 6, 2025
+**Version:** 2.0 (Stage 2)  
+**Last Updated:** March 2026
 
 ## Overview
 
-The Vector Backend API is built with ASP.NET Core 8.0 and provides RESTful endpoints for user management, authentication, subscriptions, and more. The API uses PostgreSQL for data persistence, Redis for caching, and AWS S3 for file storage.
+The Vector Backend API is built with ASP.NET Core 8.0 and provides RESTful endpoints for user management, authentication, LeetCode-style problem solving, peer mock interviews, analytics, and gamification. Uses PostgreSQL, Redis, S3-compatible storage (MinIO/R2), and Judge0 for code execution.
 
 ## Quick Start
 
@@ -46,21 +46,13 @@ backend/
 
 ## Current Status ✅
 
-The backend project includes:
-
-- ✅ .NET 8.0 Web API project
-- ✅ Entity Framework Core with PostgreSQL
-- ✅ JWT Authentication with refresh token rotation
-- ✅ Redis connection and caching
-- ✅ Swagger/OpenAPI documentation with XML comments
-- ✅ CORS configuration
-- ✅ Error handling middleware
-- ✅ Database models (User, Subscription, CoachApplication, EmailVerification, PasswordReset, RefreshToken)
-- ✅ ApplicationDbContext configured
-- ✅ 151 unit and integration tests (100% passing)
-- ✅ Optimized database queries with caching
-- ✅ Comprehensive error handling with ApiErrorResponse
-- ✅ Image upload validation and optimization
+- ✅ .NET 8.0 Web API, EF Core, PostgreSQL, Redis
+- ✅ JWT auth with refresh tokens, Swagger/OpenAPI
+- ✅ Question bank, code execution (Judge0), solution submission
+- ✅ Peer mock interviews (SignalR, WebRTC)
+- ✅ Analytics, coins/leaderboard gamification
+- ✅ S3-compatible storage (profile pics, videos)
+- ✅ 364+ unit tests (100% passing)
 
 ## API Endpoints
 
@@ -93,13 +85,18 @@ The backend project includes:
 - `GET /my-application` - Get application status
 
 ### Admin (`/api/admin`) - Requires Admin Role
-- `GET /users` - Get all users
-- `PUT /users/{userId}/role` - Update user role
-- `DELETE /users/{userId}` - Delete user
-- `GET /coach-applications/pending` - Get pending applications
-- `POST /coach-applications/{id}/review` - Review application
+- User management, coach application review
+- Dashboard video upload (`POST /site-settings/dashboard-video/upload`)
 
-See [API_DOCUMENTATION.md](../API_DOCUMENTATION.md) for detailed API documentation.
+### Stage 2 APIs
+- **Questions** (`/api/question`) - CRUD, bookmarks, test cases, solutions
+- **Code Execution** (`/api/codeexecution`) - Execute, validate (Judge0)
+- **Solutions** (`/api/solutions`) - Submit, history, statistics
+- **Peer Interviews** (`/api/peer-interviews`) - Match, sessions, feedback
+- **Analytics** (`/api/analytics`) - Progress, streaks, category/difficulty
+- **Coins** (`/api/coins`) - Leaderboard, transactions, achievements
+
+See [docs/API_DOCUMENTATION.md](../docs/API_DOCUMENTATION.md) for full API reference.
 
 ## Running the Application
 
@@ -138,8 +135,7 @@ dotnet test --collect:"XPlat Code Coverage"
 ```
 
 **Test Coverage:**
-- 134 unit tests (services and controllers)
-- 17 integration tests (API endpoints)
+- 364+ unit tests (services and controllers)
 - 100% passing
 
 ## Configuration
@@ -159,10 +155,9 @@ See [SECURITY_AUDIT.md](../SECURITY_AUDIT.md) for detailed security audit.
 
 ## Documentation
 
-- [API Documentation](../API_DOCUMENTATION.md) - Complete API reference
-- [Deployment Guide](../DEPLOYMENT_GUIDE.md) - Deployment procedures
-- [Environment Variables](../ENVIRONMENT_VARIABLES.md) - Configuration guide
-- [Security Audit](../SECURITY_AUDIT.md) - Security assessment
+- [API Documentation](../docs/API_DOCUMENTATION.md) - Full API reference
+- [Developer Guide](../docs/DEVELOPER_GUIDE.md) - Setup, code execution, uploads
+- [User Guide](../docs/USER_GUIDE.md) - End-user guide
 
 ## Architecture
 

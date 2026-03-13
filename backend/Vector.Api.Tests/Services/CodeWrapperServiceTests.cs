@@ -239,6 +239,42 @@ public class CodeWrapperServiceTests
     }
 
     [Fact]
+    public void WrapCodeForExecution_JavaScript_ListNodeInput_ConvertsArrayToListNode()
+    {
+        var userCode = "class ListNode { constructor(val, next=null) { this.val=val; this.next=next; } }\nvar addTwoNumbers = function(l1, l2) { return l1; };";
+        var testCaseInput = "{\"l1\": [2,4,3], \"l2\": [5,6,4]}";
+        var wrapped = _wrapper.WrapCodeForExecution(userCode, "javascript", testCaseInput);
+
+        Assert.Contains("new ListNode(2, new ListNode(4, new ListNode(3", wrapped);
+        Assert.Contains("new ListNode(5, new ListNode(6, new ListNode(4", wrapped);
+        Assert.Contains("__vec_listToArray", wrapped);
+    }
+
+    [Fact]
+    public void WrapCodeForExecution_Python_ListNodeInput_ConvertsArrayToListNode()
+    {
+        var userCode = "class ListNode:\n    def __init__(self, val=0, next=None):\n        self.val = val\n        self.next = next\ndef addTwoNumbers(l1, l2):\n    return l1";
+        var testCaseInput = "{\"l1\": [2,4,3], \"l2\": [5,6,4]}";
+        var wrapped = _wrapper.WrapCodeForExecution(userCode, "python", testCaseInput);
+
+        Assert.Contains("ListNode(2, ListNode(4, ListNode(3", wrapped);
+        Assert.Contains("__vec_list_to_array", wrapped);
+        Assert.Contains("result = addTwoNumbers(", wrapped);
+    }
+
+    [Fact]
+    public void WrapCodeForExecution_Java_ListNodeInput_GeneratesMainWithConversion()
+    {
+        var userCode = "public class ListNode { int val; ListNode next; ListNode() {} ListNode(int v) { val=v; } ListNode(int v, ListNode n) { val=v; next=n; } }\nclass Solution { public ListNode addTwoNumbers(ListNode l1, ListNode l2) { return l1; } }";
+        var testCaseInput = "{\"l1\": [2,4,3], \"l2\": [5,6,4]}";
+        var wrapped = _wrapper.WrapCodeForExecution(userCode, "java", testCaseInput);
+
+        Assert.Contains("new ListNode(2, new ListNode(4, new ListNode(3", wrapped);
+        Assert.Contains("public class Main", wrapped);
+        Assert.Contains("__vec_listToArray", wrapped);
+    }
+
+    [Fact]
     public void WrapCodeForExecution_Python_WithNonJSONInput_UsesRawString()
     {
         // Arrange
@@ -252,6 +288,31 @@ public class CodeWrapperServiceTests
         // Assert
         Assert.Contains(userCode, wrapped);
         Assert.Contains("input_data", wrapped);
+    }
+
+    [Fact]
+    public void WrapCodeForExecution_CSharp_ListNodeInput_GeneratesMainWithConversion()
+    {
+        var userCode = "public class ListNode { public int val; public ListNode next; public ListNode(int val=0, ListNode next=null) { this.val=val; this.next=next; } }\npublic class Solution { public ListNode AddTwoNumbers(ListNode l1, ListNode l2) { return l1; } }";
+        var testCaseInput = "{\"l1\": [2,4,3], \"l2\": [5,6,4]}";
+        var wrapped = _wrapper.WrapCodeForExecution(userCode, "csharp", testCaseInput);
+
+        Assert.Contains("new ListNode(2, new ListNode(4, new ListNode(3", wrapped);
+        Assert.Contains("class Program", wrapped);
+        Assert.Contains("static void Main", wrapped);
+        Assert.Contains("ListToArray", wrapped);
+    }
+
+    [Fact]
+    public void WrapCodeForExecution_Cpp_ListNodeInput_GeneratesMainWithConversion()
+    {
+        var userCode = "struct ListNode { int val; ListNode *next; ListNode() : val(0), next(nullptr) {} ListNode(int x) : val(x), next(nullptr) {} ListNode(int x, ListNode *next) : val(x), next(next) {} };\nclass Solution { public: ListNode* addTwoNumbers(ListNode* l1, ListNode* l2) { return l1; } };";
+        var testCaseInput = "{\"l1\": [2,4,3], \"l2\": [5,6,4]}";
+        var wrapped = _wrapper.WrapCodeForExecution(userCode, "cpp", testCaseInput);
+
+        Assert.Contains("new ListNode(2, new ListNode(4, new ListNode(3", wrapped);
+        Assert.Contains("int main()", wrapped);
+        Assert.Contains("__vec_listToArray", wrapped);
     }
 }
 

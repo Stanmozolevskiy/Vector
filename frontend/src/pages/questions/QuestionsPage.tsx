@@ -12,7 +12,15 @@ import '../../styles/questions.css';
 
 const ROLES = ['Software Engineer', 'Product Manager', 'Data Engineer', 'Data Scientist', 'Technical Program Manager'];
 const COMPANIES = ['Google', 'Meta', 'Amazon', 'Microsoft', 'Apple', 'Netflix'];
-const CATEGORIES = ['Arrays', 'Strings', 'Trees', 'Graphs', 'Dynamic Programming', 'Backtracking', 'Greedy', 'Math', 'Bit Manipulation', 'Sorting', 'Searching', 'Hash Tables', 'Linked Lists', 'Stacks', 'Queues', 'Heaps', 'Database', 'Behavioral', 'Product Management', 'System Design'];
+const CATEGORIES = ['Behavioral', 'Coding', 'System Design', 'Database'];
+
+// Maps UI category label → QuestionType value(s) stored in the database
+const CATEGORY_TO_QUESTION_TYPES: Record<string, string[]> = {
+  Behavioral: ['Behavioral'],
+  Coding: ['Coding'],
+  'System Design': ['System Design'],
+  Database: ['SQL'],
+};
 const DIFFICULTIES = ['Easy', 'Medium', 'Hard'];
 const FILTER_OPTIONS = ['Expert Answers', 'Videos', 'Code Editor', 'Saved'];
 const HOT_OPTIONS = ['Hot', 'Top', 'New'];
@@ -51,10 +59,15 @@ export const QuestionsPage = () => {
       // If a single role is selected, use it; if multiple, use the first one (or implement multi-role filtering)
       const roleFilter = selectedRoles.length === 1 ? selectedRoles[0] : selectedRoles.length > 1 ? selectedRoles[0] : undefined;
       
+      // Map UI category selections to QuestionType values for the backend filter
+      const mappedQuestionTypes = selectedCategories.length > 0
+        ? selectedCategories.flatMap(c => CATEGORY_TO_QUESTION_TYPES[c] ?? [])
+        : undefined;
+
       const filter: QuestionFilter = {
         search: searchTerm || undefined,
         questionType: initialQuestionType || undefined,
-        categories: selectedCategories.length > 0 ? selectedCategories : undefined,
+        questionTypes: mappedQuestionTypes && mappedQuestionTypes.length > 0 ? mappedQuestionTypes : undefined,
         difficulties: selectedDifficulties.length > 0 ? selectedDifficulties : undefined,
         companies: selectedCompanies.length > 0 ? selectedCompanies : undefined,
         role: roleFilter,

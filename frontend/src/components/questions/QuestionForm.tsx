@@ -4,12 +4,7 @@ import { questionService } from '../../services/question.service';
 
 const DIFFICULTIES = ['Easy', 'Medium', 'Hard'];
 const QUESTION_TYPES = ['Coding', 'System Design', 'Behavioral', 'Product Management', 'SQL'];
-const CATEGORIES = [
-  'Arrays', 'Strings', 'Trees', 'Graphs', 'Dynamic Programming',
-  'Greedy', 'Backtracking', 'Math', 'Bit Manipulation', 'Sorting',
-  'Searching', 'Hash Tables', 'Linked Lists', 'Stacks', 'Queues',
-  'Heaps', 'System Design', 'Behavioral', 'Product Management', 'Database'
-];
+const CATEGORIES = ['Behavioral', 'Coding', 'System Design', 'Database'];
 
 interface QuestionFormProps {
   initialData?: CreateQuestionDto;

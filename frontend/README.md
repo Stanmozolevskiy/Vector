@@ -1,9 +1,9 @@
 # Vector Frontend
 
-**Version:** 1.0  
-**Last Updated:** December 6, 2025
+**Version:** 2.0 (Stage 2)  
+**Last Updated:** March 2026
 
-React + TypeScript frontend application for the Vector platform.
+React + TypeScript + Vite frontend for the Vector platform. Includes LeetCode-style problem solving, peer mock interviews, analytics, and gamification.
 
 ## Setup
 
@@ -64,18 +64,11 @@ frontend/src/
 
 ## Features
 
-- ✅ React 19+ with TypeScript
-- ✅ React Router for navigation
-- ✅ Tailwind CSS for styling
-- ✅ React Hook Form + Zod for form validation
-- ✅ Axios for API calls
-- ✅ Authentication context with JWT
-- ✅ Protected routes
-- ✅ Responsive design
-- ✅ Reusable Navbar component
-- ✅ Profile management with image upload
-- ✅ Subscription management UI
-- ✅ 25 integration tests (100% passing)
+- ✅ React 19+ with TypeScript, Vite
+- ✅ Question bank with Monaco code editor, Run/Submit
+- ✅ Peer mock interviews (WebRTC video, SignalR code sync)
+- ✅ Profile with image crop, subscription, coins/leaderboard
+- ✅ Dashboard, analytics, daily challenges
 
 ## Testing
 
@@ -150,6 +143,5 @@ See [ENVIRONMENT_VARIABLES.md](../ENVIRONMENT_VARIABLES.md) for complete configu
 
 ## Documentation
 
-- [API Documentation](../API_DOCUMENTATION.md) - Backend API reference
-- [Deployment Guide](../DEPLOYMENT_GUIDE.md) - Deployment procedures
-- [Environment Variables](../ENVIRONMENT_VARIABLES.md) - Configuration guide
+- [API Documentation](../docs/API_DOCUMENTATION.md) - Backend API reference
+- [Developer Guide](../docs/DEVELOPER_GUIDE.md) - Setup and development

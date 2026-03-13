@@ -62,8 +62,8 @@ public class QuestionService : IQuestionService
                     EF.Functions.Like(q.Description, $"%{searchTerm}%"));
             }
 
-            // Map role to question type if role is provided and QuestionType is not
-            if (!string.IsNullOrEmpty(filter.Role) && string.IsNullOrEmpty(filter.QuestionType))
+            // Map role to question type if role is provided and QuestionType(s) are not
+            if (!string.IsNullOrEmpty(filter.Role) && string.IsNullOrEmpty(filter.QuestionType) && (filter.QuestionTypes == null || !filter.QuestionTypes.Any()))
             {
                 var roleLower = filter.Role.Trim().ToLowerInvariant();
                 var mappedTypes = roleLower switch
@@ -82,6 +82,14 @@ public class QuestionService : IQuestionService
                 {
                     query = query.Where(q => mappedTypes.Contains(q.QuestionType));
                 }
+            }
+            else if (filter.QuestionTypes != null && filter.QuestionTypes.Any())
+            {
+                var normalizedTypes = filter.QuestionTypes
+                    .Select(t => t?.Trim())
+                    .Where(t => !string.IsNullOrEmpty(t))
+                    .ToList();
+                query = query.Where(q => normalizedTypes.Contains(q.QuestionType));
             }
             else if (!string.IsNullOrEmpty(filter.QuestionType))
             {
@@ -242,8 +250,8 @@ public class QuestionService : IQuestionService
             throw new ArgumentException($"Invalid question type. Must be one of: {string.Join(", ", validQuestionTypes)}");
         }
 
-        // Validate category (common categories)
-        var validCategories = new[] { "Arrays", "Strings", "Trees", "Graphs", "Dynamic Programming", "Greedy", "Backtracking", "Math", "Bit Manipulation", "Sorting", "Searching", "Hash Tables", "Linked Lists", "Stacks", "Queues", "Heaps", "System Design", "Behavioral", "Database" };
+        // Validate category
+        var validCategories = new[] { "Behavioral", "Coding", "System Design", "Database" };
         if (!string.IsNullOrEmpty(dto.Category) && !validCategories.Contains(dto.Category, StringComparer.OrdinalIgnoreCase))
         {
             _logger.LogWarning("Category '{Category}' is not in the standard list. Allowing custom category.", dto.Category);

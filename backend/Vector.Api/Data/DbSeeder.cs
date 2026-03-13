@@ -501,6 +501,99 @@ public static class DbSeeder
                     TimeComplexityHint = "O(n)",
                     SpaceComplexityHint = "O(n)",
                     AcceptanceRate = 48.9
+                },
+                // ── System Design questions ──────────────────────────────────────
+                new {
+                    Title = "Design a URL Shortener",
+                    Description = "Design a URL shortening service like bit.ly or TinyURL.\n\nThe system should:\n1. Take a long URL and return a shortened URL.\n2. Redirect users from the short URL to the original long URL.\n3. Handle high read traffic (redirection is much more frequent than shortening).\n\nEstimate roughly 100M new URLs per day and 10B redirects per day.",
+                    Difficulty = "Medium",
+                    QuestionType = "System Design",
+                    Category = "System Design",
+                    Tags = new[] { "System Design", "Scalability", "Hashing", "Caching", "Database" },
+                    CompanyTags = new[] { "Google", "Amazon", "Facebook", "Twitter" },
+                    Constraints = "Short URL must be unique.\nSystem must be highly available.\nURL redirection should happen with minimal latency.\nURLs can optionally have an expiration time.",
+                    Examples = new[] {
+                        new { Input = "longUrl = \"https://www.example.com/very/long/path?query=param\"", Output = "shortUrl = \"https://tinyurl.com/abcd123\"", Explanation = (string?)"The service maps the long URL to a 7-character alias." }
+                    },
+                    Hints = new[] {
+                        "Start with clarifying requirements: do you need analytics? custom aliases? expiration?",
+                        "For generating short codes, consider base62 encoding of an auto-increment ID or a hash of the URL.",
+                        "Think about the database schema: a mapping table with short_code, long_url, created_at, expires_at.",
+                        "For scale: use a CDN and cache popular redirects in Redis with high TTL. The DB only needs to be hit for cache misses.",
+                        "To handle 10B redirects/day (~115K/sec), you need read replicas and a distributed cache. Writes are far fewer."
+                    },
+                    TimeComplexityHint = "O(1)",
+                    SpaceComplexityHint = "O(n)",
+                    AcceptanceRate = 71.0
+                },
+                new {
+                    Title = "Design a Rate Limiter",
+                    Description = "Design a rate limiter that throttles API requests at a per-user or per-IP level.\n\nRequirements:\n- Limit each user to N requests per time window (e.g. 100 req/min).\n- Return HTTP 429 when the limit is exceeded.\n- The system serves 10M users and handles 100K req/sec globally.\n- Latency overhead from rate limiting must be < 5 ms.",
+                    Difficulty = "Hard",
+                    QuestionType = "System Design",
+                    Category = "System Design",
+                    Tags = new[] { "System Design", "Rate Limiting", "Redis", "Distributed Systems", "Algorithms" },
+                    CompanyTags = new[] { "Stripe", "Cloudflare", "Netflix", "Amazon" },
+                    Constraints = "Must work in a distributed environment across multiple API servers.\nMust be accurate (exact or near-exact counting).\nMinimal impact on request latency.",
+                    Examples = new[] {
+                        new { Input = "user_id=42, limit=100 req/min", Output = "Allow or deny + Retry-After header", Explanation = (string?)"Track request counts in a sliding window and reject once limit is reached." }
+                    },
+                    Hints = new[] {
+                        "Compare algorithms: Fixed Window, Sliding Window Log, Sliding Window Counter, Token Bucket, Leaky Bucket.",
+                        "Token Bucket is widely used: allows bursting, easy to implement with Redis INCR + TTL.",
+                        "For a distributed setup, use Redis atomic operations (INCR, EXPIRE) or Lua scripts to avoid race conditions.",
+                        "Consider where to enforce the limit: API Gateway (centralized) vs. each service (decentralized).",
+                        "Edge cases: what if Redis is down? Fail open (allow all) or fail closed (deny all)?"
+                    },
+                    TimeComplexityHint = "O(1)",
+                    SpaceComplexityHint = "O(n)",
+                    AcceptanceRate = 58.3
+                },
+                new {
+                    Title = "Design a Notification System",
+                    Description = "Design a push notification system that can deliver messages to millions of users across multiple channels (push, email, SMS).\n\nRequirements:\n- Support in-app push, email, and SMS notifications.\n- Send notifications to 10M users within 10 minutes of a trigger.\n- Guarantee at-least-once delivery.\n- Allow users to configure notification preferences (opt-out per channel/type).",
+                    Difficulty = "Medium",
+                    QuestionType = "System Design",
+                    Category = "System Design",
+                    Tags = new[] { "System Design", "Message Queue", "Push Notifications", "Scalability", "Kafka" },
+                    CompanyTags = new[] { "Meta", "Airbnb", "Uber", "LinkedIn" },
+                    Constraints = "Notifications must be delivered in near-real-time.\nSystem must be fault-tolerant; lost notifications are not acceptable.\nUsers must be able to opt out of specific notification types.",
+                    Examples = new[] {
+                        new { Input = "event = \"order_shipped\", user_ids = [1M users]", Output = "10M notifications sent within 10 min across email, SMS, push", Explanation = (string?)"Notification service fans out through a message queue to channel-specific workers." }
+                    },
+                    Hints = new[] {
+                        "Decouple the trigger from delivery using a message queue (Kafka/SQS). The trigger publishes an event; workers consume and send.",
+                        "Fan-out: one event → one message per (user, channel). Use a separate topic/queue per channel (push, email, SMS) for independent scaling.",
+                        "Store a user preference table: user_id, channel, notification_type, opted_in. Check before sending.",
+                        "For retry and at-least-once delivery, use dead-letter queues and idempotency keys to prevent duplicate sends.",
+                        "Third-party providers: APNs/FCM for push, SendGrid for email, Twilio for SMS. Handle rate limits and failures per provider."
+                    },
+                    TimeComplexityHint = "O(n)",
+                    SpaceComplexityHint = "O(n)",
+                    AcceptanceRate = 64.5
+                },
+                new {
+                    Title = "Design a Key-Value Store",
+                    Description = "Design a distributed key-value store (like Redis or DynamoDB) that can handle millions of read/write operations per second.\n\nRequirements:\n- Support GET, PUT, DELETE operations.\n- Achieve sub-millisecond latency for reads.\n- Data should be persisted to disk.\n- The system must be fault-tolerant and horizontally scalable.\n- Eventual consistency is acceptable.",
+                    Difficulty = "Hard",
+                    QuestionType = "System Design",
+                    Category = "System Design",
+                    Tags = new[] { "System Design", "Distributed Systems", "CAP Theorem", "Consistent Hashing", "Replication" },
+                    CompanyTags = new[] { "Amazon", "Google", "Microsoft", "Apple" },
+                    Constraints = "Must scale to petabytes of data across hundreds of nodes.\nMust tolerate node failures without data loss.\nNetwork partitions will happen; choose your CAP trade-off.",
+                    Examples = new[] {
+                        new { Input = "PUT(key=\"user:42:name\", value=\"Alice\")", Output = "OK", Explanation = (string?)"Key-value pair stored in the appropriate shard based on consistent hashing." }
+                    },
+                    Hints = new[] {
+                        "Use consistent hashing to distribute keys across nodes. This minimizes reshuffling when nodes join/leave.",
+                        "Replication: replicate each key to N nodes (e.g. N=3) for fault tolerance. Use a coordinator pattern for reads/writes.",
+                        "For writes: use a Write-Ahead Log (WAL) for durability. Periodic compaction (SSTable/LSM-tree) keeps performance high.",
+                        "For reads: serve from memory (LRU cache) for hot keys. On cache miss, read from disk.",
+                        "Conflict resolution for eventual consistency: use vector clocks or last-write-wins (LWW) with timestamps."
+                    },
+                    TimeComplexityHint = "O(1)",
+                    SpaceComplexityHint = "O(n)",
+                    AcceptanceRate = 52.1
                 }
             };
 
@@ -514,8 +607,8 @@ public static class DbSeeder
                     continue;
                 }
                 
-                // Approve first 8 questions by default, and all SQL questions
-                bool isApproved = questionIndex < 8 || qData.QuestionType == "SQL";
+                // Approve first 8 questions by default, all SQL questions, and all System Design questions
+                bool isApproved = questionIndex < 8 || qData.QuestionType == "SQL" || qData.QuestionType == "System Design";
                 
                 var question = new InterviewQuestion
                 {
@@ -1299,6 +1392,11 @@ public static class DbSeeder
 
             // Add Two Numbers
             var addTwoNumbers = questions.FirstOrDefault(q => q.Title == "Add Two Numbers");
+            if (addTwoNumbers == null)
+            {
+                addTwoNumbers = await context.InterviewQuestions
+                    .FirstOrDefaultAsync(q => q.Title == "Add Two Numbers");
+            }
             if (addTwoNumbers != null)
             {
                 questionTestCasesMap["Add Two Numbers"] = new List<(string, string, bool)>
@@ -1796,9 +1894,10 @@ public class Solution {
                 .Where(q => allQuestionTitles.Contains(q.Title))
                 .ToListAsync();
             
-            // Combine new questions with existing questions that need test cases
+            // Combine new questions with existing questions that need test cases.
+            // Skip "Two Sum" by title (not by position) since it's seeded separately above.
             var allQuestionsToProcess = questions
-                .Skip(1)
+                .Where(q => q.Title != "Two Sum")
                 .Union(existingQuestionsNeedingTestCases.Where(eq => !questions.Any(q => q.Id == eq.Id)))
                 .ToList();
             
@@ -1807,18 +1906,22 @@ public class Solution {
             {
                 var questionTitle = question.Title;
                 
-                // For SQL questions, delete existing test cases and re-seed with corrected format
-                if (question.QuestionType == "SQL")
+                // For SQL questions and linked list questions, always delete and re-seed
+                // to ensure correct format (e.g. JSON array format for linked list params)
+                var alwaysRefreshTitles = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                    { "Add Two Numbers" };
+
+                if (question.QuestionType == "SQL" || alwaysRefreshTitles.Contains(questionTitle))
                 {
-                    var existingSqlTestCases = await context.QuestionTestCases
+                    var existingCasesToRefresh = await context.QuestionTestCases
                         .Where(tc => tc.QuestionId == question.Id)
                         .ToListAsync();
                     
-                    if (existingSqlTestCases.Any())
+                    if (existingCasesToRefresh.Any())
                     {
-                        context.QuestionTestCases.RemoveRange(existingSqlTestCases);
+                        context.QuestionTestCases.RemoveRange(existingCasesToRefresh);
                         await context.SaveChangesAsync();
-                        logger.LogInformation("Deleted {Count} old test cases for SQL question: {Title}", existingSqlTestCases.Count, questionTitle);
+                        logger.LogInformation("Deleted {Count} old test cases for refresh: {Title}", existingCasesToRefresh.Count, questionTitle);
                     }
                 }
                 

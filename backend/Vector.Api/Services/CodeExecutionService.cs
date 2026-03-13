@@ -75,39 +75,46 @@ public class CodeExecutionService : ICodeExecutionService
                 throw new ArgumentException($"Unsupported language: {request.Language}");
             }
 
-            // Create Judge0 submission request
-            // Judge0 API requires: source_code, language_id
-            // Optional but recommended: stdin, cpu_time_limit, memory_limit
+            // Always use base64 encoding for all fields:
+            //   - source_code / stdin base64-encoded → Judge0 decodes them before compiling
+            //   - response stdout/stderr/compile_output returned as base64 → we decode them
+            // This avoids Judge0's "cannot be converted to UTF-8" 400 error for C++ and other
+            // languages whose compiler output may contain non-UTF-8 bytes.
             var judge0Request = new
             {
-                source_code = request.SourceCode,
+                source_code = Convert.ToBase64String(Encoding.UTF8.GetBytes(request.SourceCode ?? string.Empty)),
                 language_id = languageId,
-                stdin = request.Stdin ?? string.Empty,
-                cpu_time_limit = 5, // 5 seconds timeout
-                memory_limit = 128 * 1024, // 128 MB memory limit (Judge0 expects KB)
-                wall_time_limit = 10 // 10 seconds wall time limit
+                stdin = Convert.ToBase64String(Encoding.UTF8.GetBytes(request.Stdin ?? string.Empty)),
+                cpu_time_limit = 5,
+                memory_limit = 128 * 1024,
+                wall_time_limit = 10
             };
 
             // Log request for debugging
             _logger.LogInformation("Submitting code to Judge0: LanguageId={LanguageId}, CodeLength={CodeLength}, BaseUrl={BaseUrl}", 
                 languageId, request.SourceCode?.Length ?? 0, _httpClient.BaseAddress);
 
-            // Serialize request manually to ensure correct format (snake_case for Judge0)
-            var jsonOptions = new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = null // Preserve property names as-is (snake_case)
-            };
+            var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = null };
             var jsonContent = JsonSerializer.Serialize(judge0Request, jsonOptions);
-            _logger.LogInformation("Judge0 request JSON: {JsonContent}", jsonContent);
             
-            var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+            // Create a factory so we can build fresh StringContent for each request
+            StringContent MakeContent() => new StringContent(jsonContent, Encoding.UTF8, "application/json");
+
+            // Decode base64-encoded response fields from Judge0
+            static Judge0ExecutionResult DecodeBase64Result(Judge0ExecutionResult r)
+            {
+                r.Stdout = TryDecodeBase64(r.Stdout);
+                r.Stderr = TryDecodeBase64(r.Stderr);
+                r.CompileOutput = TryDecodeBase64(r.CompileOutput);
+                return r;
+            }
             
-            // Try synchronous execution first (wait=true)
+            // Try synchronous execution first (wait=true, base64_encoded=true)
             // If that fails, fall back to async with polling
             try
             {
                 _logger.LogInformation("Attempting synchronous execution with wait=true");
-                var submitResponse = await _httpClient.PostAsync("/submissions?base64_encoded=false&wait=true", content);
+                var submitResponse = await _httpClient.PostAsync("/submissions?base64_encoded=true&wait=true", MakeContent());
                 
                 if (submitResponse.IsSuccessStatusCode)
                 {
@@ -117,12 +124,10 @@ public class CodeExecutionService : ICodeExecutionService
                     var result = await submitResponse.Content.ReadFromJsonAsync<Judge0ExecutionResult>();
                     if (result != null)
                     {
+                        result = DecodeBase64Result(result);
                         _logger.LogInformation("Synchronous execution response: Status={StatusId}, Description={Description}, Message={Message}, Stdout={Stdout}, Stderr={Stderr}", 
                             result.Status.Id, result.Status.Description, result.Message, result.Stdout, result.Stderr);
                         
-                        // Return result regardless of status - Judge0 returns the final result even for errors
-                        // Status 1 = In Queue, Status 2 = Processing (shouldn't happen with wait=true)
-                        // Status 3+ = Final status (Accepted, Wrong Answer, Error, etc.)
                         if (result.Status.Id != 1 && result.Status.Id != 2)
                         {
                             _logger.LogInformation("Synchronous execution completed: Status={StatusId}, Stdout={Stdout}", result.Status.Id, result.Stdout);
@@ -144,9 +149,9 @@ public class CodeExecutionService : ICodeExecutionService
                 _logger.LogWarning(ex, "Synchronous execution failed, falling back to async polling");
             }
 
-            // Fall back to async submission with polling
+            // Fall back to async submission with polling (also uses base64_encoded=true)
             _logger.LogInformation("Using async submission with polling");
-            var asyncSubmitResponse = await _httpClient.PostAsync("/submissions?base64_encoded=false&wait=false", content);
+            var asyncSubmitResponse = await _httpClient.PostAsync("/submissions?base64_encoded=true&wait=false", MakeContent());
             
             if (!asyncSubmitResponse.IsSuccessStatusCode)
             {
@@ -162,27 +167,53 @@ public class CodeExecutionService : ICodeExecutionService
                 throw new InvalidOperationException("Failed to submit code to Judge0.");
             }
 
-            // Poll for result (with timeout)
+            // Poll for result (with timeout, base64_encoded=true to handle non-UTF-8 compiler output)
             var token = submitResult.Token;
             _logger.LogInformation("Submitted code to Judge0, token: {Token}", token);
-            var maxWaitTime = TimeSpan.FromSeconds(60);
-            var pollInterval = TimeSpan.FromMilliseconds(1000);
-            var elapsed = TimeSpan.Zero;
+            var pollStart = DateTime.UtcNow;
+            var maxWaitTime = TimeSpan.FromSeconds(30);
+            var pollInterval = TimeSpan.FromMilliseconds(1500);
             var pollCount = 0;
+            var consecutiveErrors = 0;
+            const int maxConsecutiveErrors = 3;
 
-            while (elapsed < maxWaitTime)
+            while (DateTime.UtcNow - pollStart < maxWaitTime)
             {
                 await Task.Delay(pollInterval);
-                elapsed += pollInterval;
                 pollCount++;
 
-                var resultResponse = await _httpClient.GetAsync($"/submissions/{token}?base64_encoded=false");
-                resultResponse.EnsureSuccessStatusCode();
+                var resultResponse = await _httpClient.GetAsync($"/submissions/{token}?base64_encoded=true");
+                if (!resultResponse.IsSuccessStatusCode)
+                {
+                    var pollErrorContent = await resultResponse.Content.ReadAsStringAsync();
+                    consecutiveErrors++;
+                    _logger.LogWarning("Judge0 polling failed ({StatusCode}) for token {Token} [{ConsecutiveErrors}/{MaxErrors}]: {ErrorContent}",
+                        resultResponse.StatusCode, token, consecutiveErrors, maxConsecutiveErrors, pollErrorContent);
+                    if (consecutiveErrors >= maxConsecutiveErrors)
+                    {
+                        _logger.LogError("Judge0 polling failed {MaxErrors} times in a row for token {Token}. Giving up.", maxConsecutiveErrors, token);
+                        return new ExecutionResultDto
+                        {
+                            Status = "Unknown Error",
+                            Output = string.Empty,
+                            Error = $"Code execution service returned {resultResponse.StatusCode} during polling. Please try again.",
+                            Runtime = 0,
+                            Memory = 0
+                        };
+                    }
+                    continue;
+                }
+                consecutiveErrors = 0;
 
                 var resultContent = await resultResponse.Content.ReadAsStringAsync();
                 _logger.LogInformation("Judge0 poll response for token {Token}, poll #{PollCount}: {ResponseContent}", token, pollCount, resultContent);
                 
                 var result = await resultResponse.Content.ReadFromJsonAsync<Judge0ExecutionResult>();
+                // Decode base64-encoded fields from Judge0
+                if (result != null)
+                {
+                    result = DecodeBase64Result(result);
+                }
                 if (result == null)
                 {
                     _logger.LogWarning("Received null result from Judge0 for token {Token}, poll #{PollCount}", token, pollCount);
@@ -203,7 +234,7 @@ public class CodeExecutionService : ICodeExecutionService
             }
             
             _logger.LogWarning("Code execution timed out for token {Token} after {ElapsedSeconds} seconds, {PollCount} polls", 
-                token, elapsed.TotalSeconds, pollCount);
+                token, (DateTime.UtcNow - pollStart).TotalSeconds, pollCount);
 
             // Timeout - return timeout result
             return new ExecutionResultDto
@@ -946,6 +977,23 @@ public class CodeExecutionService : ICodeExecutionService
         };
 
         return await Task.FromResult(languages);
+    }
+
+    /// <summary>
+    /// Attempt to decode a base64 string; return original if decoding fails (e.g., already plain text)
+    /// </summary>
+    private static string? TryDecodeBase64(string? s)
+    {
+        if (s == null) return null;
+        try
+        {
+            var bytes = Convert.FromBase64String(s);
+            return System.Text.Encoding.UTF8.GetString(bytes);
+        }
+        catch
+        {
+            return s;
+        }
     }
 
     /// <summary>

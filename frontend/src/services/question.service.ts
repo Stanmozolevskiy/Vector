@@ -73,6 +73,7 @@ export interface QuestionComment {
 export interface QuestionFilter {
   search?: string;
   questionType?: string;
+  questionTypes?: string[];
   category?: string;
   categories?: string[];
   difficulty?: string;

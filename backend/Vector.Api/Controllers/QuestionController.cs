@@ -91,6 +91,25 @@ public class QuestionController : ControllerBase
                 filter.Categories = new List<string> { filter.Category };
             }
 
+            // Handle questionTypes[] parameter (for category-based filtering)
+            var questionTypeKeys = Request.Query.Keys.Where(k =>
+                k.Equals("questionTypes[]", StringComparison.OrdinalIgnoreCase) ||
+                k.Equals("questionTypes", StringComparison.OrdinalIgnoreCase) ||
+                k.StartsWith("questionTypes[", StringComparison.OrdinalIgnoreCase));
+
+            if (questionTypeKeys.Any())
+            {
+                var questionTypeValues = new List<string>();
+                foreach (var key in questionTypeKeys)
+                {
+                    questionTypeValues.AddRange(Request.Query[key]);
+                }
+                if (questionTypeValues.Any())
+                {
+                    filter.QuestionTypes = questionTypeValues.Distinct().ToList();
+                }
+            }
+
             // Handle companies[] parameter
             var companyKeys = Request.Query.Keys.Where(k => 
                 k.Equals("companies[]", StringComparison.OrdinalIgnoreCase) ||

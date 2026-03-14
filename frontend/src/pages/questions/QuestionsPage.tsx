@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Navbar } from '../../components/layout/Navbar';
 import { questionService } from '../../services/question.service';
@@ -12,7 +12,7 @@ import '../../styles/questions.css';
 
 const ROLES = ['Software Engineer', 'Product Manager', 'Data Engineer', 'Data Scientist', 'Technical Program Manager'];
 const COMPANIES = ['Google', 'Meta', 'Amazon', 'Microsoft', 'Apple', 'Netflix'];
-const CATEGORIES = ['Behavioral', 'Coding', 'System Design', 'Database'];
+const CATEGORIES = ['Behavioral', 'Coding', 'System Design', 'Database', 'Product Management'];
 
 // Maps UI category label → QuestionType value(s) stored in the database
 const CATEGORY_TO_QUESTION_TYPES: Record<string, string[]> = {
@@ -20,10 +20,59 @@ const CATEGORY_TO_QUESTION_TYPES: Record<string, string[]> = {
   Coding: ['Coding'],
   'System Design': ['System Design'],
   Database: ['SQL'],
+  'Product Management': ['Product Management'],
 };
 const DIFFICULTIES = ['Easy', 'Medium', 'Hard'];
 const FILTER_OPTIONS = ['Expert Answers', 'Videos', 'Code Editor', 'Saved'];
 const HOT_OPTIONS = ['Hot', 'Top', 'New'];
+
+const FILTER_STORAGE_KEY = 'questions-page-filters';
+
+interface PersistedFilters {
+  searchTerm: string;
+  selectedRoles: string[];
+  selectedCompanies: string[];
+  selectedCategories: string[];
+  selectedDifficulties: string[];
+  selectedFilters: string[];
+  hotFilter: string;
+  currentPage: number;
+}
+
+function loadPersistedFilters(): Partial<PersistedFilters> | null {
+  try {
+    const raw = localStorage.getItem(FILTER_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== 'object') return null;
+    const p = parsed as Record<string, unknown>;
+    const isValidString = (v: unknown): v is string => typeof v === 'string';
+    const isValidArray = (v: unknown): v is string[] =>
+      Array.isArray(v) && v.every(x => typeof x === 'string');
+    const isValidNumber = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 1;
+
+    return {
+      searchTerm: isValidString(p.searchTerm) ? p.searchTerm : '',
+      selectedRoles: isValidArray(p.selectedRoles) ? p.selectedRoles.filter(r => ROLES.includes(r)) : [],
+      selectedCompanies: isValidArray(p.selectedCompanies) ? p.selectedCompanies.filter(c => COMPANIES.includes(c)) : [],
+      selectedCategories: isValidArray(p.selectedCategories) ? p.selectedCategories.filter(c => CATEGORIES.includes(c)) : [],
+      selectedDifficulties: isValidArray(p.selectedDifficulties) ? p.selectedDifficulties.filter(d => DIFFICULTIES.includes(d)) : [],
+      selectedFilters: isValidArray(p.selectedFilters) ? p.selectedFilters.filter(f => FILTER_OPTIONS.includes(f)) : [],
+      hotFilter: isValidString(p.hotFilter) && HOT_OPTIONS.includes(p.hotFilter) ? p.hotFilter : 'Hot',
+      currentPage: isValidNumber(p.currentPage) ? p.currentPage : 1,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function savePersistedFilters(filters: PersistedFilters) {
+  try {
+    localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(filters));
+  } catch {
+    // Ignore localStorage errors (e.g. private browsing)
+  }
+}
 
 export const QuestionsPage = () => {
   const { user } = useAuth();
@@ -35,23 +84,39 @@ export const QuestionsPage = () => {
       return '';
     }
   });
+  const persisted = useMemo(() => loadPersistedFilters(), []);
+
   const [questions, setQuestions] = useState<QuestionList[]>([]);
   const [solvedQuestionIds, setSolvedQuestionIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
-  const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedDifficulties, setSelectedDifficulties] = useState<string[]>([]);
-  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
-  const [hotFilter, setHotFilter] = useState<string>('Hot');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState(() => persisted?.searchTerm ?? '');
+  const [selectedRoles, setSelectedRoles] = useState<string[]>(() => persisted?.selectedRoles ?? []);
+  const [selectedCompanies, setSelectedCompanies] = useState<string[]>(() => persisted?.selectedCompanies ?? []);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(() => persisted?.selectedCategories ?? []);
+  const [selectedDifficulties, setSelectedDifficulties] = useState<string[]>(() => persisted?.selectedDifficulties ?? []);
+  const [selectedFilters, setSelectedFilters] = useState<string[]>(() => persisted?.selectedFilters ?? []);
+  const [hotFilter, setHotFilter] = useState<string>(() => persisted?.hotFilter ?? 'Hot');
+  const [currentPage, setCurrentPage] = useState(() => persisted?.currentPage ?? 1);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
   useEffect(() => {
     loadQuestions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, selectedCategories, selectedDifficulties, selectedCompanies, selectedRoles, currentPage]);
+
+  // Persist filter state to localStorage so it survives page refresh
+  useEffect(() => {
+    savePersistedFilters({
+      searchTerm,
+      selectedRoles,
+      selectedCompanies,
+      selectedCategories,
+      selectedDifficulties,
+      selectedFilters,
+      hotFilter,
+      currentPage,
+    });
+  }, [searchTerm, selectedRoles, selectedCompanies, selectedCategories, selectedDifficulties, selectedFilters, hotFilter, currentPage]);
 
   const loadQuestions = async () => {
     try {

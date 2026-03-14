@@ -114,46 +114,75 @@ public static class DbSeeder
                 .Select(q => q.Title)
                 .ToListAsync();
             
-            // Always try to repopulate - but only delete questions that aren't referenced
+            // Replace all questions with fresh seed. User profile data (Users, passwords, etc.) is
+            // never touched — only question-related tables are cleared and repopulated.
             var existingQuestions = await context.InterviewQuestions.ToListAsync();
             if (existingQuestions.Any())
             {
-                // Check which questions are referenced
-                var referencedQuestionIds = await context.ScheduledInterviewSessions
-                    .Where(s => s.AssignedQuestionId != null)
-                    .Select(s => s.AssignedQuestionId!.Value)
-                    .Distinct()
+                var questionIds = existingQuestions.Select(q => q.Id).ToList();
+
+                // Clear question FK references (nullable) so we can delete questions
+                var scheduledSessions = await context.ScheduledInterviewSessions
+                    .Where(s => s.AssignedQuestionId != null && questionIds.Contains(s.AssignedQuestionId!.Value))
                     .ToListAsync();
-                
-                // Only delete questions that aren't referenced
-                var questionsToDelete = existingQuestions
-                    .Where(q => !referencedQuestionIds.Contains(q.Id))
-                    .ToList();
-                
-                if (questionsToDelete.Any())
+                foreach (var s in scheduledSessions) s.AssignedQuestionId = null;
+
+                var liveSessions = await context.LiveInterviewSessions
+                    .Where(s => s.FirstQuestionId != null || s.SecondQuestionId != null || s.ActiveQuestionId != null)
+                    .ToListAsync();
+                foreach (var s in liveSessions)
                 {
-                    logger.LogInformation("Clearing {Count} unreferenced interview questions for repopulation...", questionsToDelete.Count);
-                    
-                    var questionIds = questionsToDelete.Select(q => q.Id).ToList();
-                    var relatedTestCases = await context.QuestionTestCases.Where(tc => questionIds.Contains(tc.QuestionId)).ToListAsync();
-                    var relatedSolutions = await context.QuestionSolutions.Where(s => questionIds.Contains(s.QuestionId)).ToListAsync();
-                    
-                    context.QuestionTestCases.RemoveRange(relatedTestCases);
-                    context.QuestionSolutions.RemoveRange(relatedSolutions);
-                    context.InterviewQuestions.RemoveRange(questionsToDelete);
-                    await context.SaveChangesAsync();
-                    
-                    // Update existing titles list after deletion
-                    allExistingTitles = allExistingTitles
-                        .Where(title => !questionsToDelete.Any(q => q.Title == title))
-                        .ToList();
-                    
-                    logger.LogInformation("Cleared unreferenced questions, test cases, and solutions.");
+                    s.FirstQuestionId = null;
+                    s.SecondQuestionId = null;
+                    s.ActiveQuestionId = null;
                 }
-                else
-                {
-                    logger.LogInformation("All existing questions are referenced. Skipping deletion.");
-                }
+
+                var whiteboardData = await context.WhiteboardData
+                    .Where(w => w.QuestionId != null && questionIds.Contains(w.QuestionId!.Value))
+                    .ToListAsync();
+                foreach (var w in whiteboardData) w.QuestionId = null;
+
+                await context.SaveChangesAsync();
+
+                // Delete question-dependent rows (required FKs) — we never touch Users, profile, password, etc.
+                var userSolutionsToDelete = await context.UserSolutions.Where(s => questionIds.Contains(s.QuestionId)).ToListAsync();
+                context.UserSolutions.RemoveRange(userSolutionsToDelete);
+
+                var draftsToDelete = await context.UserCodeDrafts.Where(d => questionIds.Contains(d.QuestionId)).ToListAsync();
+                context.UserCodeDrafts.RemoveRange(draftsToDelete);
+
+                var solvedToDelete = await context.UserSolvedQuestions.Where(s => questionIds.Contains(s.QuestionId)).ToListAsync();
+                context.UserSolvedQuestions.RemoveRange(solvedToDelete);
+
+                var bookmarksToDelete = await context.QuestionBookmarks.Where(b => questionIds.Contains(b.QuestionId)).ToListAsync();
+                context.QuestionBookmarks.RemoveRange(bookmarksToDelete);
+
+                var commentsToDelete = await context.InterviewQuestionComments.Where(c => questionIds.Contains(c.QuestionId)).ToListAsync();
+                var commentIds = commentsToDelete.Select(c => c.Id).ToList();
+                var commentVotesToDelete = await context.InterviewQuestionCommentVotes.Where(v => commentIds.Contains(v.CommentId)).ToListAsync();
+                context.InterviewQuestionCommentVotes.RemoveRange(commentVotesToDelete);
+                context.InterviewQuestionComments.RemoveRange(commentsToDelete);
+
+                var votesToDelete = await context.QuestionVotes.Where(v => questionIds.Contains(v.QuestionId)).ToListAsync();
+                context.QuestionVotes.RemoveRange(votesToDelete);
+
+                var dailyChallengesToDelete = await context.DailyChallenges.Where(d => questionIds.Contains(d.QuestionId)).ToListAsync();
+                var dailyChallengeIds = dailyChallengesToDelete.Select(d => d.Id).ToList();
+                var challengeAttemptsToDelete = await context.UserChallengeAttempts.Where(a => dailyChallengeIds.Contains(a.ChallengeId)).ToListAsync();
+                context.UserChallengeAttempts.RemoveRange(challengeAttemptsToDelete);
+                context.DailyChallenges.RemoveRange(dailyChallengesToDelete);
+
+                var testCasesToDelete = await context.QuestionTestCases.Where(tc => questionIds.Contains(tc.QuestionId)).ToListAsync();
+                context.QuestionTestCases.RemoveRange(testCasesToDelete);
+
+                var solutionsToDelete = await context.QuestionSolutions.Where(s => questionIds.Contains(s.QuestionId)).ToListAsync();
+                context.QuestionSolutions.RemoveRange(solutionsToDelete);
+
+                context.InterviewQuestions.RemoveRange(existingQuestions);
+                await context.SaveChangesAsync();
+
+                allExistingTitles = new List<string>();
+                logger.LogInformation("Cleared all interview questions and related data for repopulation. User profiles and auth data were not touched.");
             }
 
             // Get admin user for CreatedBy
@@ -649,6 +678,24 @@ public static class DbSeeder
             context.InterviewQuestions.AddRange(questions);
             await context.SaveChangesAsync();
 
+            // Fix misclassified questions (even if referenced, so they show under correct category)
+            var categoryFixes = new[] {
+                (Title: "Design a document processing pipeline.", QuestionType: "System Design", Category: "System Design"),
+                (Title: "Find the number of users who called three or more people in the last week.", QuestionType: "SQL", Category: "Database"),
+            };
+            foreach (var (title, newType, newCategory) in categoryFixes)
+            {
+                var toFix = await context.InterviewQuestions.FirstOrDefaultAsync(q => q.Title == title);
+                if (toFix != null && (toFix.QuestionType != newType || toFix.Category != newCategory))
+                {
+                    toFix.QuestionType = newType;
+                    toFix.Category = newCategory;
+                    toFix.UpdatedAt = DateTime.UtcNow;
+                    logger.LogInformation("Updated question category: {Title} -> {Type}", title, newType);
+                }
+            }
+            await context.SaveChangesAsync();
+
             // Now add test cases and solutions for each question
             await SeedQuestionTestCasesAndSolutions(context, logger, questions, createdBy);
 
@@ -809,7 +856,7 @@ public static class DbSeeder
                     "Keep it specific: what you changed, how you measure improvement, and why it won’t block success in this role."
                 }),
 
-            NewNonCodingQuestion("Design a document processing pipeline.", "Behavioral", "Behavioral",
+            NewNonCodingQuestion("Design a document processing pipeline.", "System Design", "System Design",
                 roles: new[] { "Data Engineer" },
                 companies: new[] { "Amazon", "Google", "Microsoft" },
                 tags: new[] { "Pipeline Design", "Reliability" },
@@ -818,7 +865,7 @@ public static class DbSeeder
                     "Walk through ingestion → parsing/OCR → enrichment → storage/indexing → serving → monitoring (retries, idempotency, backfills)."
                 }),
 
-            NewNonCodingQuestion("Find the number of users who called three or more people in the last week.", "Behavioral", "Behavioral",
+            NewNonCodingQuestion("Find the number of users who called three or more people in the last week.", "SQL", "Database",
                 roles: new[] { "Data Scientist", "Data Engineer" },
                 companies: new[] { "Meta", "Google", "Amazon" },
                 tags: new[] { "Analytics", "Structured Thinking" },

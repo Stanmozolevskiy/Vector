@@ -115,7 +115,11 @@ public class TestCaseParserService
             {
                 CaseIndex = i + 1, // 1-based
                 InputValues = inputs,
-                ParameterNames = parameterNames ?? Enumerable.Range(0, parameterCount).Select(j => $"param{j + 1}").ToArray()
+                // Treat empty array the same as null so the fallback names (param1, param2 …)
+                // are used whenever parameter extraction from user code returned nothing.
+                ParameterNames = (parameterNames != null && parameterNames.Length > 0)
+                    ? parameterNames
+                    : Enumerable.Range(0, parameterCount).Select(j => $"param{j + 1}").ToArray()
             });
         }
 

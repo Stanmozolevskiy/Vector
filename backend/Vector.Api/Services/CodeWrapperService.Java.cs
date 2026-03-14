@@ -52,7 +52,11 @@ public partial class CodeWrapperService
                 else
                 {
                     javaValue = FormatJsonValue(value);
-                    paramType = "Object";
+                    // Use a typed primitive rather than Object so the value can be passed
+                    // directly to typed method parameters (e.g. int target) without a cast.
+                    if (value.TryGetInt32(out _))        paramType = "int";
+                    else if (value.TryGetInt64(out _))   paramType = "long";
+                    else                                 paramType = "double";
                 }
 
                 paramDecls.Add($"{paramType} {name} = {javaValue};");
@@ -79,7 +83,9 @@ public partial class CodeWrapperService
 
             var mainBody = $"        {string.Join("\n        ", paramDecls)}\n        {resultVar}";
 
-            return $@"{userCode}
+            return $@"import java.util.*;
+import java.util.stream.*;
+{userCode}
 
 public class Main {{
 {listHelper}

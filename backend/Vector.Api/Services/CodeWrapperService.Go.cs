@@ -119,7 +119,7 @@ func __vec_arrayToList(arr []int) *ListNode {
 }
 
 func __vec_listToArray(head *ListNode) []int {
-	var arr []int
+	arr := []int{}
 	for head != nil {
 		arr = append(arr, head.Val)
 		head = head.Next

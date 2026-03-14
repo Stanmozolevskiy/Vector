@@ -324,7 +324,7 @@ public class CodeExecutionService : ICodeExecutionService
                 }
                 
                 var passed = executionResult.Status == "Accepted" &&
-                             string.Equals(actualOutput, expectedOutput, StringComparison.OrdinalIgnoreCase);
+                             CompareOutputValues(actualOutput, expectedOutput);
 
                 var testResult = new TestResultDto
                 {
@@ -477,11 +477,12 @@ public class CodeExecutionService : ICodeExecutionService
                     }
                 }
 
-                // Compare output with expected output (case-insensitive, trimmed)
+                // Compare output with expected output — numeric values compared with epsilon
+                // so that "2" == "2.00000" etc. (different float representations).
                 var expectedOutput = testCase.ExpectedOutput?.Trim() ?? string.Empty;
                 var passed = executionResult.Status == "Accepted" &&
                              actualOutput != null &&
-                             string.Equals(actualOutput.Trim(), expectedOutput, StringComparison.OrdinalIgnoreCase);
+                             CompareOutputValues(actualOutput.Trim(), expectedOutput);
 
                 var testResult = new TestResultDto
                 {
@@ -655,8 +656,9 @@ public class CodeExecutionService : ICodeExecutionService
                 {
                     if (!string.IsNullOrWhiteSpace(expectedOutput) && actualOutput != null)
                     {
-                        // Compare actual output with expected output
-                        passed = string.Equals(actualOutput.Trim(), expectedOutput.Trim(), StringComparison.OrdinalIgnoreCase);
+                        // Compare actual output with expected output — numeric values compared
+                        // with epsilon so "2" == "2.00000" etc.
+                        passed = CompareOutputValues(actualOutput.Trim(), expectedOutput.Trim());
                     }
                     else if (!string.IsNullOrWhiteSpace(expectedOutput) && actualOutput == null)
                     {
@@ -848,7 +850,7 @@ public class CodeExecutionService : ICodeExecutionService
                 {
                     if (!string.IsNullOrWhiteSpace(expectedOutput))
                     {
-                        passed = string.Equals(actualOutput, expectedOutput, StringComparison.OrdinalIgnoreCase);
+                        passed = CompareOutputValues(actualOutput, expectedOutput);
                     }
                     else
                     {
@@ -1103,6 +1105,30 @@ public class CodeExecutionService : ICodeExecutionService
             });
             return string.Join("\n", normalizedLines).Trim();
         }
+    }
+
+    /// <summary>
+    /// Compares two JSON-serialised output values for equality.
+    /// When both values are valid numbers (e.g. "2" vs "2.00000" or "2.5" vs "2.50000")
+    /// the comparison is done numerically with a small epsilon (1e-5), so that different
+    /// decimal representations of the same value are treated as equal.
+    /// Otherwise an exact case-insensitive string comparison is used.
+    /// </summary>
+    private static bool CompareOutputValues(string? actual, string? expected)
+    {
+        if (actual == null || expected == null) return false;
+        var a = actual.Trim();
+        var e = expected.Trim();
+        if (string.Equals(a, e, StringComparison.OrdinalIgnoreCase)) return true;
+
+        if (decimal.TryParse(a, System.Globalization.NumberStyles.Number,
+                System.Globalization.CultureInfo.InvariantCulture, out decimal aNum) &&
+            decimal.TryParse(e, System.Globalization.NumberStyles.Number,
+                System.Globalization.CultureInfo.InvariantCulture, out decimal eNum))
+        {
+            return Math.Abs(aNum - eNum) < 0.00001m;
+        }
+        return false;
     }
 
     /// <summary>

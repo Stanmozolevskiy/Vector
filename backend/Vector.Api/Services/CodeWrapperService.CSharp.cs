@@ -21,26 +21,33 @@ public partial class CodeWrapperService
                 var value = prop.Value;
 
                 string csValue;
+                string csType;
                 if (value.ValueKind == JsonValueKind.Array && ListNodeParamNames.IsListNodeParam(name))
                 {
                     hasListNode = true;
                     csValue = BuildCSharpListNodeFromArray(value);
+                    // Use explicit type so "ListNode head = null;" compiles — var cannot be
+                    // inferred from null (CS0815) when the list is empty.
+                    csType = "ListNode";
                 }
                 else if (value.ValueKind == JsonValueKind.Array)
                 {
                     var items = value.EnumerateArray().Select(v => FormatJsonValue(v));
                     csValue = $"new int[] {{ {string.Join(", ", items)} }}";
+                    csType = "var";
                 }
                 else if (value.ValueKind == JsonValueKind.String)
                 {
                     csValue = $"\"{value.GetString()?.Replace("\\", "\\\\").Replace("\"", "\\\"")}\"";
+                    csType = "var";
                 }
                 else
                 {
                     csValue = FormatJsonValue(value);
+                    csType = "var";
                 }
 
-                paramDecls.Add($"var {name} = {csValue};");
+                paramDecls.Add($"{csType} {name} = {csValue};");
                 callArgs.Add(name);
             }
 

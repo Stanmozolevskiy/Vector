@@ -4,6 +4,15 @@ namespace Vector.Api.Services;
 
 public partial class CodeWrapperService
 {
+    // C++ keywords that can appear in function-call-like syntactic positions
+    // (e.g. `else if (cond) {`) and must never be mistaken for method names.
+    private static readonly HashSet<string> CppReservedKeywords = new(StringComparer.Ordinal)
+    {
+        "if", "else", "while", "for", "do", "switch", "case", "catch",
+        "return", "new", "delete", "throw", "try", "static", "const",
+        "virtual", "override", "sizeof", "decltype", "alignof", "noexcept"
+    };
+
     // -------------------------------------------------------------------------
     // Generic function-name extraction (JavaScript / Python)
     // -------------------------------------------------------------------------
@@ -23,8 +32,8 @@ public partial class CodeWrapperService
             (@"function\s+(\w+)\s*\(", false),
             // Python: module-level def only (^def) to skip class methods
             (@"^def\s+(\w+)\s*\(", true),
-            // Java / C#: public [static] ReturnType MethodName(
-            (@"public\s+(?:static\s+)?\w+\s+(\w+)\s*\(", true),
+            // Java / C#: public [static] ReturnType MethodName(  — [\w\[\]]+ handles int[], String[]
+            (@"public\s+(?:static\s+)?[\w\[\]]+\s+(\w+)\s*\(", true),
         };
 
         foreach (var (pattern, skipDunder) in patterns)
@@ -52,8 +61,9 @@ public partial class CodeWrapperService
     /// <summary>Returns the first public method name found in Java source code.</summary>
     private static string? ExtractJavaMethodName(string code)
     {
+        // [\w\[\]]+ matches both plain types (int, void) and array types (int[], String[])
         var m = Regex.Match(code,
-            @"public\s+(?:static\s+)?\w+\s+(\w+)\s*\([^)]*\)",
+            @"public\s+(?:static\s+)?[\w\[\]]+\s+(\w+)\s*\([^)]*\)",
             RegexOptions.IgnoreCase);
         return m.Success ? m.Groups[1].Value : null;
     }
@@ -84,6 +94,7 @@ public partial class CodeWrapperService
             var name = matches[i].Groups[2].Value;
             if (name is "ListNode" or "Solution" or "main") continue;
             if (name.StartsWith("~", StringComparison.Ordinal)) continue;
+            if (CppReservedKeywords.Contains(name)) continue;
             return matches[i].Groups[1].Value.Trim();
         }
         return "int";
@@ -109,6 +120,7 @@ public partial class CodeWrapperService
             var name = matches[i].Groups[1].Value;
             if (name is "ListNode" or "Solution" or "main") continue;
             if (name.StartsWith("~", StringComparison.Ordinal)) continue;
+            if (CppReservedKeywords.Contains(name)) continue;
             return name;
         }
         return null;
@@ -180,8 +192,9 @@ public partial class CodeWrapperService
 
     private static string[] ExtractJavaParameters(string code)
     {
+        // [\w\[\]]+ handles plain (int) and array (int[]) return types
         var m = Regex.Match(code,
-            @"public\s+(?:static\s+)?\w+\s+\w+\s*\(([^)]*)\)",
+            @"public\s+(?:static\s+)?[\w\[\]]+\s+\w+\s*\(([^)]*)\)",
             RegexOptions.IgnoreCase);
 
         if (!m.Success || m.Groups.Count <= 1) return Array.Empty<string>();
@@ -200,10 +213,22 @@ public partial class CodeWrapperService
         // `.Split().LastOrDefault()` on "sum % 10" would yield "10" as the
         // parameter name, producing broken output such as `vector<int> 10 = …`.
         //
+        // [\w:<>]+ (instead of \w+) handles template return types such as
+        // vector<int>, std::string, unordered_map<int,int>, etc. where the
+        // original \w+ stopped at '<' and matched nothing, leaving parameterNames
+        // empty and causing the Run path to build an empty JSON object {}.
+        //
+        // \s*\{ at the end (matching the opening brace of the body) ensures we
+        // only match *definitions*, not *calls* such as `ListNode dummy(0);`.
+        // Without this, a common Merge Two Sorted Lists pattern like
+        // `ListNode dummy(0);` would match with method="dummy", params="0",
+        // causing the JSON to be built as {"0": [1,2,4]} and the wrapper to
+        // emit `vector<int> 0 = …` which is illegal C++.
+        //
         // Two capturing groups are used so we can inspect both the method name
         // (group 1) and the parameter list (group 2).
         var matches = Regex.Matches(code,
-            @"(?!new\b)(?:\w+(?:\s*\*|\s*&)?)\s+(\w+)\s*\(([^)]*)\)",
+            @"(?!new\b)(?:[\w:<>]+(?:\s*[*&<>\[\]]+)?)\s+(\w+)\s*\(([^)]*)\)\s*\{",
             RegexOptions.IgnoreCase);
 
         // Iterate from the end – the solution method appears last (after struct/class defs).
@@ -212,8 +237,10 @@ public partial class CodeWrapperService
             var methodName = matches[i].Groups[1].Value;
             var paramsStr  = matches[i].Groups[2].Value;
 
-            // Skip struct constructors and well-known non-solution names.
+            // Skip struct constructors, well-known non-solution names, and C++ keywords
+            // that appear in control-flow like `else if (cond) {`.
             if (methodName is "ListNode" or "Solution" or "main") continue;
+            if (CppReservedKeywords.Contains(methodName)) continue;
 
             return paramsStr
                 .Split(',')
@@ -226,8 +253,11 @@ public partial class CodeWrapperService
 
     private static string[] ExtractCSharpParameters(string code)
     {
+        // [\w\[\]?<>]+ handles plain (int, void), array (int[], string[]),
+        // and generic (List<int>, Dictionary<int,int>) return types — same
+        // character class used in ExtractCSharpMethodName.
         var matches = Regex.Matches(code,
-            @"public\s+\w+\s+(\w+)\s*\(([^)]*)\)",
+            @"public\s+[\w\[\]?<>]+\s+(\w+)\s*\(([^)]*)\)",
             RegexOptions.IgnoreCase);
 
         for (int i = matches.Count - 1; i >= 0; i--)

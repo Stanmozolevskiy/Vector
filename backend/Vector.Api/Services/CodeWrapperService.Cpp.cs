@@ -54,8 +54,12 @@ public partial class CodeWrapperService
 
             // Build result output based on return type so the output matches JSON-serialised
             // expected values stored in the database (e.g. "bab" not bab for strings).
+            // Normalize away std:: namespace qualifier so that "std::vector<int>"
+            // is treated the same as "vector<int>", and "std::string" the same as
+            // "string", regardless of how the user qualified the return type.
             string resultOutput;
             var rtLower = returnType.ToLower().TrimEnd('*', ' ');
+            if (rtLower.StartsWith("std::")) rtLower = rtLower[5..];
             if (rtLower == "listnode")
             {
                 resultOutput =
@@ -76,7 +80,7 @@ public partial class CodeWrapperService
             {
                 resultOutput = "cout << (result ? \"true\" : \"false\");";
             }
-            else if (rtLower == "string" || rtLower == "std::string")
+            else if (rtLower == "string")
             {
                 // Output as JSON string: surround with double-quotes.
                 // Handles both 'string' and 'std::string' return types.
@@ -96,6 +100,11 @@ public partial class CodeWrapperService
 
             return $@"#include <iostream>
 #include <vector>
+#include <string>
+#include <algorithm>
+#include <unordered_map>
+#include <unordered_set>
+#include <climits>
 using namespace std;
 {userCode}
 {listHelper}

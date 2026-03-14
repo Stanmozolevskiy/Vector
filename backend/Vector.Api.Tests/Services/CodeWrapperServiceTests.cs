@@ -188,12 +188,7 @@ public class CodeWrapperServiceTests
     public void ExtractParameterNames_GoFunction_ReturnsParameters()
     {
         // Arrange
-        // Go regex expects: func functionName(params) returnType
-        // The regex @"func\s+\w+\s*\(([^)]*)\)" matches params
-        // Note: The implementation splits by comma, then for each param splits by space
-        // and takes the LAST word, which is actually the TYPE, not the param name
-        // For "nums int", it splits to ["nums", "int"] and takes "int" (the type)
-        // This is a limitation of the current implementation
+        // Go syntax is "name type" (e.g. "nums int"), so we take the FIRST word as the param name
         var code = "func twoSum(nums int, target int) int { return 0 }";
         var language = "go";
 
@@ -201,11 +196,9 @@ public class CodeWrapperServiceTests
         var parameters = _wrapper.ExtractParameterNames(code, language);
 
         // Assert
-        // Current implementation extracts types, not names, for Go
-        // So we just verify it extracts something
-        Assert.True(parameters.Length >= 2, $"Expected at least 2 parameters, got {parameters.Length}: [{string.Join(", ", parameters)}]");
-        // The implementation currently extracts "int" for both params
-        Assert.Contains("int", parameters);
+        Assert.Equal(2, parameters.Length);
+        Assert.Equal("nums", parameters[0]);
+        Assert.Equal("target", parameters[1]);
     }
 
     [Fact]

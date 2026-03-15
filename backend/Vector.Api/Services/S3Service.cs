@@ -110,7 +110,9 @@ public class S3Service : IS3Service
                 BucketName = _bucketName,
                 Key = key,
                 FilePath = tempPath,
-                ContentType = contentType
+                ContentType = contentType,
+                // R2 does not support STREAMING-AWS4-HMAC-SHA256-PAYLOAD-TRAILER; use unsigned payload (HTTPS provides integrity).
+                DisablePayloadSigning = true
             };
 
             await _s3Client.PutObjectAsync(putRequest);

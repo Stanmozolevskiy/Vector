@@ -37,6 +37,12 @@ public class S3Service : IS3Service
 
     public async Task<string> UploadFileAsync(Stream fileStream, string fileName, string contentType, string folder = "")
     {
+        // R2 (and some other S3-compatible providers) do not support chunked transfer signing
+        // (STREAMING-AWS4-HMAC-SHA256-PAYLOAD-TRAILER). Upload via temp file + PutObject so the
+        // SDK uses a single request with Content-Length and standard SigV4.
+        if (_useCustomProvider)
+            return await UploadFileViaPutObjectAsync(fileStream, fileName, contentType, folder);
+
         try
         {
             var fileExtension = Path.GetExtension(fileName);
@@ -53,22 +59,17 @@ public class S3Service : IS3Service
                 ContentType = contentType
             };
 
-            // ACLs are not supported on Cloudflare R2 — use bucket-level public access instead.
-            // For standard AWS S3, apply per-object ACLs as before.
-            if (!_useCustomProvider)
-            {
-                uploadRequest.CannedACL = (folder == "profile-pictures" || folder == "coach-applications" || folder == "question-videos" || folder == "dashboard-videos")
-                    ? S3CannedACL.PublicRead
-                    : S3CannedACL.Private;
+            uploadRequest.CannedACL = (folder == "profile-pictures" || folder == "coach-applications" || folder == "question-videos" || folder == "dashboard-videos")
+                ? S3CannedACL.PublicRead
+                : S3CannedACL.Private;
 
-                if (folder == "profile-pictures")
-                {
-                    uploadRequest.TagSet =
-                    [
-                        new Tag { Key = "public", Value = "true" },
-                        new Tag { Key = "content-type", Value = "profile-picture" }
-                    ];
-                }
+            if (folder == "profile-pictures")
+            {
+                uploadRequest.TagSet =
+                [
+                    new Tag { Key = "public", Value = "true" },
+                    new Tag { Key = "content-type", Value = "profile-picture" }
+                ];
             }
 
             var transferUtility = new TransferUtility(_s3Client);
@@ -82,6 +83,55 @@ public class S3Service : IS3Service
         {
             _logger.LogError(ex, "Failed to upload file: {FileName}", fileName);
             throw new InvalidOperationException("Failed to upload file", ex);
+        }
+    }
+
+    /// <summary>
+    /// Upload via temp file + PutObject to avoid chunked signing (STREAMING-AWS4-HMAC-SHA256-PAYLOAD-TRAILER)
+    /// which R2 and some other S3-compatible providers do not support.
+    /// </summary>
+    private async Task<string> UploadFileViaPutObjectAsync(Stream fileStream, string fileName, string contentType, string folder)
+    {
+        string? tempPath = null;
+        try
+        {
+            var fileExtension = Path.GetExtension(fileName);
+            var uniqueFileName = $"{Guid.NewGuid()}{fileExtension}";
+            var key = string.IsNullOrEmpty(folder) ? uniqueFileName : $"{folder}/{uniqueFileName}";
+
+            _logger.LogInformation("Uploading file: {Key}", key);
+
+            tempPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}{fileExtension}");
+            await using (var fileStreamOut = File.Create(tempPath))
+                await fileStream.CopyToAsync(fileStreamOut);
+
+            var putRequest = new PutObjectRequest
+            {
+                BucketName = _bucketName,
+                Key = key,
+                FilePath = tempPath,
+                ContentType = contentType,
+                // R2 does not support STREAMING-AWS4-HMAC-SHA256-PAYLOAD-TRAILER; use unsigned payload (HTTPS provides integrity).
+                DisablePayloadSigning = true
+            };
+
+            await _s3Client.PutObjectAsync(putRequest);
+
+            var url = BuildPublicUrl(key);
+            _logger.LogInformation("File uploaded: {Url}", url);
+            return url;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to upload file: {FileName}", fileName);
+            throw new InvalidOperationException("Failed to upload file", ex);
+        }
+        finally
+        {
+            if (tempPath != null && File.Exists(tempPath))
+            {
+                try { File.Delete(tempPath); } catch { /* ignore */ }
+            }
         }
     }
 

@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ROUTES } from '../../utils/constants';
 import { authService } from '../../services/auth.service';
+import { PasswordInput } from '../../components/common/PasswordInput';
 
 const resetPasswordSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -128,36 +129,26 @@ export const ResetPasswordPage = () => {
                 )}
               </div>
 
-              <div className="form-group">
-                <label htmlFor="password">New Password</label>
-                <input
-                  {...register('password')}
-                  id="password"
-                  type="password"
-                  autoComplete="new-password"
-                  placeholder="Enter your new password"
-                  className={errors.password ? 'input-error' : ''}
-                />
-                <small className="form-help">Must be at least 8 characters</small>
-                {errors.password && (
-                  <p className="form-error">{errors.password.message}</p>
-                )}
-              </div>
+              <PasswordInput
+                label="New Password"
+                id="password"
+                placeholder="Enter your new password"
+                autoComplete="new-password"
+                className={errors.password ? 'input-error' : ''}
+                error={errors.password?.message}
+                {...register('password')}
+              />
+              <small className="form-help">Must be at least 8 characters</small>
 
-              <div className="form-group">
-                <label htmlFor="confirmPassword">Confirm New Password</label>
-                <input
-                  {...register('confirmPassword')}
-                  id="confirmPassword"
-                  type="password"
-                  autoComplete="new-password"
-                  placeholder="Re-enter your new password"
-                  className={errors.confirmPassword ? 'input-error' : ''}
-                />
-                {errors.confirmPassword && (
-                  <p className="form-error">{errors.confirmPassword.message}</p>
-                )}
-              </div>
+              <PasswordInput
+                label="Confirm New Password"
+                id="confirmPassword"
+                placeholder="Re-enter your new password"
+                autoComplete="new-password"
+                className={errors.confirmPassword ? 'input-error' : ''}
+                error={errors.confirmPassword?.message}
+                {...register('confirmPassword')}
+              />
 
               <button type="submit" className="btn-primary btn-full" disabled={isSubmitting || !token}>
                 {isSubmitting ? (

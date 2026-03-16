@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '../../hooks/useAuth.tsx';
 import { ROUTES } from '../../utils/constants';
+import { PasswordInput } from '../../components/common/PasswordInput';
 
 const registerSchema = z.object({
   firstName: z.string().optional(),
@@ -150,36 +151,26 @@ export const RegisterPage = () => {
                 )}
               </div>
               
-              <div className="form-group">
-                <label htmlFor="password">Password</label>
-                <input
-                  {...register('password')}
-                  id="password"
-                  type="password"
-                  autoComplete="new-password"
-                  placeholder="Create a strong password"
-                  required
-                />
-                <small className="form-help">Must be at least 8 characters</small>
-                {errors.password && (
-                  <span style={{ color: '#ef4444', fontSize: '0.875rem' }}>{errors.password.message}</span>
-                )}
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="confirmPassword">Confirm Password</label>
-                <input
-                  {...register('confirmPassword')}
-                  id="confirmPassword"
-                  type="password"
-                  autoComplete="new-password"
-                  placeholder="Re-enter your password"
-                  required
-                />
-                {errors.confirmPassword && (
-                  <span style={{ color: '#ef4444', fontSize: '0.875rem' }}>{errors.confirmPassword.message}</span>
-                )}
-              </div>
+              <PasswordInput
+                label="Password"
+                id="password"
+                placeholder="Create a strong password"
+                autoComplete="new-password"
+                required
+                error={errors.password?.message}
+                {...register('password')}
+              />
+              <small className="form-help">Must be at least 8 characters</small>
+
+              <PasswordInput
+                label="Confirm Password"
+                id="confirmPassword"
+                placeholder="Re-enter your password"
+                autoComplete="new-password"
+                required
+                error={errors.confirmPassword?.message}
+                {...register('confirmPassword')}
+              />
               
               <label className="checkbox-label">
                 <input {...register('terms')} type="checkbox" name="terms" required />

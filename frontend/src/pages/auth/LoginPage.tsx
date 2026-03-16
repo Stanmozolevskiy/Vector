@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '../../hooks/useAuth.tsx';
 import { ROUTES } from '../../utils/constants';
+import { PasswordInput } from '../../components/common/PasswordInput';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -113,20 +114,15 @@ export const LoginPage = () => {
                 )}
               </div>
               
-              <div className="form-group">
-                <label htmlFor="password">Password</label>
-                <input
-                  {...register('password')}
-                  id="password"
-                  type="password"
-                  autoComplete="current-password"
-                  placeholder="Enter your password"
-                  required
-                />
-                {errors.password && (
-                  <span style={{ color: '#ef4444', fontSize: '0.875rem' }}>{errors.password.message}</span>
-                )}
-              </div>
+              <PasswordInput
+                label="Password"
+                id="password"
+                placeholder="Enter your password"
+                autoComplete="current-password"
+                required
+                error={errors.password?.message}
+                {...register('password')}
+              />
               
               <div className="form-options">
                 <label className="checkbox-label">

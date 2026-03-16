@@ -26,7 +26,7 @@ describe('LoginPage', () => {
     render(<LoginPage />);
 
     expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: /remember me/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /log in/i })).toBeInTheDocument();
   });
@@ -36,7 +36,7 @@ describe('LoginPage', () => {
     render(<LoginPage />);
 
     const emailInput = screen.getByLabelText(/email address/i);
-    const passwordInput = screen.getByLabelText(/password/i);
+    const passwordInput = screen.getByLabelText(/^password$/i);
     const submitButton = screen.getByRole('button', { name: /log in/i });
     
     await user.type(emailInput, 'invalid-email');
@@ -61,7 +61,7 @@ describe('LoginPage', () => {
     render(<LoginPage />);
 
     const emailInput = screen.getByLabelText(/email address/i);
-    const passwordInput = screen.getByLabelText(/password/i);
+    const passwordInput = screen.getByLabelText(/^password$/i);
     const submitButton = screen.getByRole('button', { name: /log in/i });
     
     await user.type(emailInput, 'test@example.com');
@@ -72,7 +72,7 @@ describe('LoginPage', () => {
     // Verify that navigation didn't happen (form didn't submit successfully)
     await waitFor(() => {
       // Form should still be visible (not navigated away)
-      expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument();
       // Check if error message appears (may take a moment)
       const errorSpan = passwordInput.parentElement?.querySelector('span');
       if (errorSpan) {
@@ -86,7 +86,7 @@ describe('LoginPage', () => {
     render(<LoginPage />);
 
     const emailInput = screen.getByLabelText(/email address/i);
-    const passwordInput = screen.getByLabelText(/password/i);
+    const passwordInput = screen.getByLabelText(/^password$/i);
     const submitButton = screen.getByRole('button', { name: /log in/i });
 
     await user.type(emailInput, 'test@example.com');
@@ -114,7 +114,7 @@ describe('LoginPage', () => {
     render(<LoginPage />);
 
     const emailInput = screen.getByLabelText(/email address/i);
-    const passwordInput = screen.getByLabelText(/password/i);
+    const passwordInput = screen.getByLabelText(/^password$/i);
     const submitButton = screen.getByRole('button', { name: /log in/i });
 
     await user.type(emailInput, 'wrong@example.com');
@@ -141,7 +141,7 @@ describe('LoginPage', () => {
     render(<LoginPage />);
 
     const emailInput = screen.getByLabelText(/email address/i);
-    const passwordInput = screen.getByLabelText(/password/i);
+    const passwordInput = screen.getByLabelText(/^password$/i);
     const submitButton = screen.getByRole('button', { name: /log in/i });
 
     await user.type(emailInput, 'unverified@example.com');
@@ -181,7 +181,7 @@ describe('LoginPage', () => {
     render(<LoginPage />);
 
     const emailInput = screen.getByLabelText(/email address/i);
-    const passwordInput = screen.getByLabelText(/password/i);
+    const passwordInput = screen.getByLabelText(/^password$/i);
     const submitButton = screen.getByRole('button', { name: /log in/i });
 
     await user.type(emailInput, 'test@example.com');

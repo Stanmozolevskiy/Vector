@@ -123,6 +123,8 @@ public class S3Service : IS3Service
         }
         catch (Exception ex)
         {
+            if (ex is Amazon.S3.AmazonS3Exception s3Ex && s3Ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                _logger.LogWarning("R2/S3 Access Denied. Bucket: {BucketName}. Check token has Object Read & Write and bucket name matches.", _bucketName);
             _logger.LogError(ex, "Failed to upload file: {FileName}", fileName);
             throw new InvalidOperationException("Failed to upload file", ex);
         }

@@ -1,9 +1,16 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { ROUTES } from '../../utils/constants';
 import { Footer } from '../../components/layout/Footer';
+import { siteSettingsService, type DashboardVideoSettings } from '../../services/siteSettings.service';
 import '../../styles/style.css';
+
+const DEFAULT_DASHBOARD_VIDEO: DashboardVideoSettings = {
+  url: 'https://dev-vector-user-uploads.s3.us-east-1.amazonaws.com/videos/mock-interviews/what-is-exponent.mp4',
+  title: 'What Is Exponent? - Introduction to Mock Interviews',
+  description: 'Learn how to prepare for technical interviews effectively with this introduction to mock interviews.',
+};
 
 const IndexPageNavbar = () => {
   const { user } = useAuth();
@@ -28,6 +35,7 @@ const IndexPageNavbar = () => {
 export const IndexPage = () => {
   const { isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
+  const [dashboardVideo, setDashboardVideo] = useState<DashboardVideoSettings>(DEFAULT_DASHBOARD_VIDEO);
 
   useEffect(() => {
     // Redirect logged-in users to dashboard
@@ -35,6 +43,16 @@ export const IndexPage = () => {
       navigate(ROUTES.DASHBOARD, { replace: true });
     }
   }, [isAuthenticated, isLoading, navigate]);
+
+  useEffect(() => {
+    siteSettingsService.getDashboardVideo()
+      .then((data) => setDashboardVideo({
+        url: data.url || DEFAULT_DASHBOARD_VIDEO.url,
+        title: data.title || DEFAULT_DASHBOARD_VIDEO.title,
+        description: data.description || DEFAULT_DASHBOARD_VIDEO.description,
+      }))
+      .catch(() => { /* keep default */ });
+  }, []);
 
   // Show loading state while checking auth
   if (isLoading) {
@@ -89,25 +107,24 @@ export const IndexPage = () => {
             <div className="hero-image">
               <div className="hero-card">
                 <div className="mock-interview-preview">
-                  <video 
-                    controls 
+                  <video
+                    controls
                     poster=""
+                    key={dashboardVideo.url}
+                    src={dashboardVideo.url}
                   >
-                    <source 
-                      src="https://dev-vector-user-uploads.s3.us-east-1.amazonaws.com/videos/mock-interviews/what-is-exponent.mp4" 
-                      type="video/mp4" 
-                    />
+                    <source src={dashboardVideo.url} type="video/mp4" />
                     Your browser does not support the video tag.
                   </video>
                 </div>
-                <p style={{ 
-                  marginTop: '1rem', 
-                  textAlign: 'center', 
+                <p style={{
+                  marginTop: '1rem',
+                  textAlign: 'center',
                   color: 'var(--text-secondary)',
                   fontSize: '0.875rem',
                   lineHeight: '1.4'
                 }}>
-                  What Is Exponent? - Introduction to Mock Interviews
+                  {dashboardVideo.title}
                 </p>
               </div>
             </div>

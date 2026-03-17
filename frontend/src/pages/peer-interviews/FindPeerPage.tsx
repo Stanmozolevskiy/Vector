@@ -10,6 +10,7 @@ import { NoFeedbackView } from '../../components/NoFeedbackView';
 import { ROUTES } from '../../utils/constants';
 import * as signalR from '@microsoft/signalr';
 import api from '../../services/api';
+import { tokenStorage } from '../../utils/tokenStorage';
 import '../../styles/find-peer.css';
 
 interface ScheduleModalData {
@@ -107,7 +108,7 @@ const FindPeerPage: React.FC = () => {
   useEffect(() => {
     const initializeSignalR = async () => {
       try {
-        const accessToken = localStorage.getItem('accessToken');
+        const accessToken = tokenStorage.getAccessToken();
         if (!accessToken) {
           return;
         }
@@ -119,7 +120,7 @@ const FindPeerPage: React.FC = () => {
         const connection = new signalR.HubConnectionBuilder()
           .withUrl(`${baseUrl}/api/collaboration`, {
             transport: signalR.HttpTransportType.WebSockets,
-            accessTokenFactory: () => localStorage.getItem('accessToken') || '',
+            accessTokenFactory: () => tokenStorage.getAccessToken() || '',
           })
           .withAutomaticReconnect()
           .build();

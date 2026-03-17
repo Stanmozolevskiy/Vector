@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import * as signalR from '@microsoft/signalr';
 import api from '../../services/api';
+import { tokenStorage } from '../../utils/tokenStorage';
 import { useAuth } from '../../hooks/useAuth';
 import { peerInterviewService, type LiveInterviewSession, type ScheduledInterviewSession, type UserDto } from '../../services/peerInterview.service';
 import { questionService, type InterviewQuestion, type QuestionList } from '../../services/question.service';
@@ -180,7 +181,7 @@ const PeerInterviewSessionPage: React.FC = () => {
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(`${baseUrl}/api/collaboration`, {
         transport: signalR.HttpTransportType.WebSockets,
-        accessTokenFactory: () => localStorage.getItem('accessToken') || '',
+        accessTokenFactory: () => tokenStorage.getAccessToken() || '',
       })
       .withAutomaticReconnect()
       .build();

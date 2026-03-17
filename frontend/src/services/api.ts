@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { tokenStorage } from '../utils/tokenStorage';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
@@ -44,9 +45,9 @@ const stopProactiveTokenRefresh = () => {
 };
 
 const refreshAccessToken = async (): Promise<string> => {
-  const refreshToken = localStorage.getItem('refreshToken');
+  const refreshToken = tokenStorage.getRefreshToken();
   if (!refreshToken) {
-    console.error('[TokenRefresh] No refresh token in localStorage');
+    console.error('[TokenRefresh] No refresh token');
     throw new Error('No refresh token');
   }
 
@@ -56,15 +57,8 @@ const refreshAccessToken = async (): Promise<string> => {
     const { authService } = await import('./auth.service');
     const response = await authService.refreshToken();
 
-    console.log('[TokenRefresh] Refresh successful, updating tokens in localStorage');
-    
-    // Update tokens atomically to prevent race conditions
-    localStorage.setItem('accessToken', response.accessToken);
-    if (response.refreshToken) {
-      localStorage.setItem('refreshToken', response.refreshToken);
-    }
-
-    // Re-arm the proactive scheduler based on the new token
+    console.log('[TokenRefresh] Refresh successful');
+    tokenStorage.setTokensFromRefresh(response.accessToken, response.refreshToken);
     startProactiveTokenRefresh();
 
     return response.accessToken;
@@ -79,10 +73,10 @@ const refreshAccessToken = async (): Promise<string> => {
 };
 
 const ensureFreshAccessToken = async (minValidityMs: number = 2 * 60 * 1000): Promise<string | null> => {
-  const refreshToken = localStorage.getItem('refreshToken');
+  const refreshToken = tokenStorage.getRefreshToken();
   if (!refreshToken) return null;
 
-  const accessToken = localStorage.getItem('accessToken');
+  const accessToken = tokenStorage.getAccessToken();
   const expMs = getJwtExpiryMs(accessToken);
   const now = Date.now();
 
@@ -104,7 +98,7 @@ const ensureFreshAccessToken = async (minValidityMs: number = 2 * 60 * 1000): Pr
     try {
       return await refreshPromise;
     } catch {
-      return localStorage.getItem('accessToken');
+      return tokenStorage.getAccessToken();
     }
   }
 
@@ -124,7 +118,7 @@ const ensureFreshAccessToken = async (minValidityMs: number = 2 * 60 * 1000): Pr
   try {
     return await refreshPromise;
   } catch {
-    return localStorage.getItem('accessToken');
+    return tokenStorage.getAccessToken();
   }
 };
 
@@ -142,7 +136,7 @@ api.interceptors.request.use(async (config) => {
     await ensureFreshAccessToken(2 * 60 * 1000);
   }
 
-  const token = localStorage.getItem('accessToken');
+  const token = tokenStorage.getAccessToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -163,10 +157,10 @@ const startProactiveTokenRefresh = () => {
   stopProactiveTokenRefresh();
 
   const scheduleNext = () => {
-    const refreshToken = localStorage.getItem('refreshToken');
+    const refreshToken = tokenStorage.getRefreshToken();
     if (!refreshToken) return;
 
-    const accessToken = localStorage.getItem('accessToken');
+    const accessToken = tokenStorage.getAccessToken();
     const expMs = getJwtExpiryMs(accessToken);
 
     // Default: check again in 1 minute if we can't parse expiry
@@ -178,7 +172,7 @@ const startProactiveTokenRefresh = () => {
     const delayMs = expMs ? Math.max(5_000, expMs - now - refreshLeadMs) : defaultDelayMs;
 
     tokenRefreshTimeout = setTimeout(async () => {
-      const currentRefreshToken = localStorage.getItem('refreshToken');
+      const currentRefreshToken = tokenStorage.getRefreshToken();
       if (!currentRefreshToken) return;
 
       try {
@@ -186,14 +180,12 @@ const startProactiveTokenRefresh = () => {
         consecutiveRefreshFailures = 0;
         scheduleNext();
       } catch (error: any) {
-        // Only force logout when refresh token is actually invalid/expired.
         const status = error?.response?.status;
         const isRefreshTokenExpired = status === 401 || status === 400;
 
         if (isRefreshTokenExpired) {
           console.debug('Proactive token refresh failed (refresh token expired)');
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
+          tokenStorage.clearTokens();
           stopProactiveTokenRefresh();
           return;
         }
@@ -217,7 +209,7 @@ const startProactiveTokenRefresh = () => {
   // This runs a light check every 2 minutes and refreshes if token is near expiry.
   // Reduced interval to catch token expiry more quickly for inactive users.
   backgroundRefreshInterval = setInterval(() => {
-    const rt = localStorage.getItem('refreshToken');
+    const rt = tokenStorage.getRefreshToken();
     if (!rt) {
       console.log('[TokenRefresh] No refresh token found in background check');
       return;
@@ -230,7 +222,7 @@ const startProactiveTokenRefresh = () => {
 };
 
 // Start proactive refresh if user is logged in
-if (localStorage.getItem('refreshToken')) {
+if (tokenStorage.getRefreshToken()) {
   startProactiveTokenRefresh();
 }
 
@@ -247,7 +239,7 @@ window.addEventListener('storage', (e) => {
 
 // Wake-up refresh: when user returns to a background tab, refresh if token is near expiry.
 const wakeRefresh = () => {
-  const refreshToken = localStorage.getItem('refreshToken');
+  const refreshToken = tokenStorage.getRefreshToken();
   if (!refreshToken) return;
   
   console.log('[TokenRefresh] Wake event triggered, checking token validity');
@@ -297,9 +289,11 @@ api.interceptors.response.use(
     }
 
     // Handle 401 Unauthorized - attempt token refresh
-    // Skip refresh if this is already a refresh token request to avoid infinite loops
-    if (error.response?.status === 401 && !originalRequest._retry && 
-        !originalRequest.url?.includes('/auth/refresh')) {
+    // Skip refresh for auth endpoints: login/register (no token yet) and refresh (avoid loops)
+    const isLoginOrRegister =
+      originalRequest.url?.includes('/auth/login') || originalRequest.url?.includes('/auth/register');
+    if (error.response?.status === 401 && !originalRequest._retry &&
+        !originalRequest.url?.includes('/auth/refresh') && !isLoginOrRegister) {
       if (isRefreshing) {
         // If already refreshing, queue this request
         return new Promise((resolve, reject) => {
@@ -320,14 +314,12 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
 
-      const refreshToken = localStorage.getItem('refreshToken');
+      const refreshToken = tokenStorage.getRefreshToken();
       
       if (!refreshToken) {
-        // No refresh token available - logout user and redirect to login with return URL
         console.warn('[Auth] No refresh token found, redirecting to login');
         processQueue(new Error('No refresh token'), null);
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
+        tokenStorage.clearTokens();
         const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
         window.location.href = `/login?returnUrl=${returnUrl}`;
         return Promise.reject(error);
@@ -340,8 +332,7 @@ api.interceptors.response.use(
         const response = await authService.refreshToken();
         
         console.log('[Auth] Token refresh successful');
-        localStorage.setItem('accessToken', response.accessToken);
-        localStorage.setItem('refreshToken', response.refreshToken);
+        tokenStorage.setTokensFromRefresh(response.accessToken, response.refreshToken);
         
         // Restart proactive refresh if it was stopped
         if (!tokenRefreshTimeout && response.refreshToken) {
@@ -366,22 +357,18 @@ api.interceptors.response.use(
                                      refreshError?.message?.includes('invalid');
         
         if (isRefreshTokenExpired) {
-          // Refresh token expired - logout user and redirect to login with return URL
           console.warn('[Auth] Refresh token expired or invalid, redirecting to login', {
             status: refreshError?.response?.status,
             message: refreshError?.message
           });
           processQueue(refreshError, null);
           isRefreshing = false;
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
+          tokenStorage.clearTokens();
           const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
           window.location.href = `/login?returnUrl=${returnUrl}`;
           return Promise.reject(refreshError);
         } else {
-          // Network error or other issue - retry the original request with current token
-          // Don't redirect, let the user continue working
-          const currentToken = localStorage.getItem('accessToken');
+          const currentToken = tokenStorage.getAccessToken();
           if (currentToken) {
             processQueue(null, currentToken);
           } else {

@@ -14,6 +14,7 @@ import { questionService } from '../../services/question.service';
 import type { QuestionList } from '../../services/question.service';
 import { whiteboardService } from '../../services/whiteboard.service';
 import api from '../../services/api';
+import { tokenStorage } from '../../utils/tokenStorage';
 import { RejoinModal } from '../../components/RejoinModal';
 import { FeedbackForm } from '../../components/FeedbackForm';
 import '../../components/whiteboard/Whiteboard.css';
@@ -243,7 +244,7 @@ export const SystemDesignInterviewPage = () => {
         const connection = new signalR.HubConnectionBuilder()
           .withUrl(`${baseUrl}/api/collaboration`, {
             transport: signalR.HttpTransportType.WebSockets,
-            accessTokenFactory: () => localStorage.getItem('accessToken') || '',
+            accessTokenFactory: () => tokenStorage.getAccessToken() || '',
           })
           .withAutomaticReconnect()
           .build();

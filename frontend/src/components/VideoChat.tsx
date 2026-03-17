@@ -2,6 +2,7 @@ import React, { useEffect, useImperativeHandle, useRef, useState } from 'react';
 import * as signalR from '@microsoft/signalr';
 import './VideoChat.css';
 import api from '../services/api';
+import { tokenStorage } from '../utils/tokenStorage';
 
 export type VideoChatState = {
   isVideoEnabled: boolean;
@@ -260,7 +261,7 @@ export const VideoChat = React.forwardRef<VideoChatHandle, VideoChatProps>(({
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(`${baseUrl}/api/collaboration`, {
         transport: signalR.HttpTransportType.WebSockets,
-        accessTokenFactory: () => localStorage.getItem('accessToken') || '',
+        accessTokenFactory: () => tokenStorage.getAccessToken() || '',
       })
       .withAutomaticReconnect({
         nextRetryDelayInMilliseconds: (retryContext) => {

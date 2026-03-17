@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import api from '../services/api';
 import { authService } from '../services/auth.service';
 import type { LoginData, RegisterData } from '../services/auth.service';
+import { tokenStorage } from '../utils/tokenStorage';
 
 interface User {
   id: string;
@@ -20,7 +21,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (data: LoginData) => Promise<void>;
+  login: (data: LoginData & { remember?: boolean }) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -39,8 +40,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is already logged in
-    const token = localStorage.getItem('accessToken');
+    const token = tokenStorage.getAccessToken();
     if (token) {
       fetchUser();
     } else {
@@ -53,31 +53,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const response = await api.get<User>('/users/me');
       setUser(response.data);
     } catch (error) {
-      // Clear invalid tokens on error
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
+      tokenStorage.clearTokens();
       // Don't redirect here - let the API interceptor handle it
-      // This prevents double redirects
     } finally {
       setIsLoading(false);
     }
   };
 
-  const login = async (data: LoginData) => {
-    const response = await authService.login(data);
-    localStorage.setItem('accessToken', response.accessToken);
-    if (response.refreshToken) {
-      localStorage.setItem('refreshToken', response.refreshToken);
-      // Trigger storage event to start proactive token refresh
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new StorageEvent('storage', {
-          key: 'refreshToken',
-          newValue: response.refreshToken,
-          storageArea: localStorage
-        }));
-      }
+  const login = async (data: LoginData & { remember?: boolean }) => {
+    const response = await authService.login({ email: data.email, password: data.password });
+    const remember = data.remember ?? true;
+    tokenStorage.setTokens(
+      response.accessToken,
+      response.refreshToken,
+      response.tokenType,
+      remember
+    );
+    if (response.refreshToken && typeof window !== 'undefined') {
+      const storage = remember ? localStorage : sessionStorage;
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'refreshToken',
+        newValue: response.refreshToken,
+        storageArea: storage
+      }));
     }
-    localStorage.setItem('tokenType', response.tokenType);
     await fetchUser();
   };
 
@@ -89,17 +88,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       await authService.logout();
     } catch {
-      // Even if API call fails, clear local storage
+      // Even if API call fails, clear tokens
     } finally {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
+      tokenStorage.clearTokens();
       setUser(null);
     }
   };
 
   const refreshUser = async () => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
+    if (tokenStorage.getAccessToken()) {
       await fetchUser();
     }
   };

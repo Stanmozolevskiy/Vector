@@ -1,4 +1,5 @@
 import api from './api';
+import { tokenStorage } from '../utils/tokenStorage';
 
 export interface RegisterData {
   email: string;
@@ -35,8 +36,7 @@ export const authService = {
 
   async logout(): Promise<void> {
     await api.post('/auth/logout');
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
+    tokenStorage.clearTokens();
   },
 
   async verifyEmail(token: string): Promise<void> {
@@ -56,7 +56,7 @@ export const authService = {
   },
 
   async refreshToken(): Promise<{ accessToken: string; refreshToken: string }> {
-    const refreshToken = localStorage.getItem('refreshToken');
+    const refreshToken = tokenStorage.getRefreshToken();
     if (!refreshToken) {
       throw new Error('No refresh token available');
     }
@@ -72,10 +72,7 @@ export const authService = {
         },
       }
     );
-    localStorage.setItem('accessToken', response.data.accessToken);
-    if (response.data.refreshToken) {
-      localStorage.setItem('refreshToken', response.data.refreshToken);
-    }
+    tokenStorage.setTokensFromRefresh(response.data.accessToken, response.data.refreshToken);
     return response.data;
   },
 };

@@ -19,6 +19,7 @@ import { codeDraftService } from '../../services/codeDraft.service';
 import { peerInterviewService } from '../../services/peerInterview.service';
 import type { PeerInterviewSession } from '../../services/peerInterview.service';
 import api from '../../services/api';
+import { tokenStorage } from '../../utils/tokenStorage';
 import { RejoinModal } from '../../components/RejoinModal';
 import { FeedbackForm } from '../../components/FeedbackForm';
 import { QuestionVoting } from '../../components/QuestionVoting';
@@ -317,7 +318,7 @@ export const QuestionDetailPage = () => {
         const connection = new signalR.HubConnectionBuilder()
           .withUrl(`${baseUrl}/api/collaboration`, {
             transport: signalR.HttpTransportType.WebSockets,
-            accessTokenFactory: () => localStorage.getItem('accessToken') || '',
+            accessTokenFactory: () => tokenStorage.getAccessToken() || '',
           })
           .withAutomaticReconnect({
             nextRetryDelayInMilliseconds: (retryContext) => {

@@ -3,6 +3,7 @@ import * as signalR from '@microsoft/signalr';
 import { CodeEditor } from './CodeEditor';
 import './CollaborativeCodeEditor.css';
 import api from '../services/api';
+import { tokenStorage } from '../utils/tokenStorage';
 
 
 interface CollaborativeCodeEditorProps {
@@ -51,7 +52,7 @@ export const CollaborativeCodeEditor: React.FC<CollaborativeCodeEditorProps> = (
       const connection = new signalR.HubConnectionBuilder()
         .withUrl(`${baseUrl}/api/collaboration`, {
           transport: signalR.HttpTransportType.WebSockets,
-          accessTokenFactory: () => localStorage.getItem('accessToken') || '',
+          accessTokenFactory: () => tokenStorage.getAccessToken() || '',
         })
         .withAutomaticReconnect({
           nextRetryDelayInMilliseconds: (retryContext) => {

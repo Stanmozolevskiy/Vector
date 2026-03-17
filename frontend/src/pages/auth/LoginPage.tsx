@@ -40,7 +40,7 @@ export const LoginPage = () => {
   const onSubmit = async (data: LoginFormData) => {
     try {
       setError('');
-      await login({ email: data.email, password: data.password });
+      await login({ email: data.email, password: data.password, remember: data.remember ?? false });
       
       // Redirect to returnUrl if provided, otherwise to dashboard
       const returnUrl = searchParams.get('returnUrl');

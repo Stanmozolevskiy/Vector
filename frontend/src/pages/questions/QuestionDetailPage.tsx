@@ -3057,9 +3057,11 @@ export const QuestionDetailPage = () => {
                         )}
                       </div>
 
-                      {/* Case Subtabs */}
+                      {/* Case Subtabs - Show first 3 and any failed test cases */}
                       <div className="case-subtabs" style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-                        {runResult.cases.map((caseResult) => (
+                        {runResult.cases
+                          .filter(c => c.caseIndex <= 3 || !c.passed)
+                          .map((caseResult) => (
                           <button
                             key={caseResult.caseIndex}
                             className={`case-subtab ${selectedCaseIndex === caseResult.caseIndex ? 'active' : ''} ${
@@ -3213,9 +3215,11 @@ export const QuestionDetailPage = () => {
                       {/* Show all test cases in tabs (like Run button) */}
                       {testResults.length > 0 && (
                         <>
-                          {/* Case Subtabs - Show all test cases */}
+                          {/* Case Subtabs - Show first 3 and any failed test cases */}
                           <div className="case-subtabs" style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
-                            {testResults.map((result) => (
+                            {testResults
+                              .filter(r => r.testCaseNumber <= 3 || !r.passed)
+                              .map((result) => (
                               <button
                                 key={result.testCaseNumber}
                                 className={`case-subtab ${selectedCaseIndex === result.testCaseNumber ? 'active' : ''} ${

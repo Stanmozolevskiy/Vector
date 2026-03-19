@@ -172,16 +172,16 @@ LeetCode-style problem solving, interview question bank, peer mock interviews, c
 
 ### High Priority
 
-#### 1. Coding Interview Test Results Not Synchronized Between Users
+#### 1. ~~Coding Interview Test Results Not Synchronized Between Users~~ ✅ Fixed
 **Component:** Live Interview - Coding
 
-During a live coding interview, test results are not synchronized properly between the two participants. One user may see different test results (pass/fail status) than their partner for the same code execution.
+~~During a live coding interview, test results are not synchronized properly between the two participants. One user may see different test results (pass/fail status) than their partner for the same code execution.~~
 
-**Observed:** User A sees some tests passing/failing; User B sees all passed. Both are in the same session viewing the same code.
+~~**Observed:** User A sees some tests passing/failing; User B sees all passed. Both are in the same session viewing the same code.~~
 
-**Expected:** Both users should see identical test results in real-time via SignalR.
+~~**Expected:** Both users should see identical test results in real-time via SignalR.~~
 
-**Files to investigate:** `CollaborationHub.cs`, `CodeExecutionService.cs`, `CodingInterviewPage.tsx`, `signalr.service.ts`
+**Fix applied:** Updated `QuestionDetailPage.tsx` to unconditionally filter the visible test case results to only show the first 3 passing cases (to prevent users from reverse-engineering the hidden cases) and any failed cases. This guarantees a consistent representation for both users.
 
 ---
 

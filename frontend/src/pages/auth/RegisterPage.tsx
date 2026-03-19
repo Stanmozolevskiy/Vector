@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -7,54 +7,131 @@ import { useAuth } from '../../hooks/useAuth.tsx';
 import { ROUTES } from '../../utils/constants';
 import { PasswordInput } from '../../components/common/PasswordInput';
 
-const registerSchema = z.object({
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  confirmPassword: z.string().min(8, 'Please confirm your password'),
-  terms: z.boolean().refine(val => val === true, 'You must agree to the terms'),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+function nameContainsDigit(s: string): boolean {
+  if (/[0-9]/.test(s)) return true;
+  try {
+    return /\p{Nd}/u.test(s);
+  } catch {
+    return false;
+  }
+}
+
+function validateNameValue(raw: unknown, label: string): string | undefined {
+  const s = typeof raw === 'string' ? raw : String(raw ?? '');
+  const t = s.trim();
+  if (!t) return `${label} is required.`;
+  if (t.length > 100) return `${label} must be at most 100 characters.`;
+  if (nameContainsDigit(t)) return `${label} must not contain numbers.`;
+  return undefined;
+}
+
+const nameField = (label: string) =>
+  z
+    .string()
+    .trim()
+    .min(1, `${label} is required.`)
+    .max(100, `${label} must be at most 100 characters.`)
+    .regex(/^[^\p{Nd}]+$/u, `${label} must not contain numbers.`);
+
+const registerSchema = z
+  .object({
+    firstName: nameField('First name'),
+    lastName: nameField('Last name'),
+    email: z
+      .string()
+      .trim()
+      .min(1, 'Email is required.')
+      .email('Invalid email address.')
+      .max(254, 'Email must be at most 254 characters.'),
+    password: z
+      .string()
+      .min(8, 'Password must be at least 8 characters.')
+      .max(256, 'Password must be at most 256 characters.'),
+    confirmPassword: z.string().min(1, 'Please confirm your password.'),
+    terms: z.boolean().refine((val) => val === true, {
+      message: 'You must agree to the terms.',
+    }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match.",
+    path: ['confirmPassword'],
+  });
 
 type RegisterFormData = z.infer<typeof registerSchema>;
 
+function fieldErrorStyle(): { color: string; fontSize: string; display: string; marginTop: string } {
+  return { color: '#ef4444', fontSize: '0.875rem', display: 'block', marginTop: '0.25rem' };
+}
+
 export const RegisterPage = () => {
   const { register: registerUser } = useAuth();
-  const [error, setError] = useState<string>('');
+  const [bannerError, setBannerError] = useState<string>('');
   const [success, setSuccess] = useState(false);
+  /** Names read from the DOM on submit (RHF state can desync from visible inputs). */
+  const namesFromFormRef = useRef({ firstName: '', lastName: '' });
 
   const {
     register,
     handleSubmit,
+    setError: setFieldError,
+    clearErrors,
     formState: { errors, isSubmitting },
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      terms: false,
+    },
   });
 
   const onSubmit = async (data: RegisterFormData) => {
+    const fn = namesFromFormRef.current.firstName;
+    const ln = namesFromFormRef.current.lastName;
+    const fe = validateNameValue(fn, 'First name');
+    const le = validateNameValue(ln, 'Last name');
+    if (fe) setFieldError('firstName', { type: 'manual', message: fe });
+    if (le) setFieldError('lastName', { type: 'manual', message: le });
+    if (fe || le) return;
+
     try {
-      setError('');
+      setBannerError('');
       await registerUser({
         email: data.email,
         password: data.password,
-        firstName: data.firstName,
-        lastName: data.lastName,
+        firstName: fn,
+        lastName: ln,
       });
       setSuccess(true);
-      // Don't redirect - stay on confirmation page
     } catch (err) {
-      const errorMessage = err && typeof err === 'object' && 'response' in err
-        ? (err.response as { data?: { error?: string } })?.data?.error
-        : undefined;
-      setError(errorMessage || 'Registration failed. Please try again.');
+      const res =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: unknown; status?: number } }).response
+          : undefined;
+      const data = res?.data;
+      if (data && typeof data === 'object') {
+        const d = data as Record<string, unknown>;
+        if (typeof d.error === 'string') {
+          setBannerError(d.error);
+          return;
+        }
+        if (d.errors && typeof d.errors === 'object') {
+          const errs = d.errors as Record<string, string[] | string>;
+          const first = Object.values(errs).flat()[0];
+          if (typeof first === 'string') {
+            setBannerError(first);
+            return;
+          }
+        }
+      }
+      setBannerError('Registration failed. Please try again.');
     }
   };
 
   const handleSocialSignup = (provider: 'google' | 'linkedin') => {
-    // TODO: Implement social signup
     console.log(`${provider} signup clicked`);
   };
 
@@ -100,18 +177,46 @@ export const RegisterPage = () => {
           <div className="auth-content">
             <h1>Start your journey</h1>
             <p>Create your account and ace your next interview</p>
-            
-            <form className="auth-form" onSubmit={handleSubmit(onSubmit)}>
-              {error && (
-                <div style={{ 
-                  background: '#fee2e2', 
-                  borderLeft: '4px solid #ef4444', 
-                  padding: '1rem', 
-                  borderRadius: '0.5rem',
-                  color: '#991b1b',
-                  fontSize: '0.875rem'
-                }}>
-                  {error}
+
+            <form
+              className="auth-form"
+              noValidate
+              onSubmit={(e) => {
+                e.preventDefault();
+                setBannerError('');
+                const form = e.currentTarget;
+                const fd = new FormData(form);
+                const firstName = String(fd.get('firstName') ?? '').trim();
+                const lastName = String(fd.get('lastName') ?? '').trim();
+                namesFromFormRef.current = { firstName, lastName };
+
+                const nameErrFirst = validateNameValue(firstName, 'First name');
+                const nameErrLast = validateNameValue(lastName, 'Last name');
+                clearErrors(['firstName', 'lastName']);
+                if (nameErrFirst) {
+                  setFieldError('firstName', { type: 'manual', message: nameErrFirst });
+                }
+                if (nameErrLast) {
+                  setFieldError('lastName', { type: 'manual', message: nameErrLast });
+                }
+                if (nameErrFirst || nameErrLast) {
+                  return;
+                }
+                void handleSubmit(onSubmit)(e);
+              }}
+            >
+              {bannerError && (
+                <div
+                  style={{
+                    background: '#fee2e2',
+                    borderLeft: '4px solid #ef4444',
+                    padding: '1rem',
+                    borderRadius: '0.5rem',
+                    color: '#991b1b',
+                    fontSize: '0.875rem',
+                  }}
+                >
+                  {bannerError}
                 </div>
               )}
 
@@ -123,7 +228,15 @@ export const RegisterPage = () => {
                     id="firstName"
                     type="text"
                     placeholder="John"
+                    autoComplete="given-name"
+                    aria-invalid={!!errors.firstName}
+                    aria-describedby={errors.firstName ? 'firstName-error' : undefined}
                   />
+                  {errors.firstName && (
+                    <span id="firstName-error" style={fieldErrorStyle()} role="alert">
+                      {errors.firstName.message}
+                    </span>
+                  )}
                 </div>
                 <div className="form-group">
                   <label htmlFor="lastName">Last Name</label>
@@ -132,10 +245,18 @@ export const RegisterPage = () => {
                     id="lastName"
                     type="text"
                     placeholder="Doe"
+                    autoComplete="family-name"
+                    aria-invalid={!!errors.lastName}
+                    aria-describedby={errors.lastName ? 'lastName-error' : undefined}
                   />
+                  {errors.lastName && (
+                    <span id="lastName-error" style={fieldErrorStyle()} role="alert">
+                      {errors.lastName.message}
+                    </span>
+                  )}
                 </div>
               </div>
-              
+
               <div className="form-group">
                 <label htmlFor="email">Email Address</label>
                 <input
@@ -144,19 +265,21 @@ export const RegisterPage = () => {
                   type="email"
                   autoComplete="email"
                   placeholder="you@example.com"
-                  required
+                  aria-invalid={!!errors.email}
+                  aria-describedby={errors.email ? 'email-error' : undefined}
                 />
                 {errors.email && (
-                  <span style={{ color: '#ef4444', fontSize: '0.875rem' }}>{errors.email.message}</span>
+                  <span id="email-error" style={fieldErrorStyle()} role="alert">
+                    {errors.email.message}
+                  </span>
                 )}
               </div>
-              
+
               <PasswordInput
                 label="Password"
                 id="password"
                 placeholder="Create a strong password"
                 autoComplete="new-password"
-                required
                 error={errors.password?.message}
                 {...register('password')}
               />
@@ -167,28 +290,31 @@ export const RegisterPage = () => {
                 id="confirmPassword"
                 placeholder="Re-enter your password"
                 autoComplete="new-password"
-                required
                 error={errors.confirmPassword?.message}
                 {...register('confirmPassword')}
               />
-              
+
               <label className="checkbox-label">
-                <input {...register('terms')} type="checkbox" name="terms" required />
-                <span>I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></span>
+                <input {...register('terms')} type="checkbox" />
+                <span>
+                  I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+                </span>
               </label>
               {errors.terms && (
-                <span style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '-1rem' }}>{errors.terms.message}</span>
+                <span style={{ ...fieldErrorStyle(), marginTop: '-0.5rem' }} role="alert">
+                  {errors.terms.message}
+                </span>
               )}
-              
+
               <button type="submit" className="btn-primary btn-full" disabled={isSubmitting}>
                 {isSubmitting ? 'Creating account...' : 'Create Account'}
               </button>
             </form>
-            
+
             <div className="divider">
               <span>or sign up with</span>
             </div>
-            
+
             <div className="social-auth">
               <button type="button" className="social-btn google-btn" onClick={() => handleSocialSignup('google')}>
                 <i className="fab fa-google"></i>
@@ -199,13 +325,13 @@ export const RegisterPage = () => {
                 <span>LinkedIn</span>
               </button>
             </div>
-            
+
             <p className="auth-footer">
               Already have an account? <Link to={ROUTES.LOGIN}>Log in</Link>
             </p>
           </div>
         </div>
-        
+
         <div className="auth-right">
           <div className="auth-testimonial">
             <i className="fas fa-quote-left"></i>
@@ -221,11 +347,21 @@ export const RegisterPage = () => {
           <div className="auth-benefits">
             <h3>What you'll get:</h3>
             <ul>
-              <li><i className="fas fa-check"></i> Access to 100+ expert-led courses</li>
-              <li><i className="fas fa-check"></i> 1000+ interview questions with solutions</li>
-              <li><i className="fas fa-check"></i> Live mock interviews with professionals</li>
-              <li><i className="fas fa-check"></i> Personalized learning path</li>
-              <li><i className="fas fa-check"></i> Progress tracking and analytics</li>
+              <li>
+                <i className="fas fa-check"></i> Access to 100+ expert-led courses
+              </li>
+              <li>
+                <i className="fas fa-check"></i> 1000+ interview questions with solutions
+              </li>
+              <li>
+                <i className="fas fa-check"></i> Live mock interviews with professionals
+              </li>
+              <li>
+                <i className="fas fa-check"></i> Personalized learning path
+              </li>
+              <li>
+                <i className="fas fa-check"></i> Progress tracking and analytics
+              </li>
             </ul>
           </div>
         </div>

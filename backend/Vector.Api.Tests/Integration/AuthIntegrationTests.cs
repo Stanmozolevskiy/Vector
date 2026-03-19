@@ -100,6 +100,75 @@ public class AuthIntegrationTests : IClassFixture<TestWebApplicationFactory>, ID
     }
 
     [Fact]
+    public async Task Register_WithEmptyFirstName_ReturnsBadRequest()
+    {
+        var registerDto = new RegisterDto
+        {
+            Email = "noname@example.com",
+            Password = "Test1234!",
+            FirstName = "",
+            LastName = "User"
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/auth/register", registerDto);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var user = await GetContext().Users.FirstOrDefaultAsync(u => u.Email == "noname@example.com");
+        Assert.Null(user);
+    }
+
+    [Fact]
+    public async Task Register_WithEmptyLastName_ReturnsBadRequest()
+    {
+        var registerDto = new RegisterDto
+        {
+            Email = "nolast@example.com",
+            Password = "Test1234!",
+            FirstName = "Test",
+            LastName = ""
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/auth/register", registerDto);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var user = await GetContext().Users.FirstOrDefaultAsync(u => u.Email == "nolast@example.com");
+        Assert.Null(user);
+    }
+
+    [Fact]
+    public async Task Register_WithWhitespaceOnlyNames_ReturnsBadRequest()
+    {
+        var registerDto = new RegisterDto
+        {
+            Email = "spaces@example.com",
+            Password = "Test1234!",
+            FirstName = "   ",
+            LastName = "   "
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/auth/register", registerDto);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Register_WithNumericFirstName_ReturnsBadRequest()
+    {
+        var registerDto = new RegisterDto
+        {
+            Email = "nums@example.com",
+            Password = "Test1234!",
+            FirstName = "232",
+            LastName = "Doe"
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/auth/register", registerDto);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Null(await GetContext().Users.FirstOrDefaultAsync(u => u.Email == "nums@example.com"));
+    }
+
+    [Fact]
     public async Task Login_WithValidCredentials_ReturnsTokens()
     {
         // Arrange - Register a user first

@@ -59,6 +59,10 @@ public class AuthController : ControllerBase
             
             return CreatedAtAction(nameof(Register), new { id = user.Id }, response);
         }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
         catch (InvalidOperationException ex)
         {
             return BadRequest(new { error = ex.Message });

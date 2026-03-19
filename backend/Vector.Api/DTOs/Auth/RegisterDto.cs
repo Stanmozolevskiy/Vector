@@ -10,12 +10,17 @@ public class RegisterDto
 
     [Required]
     [MinLength(8)]
+    [MaxLength(256)]
     public string Password { get; set; } = string.Empty;
 
+    [Required(ErrorMessage = "First name is required.")]
     [MaxLength(100)]
-    public string? FirstName { get; set; }
+    [RegularExpression(@"^[^0-9]+$", ErrorMessage = "First name must not contain numbers.")]
+    public string FirstName { get; set; } = string.Empty;
 
+    [Required(ErrorMessage = "Last name is required.")]
     [MaxLength(100)]
-    public string? LastName { get; set; }
+    [RegularExpression(@"^[^0-9]+$", ErrorMessage = "Last name must not contain numbers.")]
+    public string LastName { get; set; } = string.Empty;
 }
 

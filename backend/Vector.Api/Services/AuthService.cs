@@ -32,9 +32,32 @@ public class AuthService : IAuthService
 
     public async Task<User> RegisterUserAsync(RegisterDto dto)
     {
+        var firstName = (dto.FirstName ?? string.Empty).Trim();
+        var lastName = (dto.LastName ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName))
+        {
+            throw new ArgumentException("First name and last name are required.");
+        }
+
+        if (firstName.Any(char.IsDigit))
+        {
+            throw new ArgumentException("First name must not contain numbers.");
+        }
+
+        if (lastName.Any(char.IsDigit))
+        {
+            throw new ArgumentException("Last name must not contain numbers.");
+        }
+
+        var email = (dto.Email ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            throw new ArgumentException("Email is required.");
+        }
+
         // Check if user already exists
         var existingUser = await _context.Users
-            .FirstOrDefaultAsync(u => u.Email.ToLower() == dto.Email.ToLower());
+            .FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
         
         if (existingUser != null)
         {
@@ -45,10 +68,10 @@ public class AuthService : IAuthService
         var user = new User
         {
             Id = Guid.NewGuid(),
-            Email = dto.Email.ToLower(),
+            Email = email.ToLower(),
             PasswordHash = PasswordHasher.HashPassword(dto.Password),
-            FirstName = dto.FirstName,
-            LastName = dto.LastName,
+            FirstName = firstName,
+            LastName = lastName,
             Role = "student",
             EmailVerified = false,
             CreatedAt = DateTime.UtcNow,

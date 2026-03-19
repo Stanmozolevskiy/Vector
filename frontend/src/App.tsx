@@ -35,6 +35,8 @@ const WhiteboardPage = lazy(() => import('./pages/whiteboard/WhiteboardPage').th
 const SystemDesignInterviewPage = lazy(() => import('./pages/system-design-interview/SystemDesignInterviewPage').then(module => ({ default: module.SystemDesignInterviewPage })));
 import UnauthorizedPage from './pages/UnauthorizedPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
+import { TermsOfServicePage } from './pages/legal/TermsOfServicePage';
+import { PrivacyPolicyPage } from './pages/legal/PrivacyPolicyPage';
 import { SessionNotificationManager } from './components/SessionNotificationManager';
 import { ROUTES } from './utils/constants';
 
@@ -212,8 +214,8 @@ function App() {
         <Route path={ROUTES.BLOG} element={<ComingSoonPage />} />
         <Route path={ROUTES.CONTACT} element={<ComingSoonPage />} />
         <Route path={ROUTES.HELP} element={<ComingSoonPage />} />
-        <Route path={ROUTES.TERMS} element={<ComingSoonPage />} />
-        <Route path={ROUTES.PRIVACY} element={<ComingSoonPage />} />
+        <Route path={ROUTES.TERMS} element={<TermsOfServicePage />} />
+        <Route path={ROUTES.PRIVACY} element={<PrivacyPolicyPage />} />
         <Route path={ROUTES.COOKIES} element={<ComingSoonPage />} />
         </Routes>
       </BrowserRouter>

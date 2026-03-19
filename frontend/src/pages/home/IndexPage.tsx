@@ -38,6 +38,10 @@ export const IndexPage = () => {
   const [dashboardVideo, setDashboardVideo] = useState<DashboardVideoSettings>(DEFAULT_DASHBOARD_VIDEO);
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
     // Redirect logged-in users to dashboard
     if (!isLoading && isAuthenticated) {
       navigate(ROUTES.DASHBOARD, { replace: true });

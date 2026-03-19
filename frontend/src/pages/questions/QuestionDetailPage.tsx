@@ -3057,10 +3057,9 @@ export const QuestionDetailPage = () => {
                         )}
                       </div>
 
-                      {/* Case Subtabs - Show first 3 and any failed test cases */}
-                      <div className="case-subtabs" style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                      {/* Case Subtabs - Show all test cases for manual runs */}
+                      <div className="case-subtabs" style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
                         {runResult.cases
-                          .filter(c => c.caseIndex <= 3 || !c.passed)
                           .map((caseResult) => (
                           <button
                             key={caseResult.caseIndex}

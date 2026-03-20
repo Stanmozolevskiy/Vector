@@ -39,14 +39,15 @@ public class AuthService : IAuthService
             throw new ArgumentException("First name and last name are required.");
         }
 
-        if (firstName.Any(char.IsDigit))
+        // Additional validation: only allow letters, spaces, hyphens, and apostrophes
+        if (System.Text.RegularExpressions.Regex.IsMatch(firstName, @"[^\p{L}\s\-']"))
         {
-            throw new ArgumentException("First name must not contain numbers.");
+            throw new ArgumentException("First name cannot contain numbers or special characters.");
         }
 
-        if (lastName.Any(char.IsDigit))
+        if (System.Text.RegularExpressions.Regex.IsMatch(lastName, @"[^\p{L}\s\-']"))
         {
-            throw new ArgumentException("Last name must not contain numbers.");
+            throw new ArgumentException("Last name cannot contain numbers or special characters.");
         }
 
         var email = (dto.Email ?? string.Empty).Trim();

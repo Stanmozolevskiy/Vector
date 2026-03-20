@@ -7,21 +7,16 @@ import { useAuth } from '../../hooks/useAuth.tsx';
 import { ROUTES } from '../../utils/constants';
 import { PasswordInput } from '../../components/common/PasswordInput';
 
-function nameContainsDigit(s: string): boolean {
-  if (/[0-9]/.test(s)) return true;
-  try {
-    return /\p{Nd}/u.test(s);
-  } catch {
-    return false;
-  }
-}
-
 function validateNameValue(raw: unknown, label: string): string | undefined {
   const s = typeof raw === 'string' ? raw : String(raw ?? '');
   const t = s.trim();
   if (!t) return `${label} is required.`;
-  if (t.length > 100) return `${label} must be at most 100 characters.`;
-  if (nameContainsDigit(t)) return `${label} must not contain numbers.`;
+  if (t.length > 30) return `${label} must be at most 30 characters.`;
+  
+  // Regular expression to check for any special characters (only allows letters, spaces, hyphens, and apostrophes)
+  // This uses Unicode property escapes to allow letters from any language
+  if (/[^\p{L}\s\-']/u.test(t)) return `${label} cannot contain numbers or special characters.`;
+  
   return undefined;
 }
 
@@ -30,8 +25,8 @@ const nameField = (label: string) =>
     .string()
     .trim()
     .min(1, `${label} is required.`)
-    .max(100, `${label} must be at most 100 characters.`)
-    .regex(/^[^\p{Nd}]+$/u, `${label} must not contain numbers.`);
+    .max(30, `${label} must be at most 30 characters.`)
+    .regex(/^[\p{L}\s\-']+$/u, `${label} cannot contain numbers or special characters.`);
 
 const registerSchema = z
   .object({
@@ -46,8 +41,8 @@ const registerSchema = z
     password: z
       .string()
       .min(8, 'Password must be at least 8 characters.')
-      .max(256, 'Password must be at most 256 characters.'),
-    confirmPassword: z.string().min(1, 'Please confirm your password.'),
+      .max(50, 'Password must be at most 50 characters.'),
+    confirmPassword: z.string().min(1, 'Please confirm your password.').max(50, 'Password must be at most 50 characters.'),
     terms: z.boolean().refine((val) => val === true, {
       message: 'You must agree to the terms.',
     }),

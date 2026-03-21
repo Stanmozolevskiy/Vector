@@ -171,7 +171,17 @@ const PeerInterviewSessionPage: React.FC = () => {
 
   // (Non-coding interview UI is fixed-position; no draggable carousel state)
 
-  // SignalR: listen for InterviewEnded so both users see feedback
+  // Synced timer state
+  const [syncedStartedAtMs, setSyncedStartedAtMs] = useState<number | null>(null);
+
+  // Initialize synced time when live session loads
+  useEffect(() => {
+    if (liveSession?.startedAt && !syncedStartedAtMs) {
+      setSyncedStartedAtMs(new Date(liveSession.startedAt).getTime());
+    }
+  }, [liveSession?.startedAt, syncedStartedAtMs]);
+
+  // SignalR: listen for InterviewEnded and ChatMessage
   useEffect(() => {
     if (!id) return;
     const baseUrl = (api.defaults.baseURL && typeof api.defaults.baseURL === 'string')
@@ -195,6 +205,14 @@ const PeerInterviewSessionPage: React.FC = () => {
         connection.on('InterviewEnded', () => {
           setShowFeedback(true);
         });
+        
+        // Listen for timer synchronization
+        connection.on('TimerSynced', (serverElapsedTime: number) => {
+          if (serverElapsedTime > 0) {
+            setSyncedStartedAtMs(Date.now() - serverElapsedTime * 1000);
+          }
+        });
+
         connection.on('ChatMessage', (payload: any) => {
           const msg = String(payload?.message || '').trim();
           const senderId = String(payload?.userId || '');
@@ -215,26 +233,35 @@ const PeerInterviewSessionPage: React.FC = () => {
     };
   }, [id]);
 
-  // Synced timer: based on live session startedAt
+  // Synced timer: based on syncedStartedAtMs
   useEffect(() => {
-    if (!liveSession?.startedAt) {
+    if (!syncedStartedAtMs) {
       setTimeRemainingSeconds(null);
       return;
     }
 
     const durationSeconds = 60 * 60; // 60 minutes
-    const startedAtMs = new Date(liveSession.startedAt).getTime();
 
     const update = () => {
-      const elapsed = Math.floor((Date.now() - startedAtMs) / 1000);
+      const elapsed = Math.floor((Date.now() - syncedStartedAtMs) / 1000);
       const remaining = Math.max(0, durationSeconds - elapsed);
       setTimeRemainingSeconds(remaining);
+
+      // Periodically broadcast timer if I am the interviewer (or first user)
+      if (signalRRef.current?.state === 'Connected' && id) {
+        const myParticipant = liveSession?.participants?.find(p => p.userId === user?.id);
+        const isInterviewer = myParticipant?.role === 'Interviewer';
+        const isOnlyUserSoFar = (liveSession?.participants?.length || 0) < 2;
+        if ((isInterviewer || isOnlyUserSoFar) && elapsed > 0 && elapsed % 5 === 0) {
+           signalRRef.current.invoke('SendTimerSync', id, elapsed).catch(() => {});
+        }
+      }
     };
 
     update();
     const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
-  }, [liveSession?.startedAt]);
+  }, [syncedStartedAtMs, id, liveSession?.participants, user?.id]);
 
   // Load question list for picker (non-blocking, debounced)
   useEffect(() => {

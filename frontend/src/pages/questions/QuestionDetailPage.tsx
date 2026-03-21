@@ -348,6 +348,13 @@ export const QuestionDetailPage = () => {
           setActiveTestTab('result');
         });
 
+        // Listen for timer synchronization
+        connection.on('TimerSynced', (serverElapsedTime: number) => {
+          if (serverElapsedTime > 0) {
+            setSessionStartTime(new Date(Date.now() - serverElapsedTime * 1000));
+          }
+        });
+
         // Listen for role switching
         connection.on('RoleSwitched', async (data: { sessionId: string; newActiveQuestionId?: string }) => {
           try {
@@ -1295,6 +1302,17 @@ export const QuestionDetailPage = () => {
       const now = new Date();
       const elapsed = Math.floor((now.getTime() - sessionStartTime.getTime()) / 1000);
       setElapsedTime(elapsed);
+
+      // Periodically broadcast timer if I am the interviewer (or the first user in session)
+      // This synchronizes the timer for the other user regardless of their local clock
+      if (activeSession?.id && sessionHubConnectionRef.current?.state === 'Connected') {
+        const isInterviewer = activeSession.interviewerId === user?.id;
+        const isOnlyUserSoFar = !activeSession.interviewerId || !activeSession.intervieweeId;
+        // The one who is interviewer (or the first user if roles aren't set) broadcasts every 5 seconds
+        if ((isInterviewer || isOnlyUserSoFar) && elapsed > 0 && elapsed % 5 === 0) {
+           sessionHubConnectionRef.current.invoke('SendTimerSync', activeSession.id, elapsed).catch(() => {});
+        }
+      }
     };
 
     // Update immediately
@@ -1304,7 +1322,7 @@ export const QuestionDetailPage = () => {
     const intervalId = setInterval(updateTimer, 1000);
 
     return () => clearInterval(intervalId);
-  }, [sessionStartTime, activeSession?.intervieweeId, activeSession?.practiceType]);
+  }, [sessionStartTime, activeSession?.intervieweeId, activeSession?.interviewerId, activeSession?.practiceType, activeSession?.id, user?.id]);
 
   const loadQuestion = async () => {
     if (!id) return;

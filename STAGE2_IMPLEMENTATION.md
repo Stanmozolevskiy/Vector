@@ -235,18 +235,18 @@ After completing a behavioral interview and submitting feedback, the URL changes
 
 ---
 
-#### 6. Coding Interview Timer Not Synchronized
+#### 6. ~~Coding Interview Timer Not Synchronized~~ ✅ Fixed
 **Component:** Live Interview - Coding
 
-The interview timer displays different remaining times for different users in the same session.
+~~The interview timer displays different remaining times for different users in the same session.~~
 
-**Observed:** User A sees 45:23 remaining; User B sees 44:58. Both joined at the same time. Time difference grows over the session.
+~~**Observed:** User A sees 45:23 remaining; User B sees 44:58. Both joined at the same time. Time difference grows over the session.~~
 
-**Expected:** All participants see the exact same timer countdown, synchronized via server time (not client time).
+~~**Expected:** All participants see the exact same timer countdown, synchronized via server time (not client time).~~
 
-**Files to investigate:** `CodingInterviewPage.tsx`, `LiveInterviewSession.cs` (StartedAt), `CollaborationHub.cs`
+~~**Files to investigate:** `CodingInterviewPage.tsx`, `LiveInterviewSession.cs` (StartedAt), `CollaborationHub.cs`~~
 
-**Fix:** Calculate remaining time from server-provided StartedAt; broadcast timer updates periodically via SignalR.
+**Fix applied:** Calculated remaining time from server-provided StartedAt and broadcast timer updates periodically via SignalR (`SendTimerSync` method in `CollaborationHub.cs`). Adjusted `sessionStartTime` in the frontend (in `QuestionDetailPage.tsx`, `SystemDesignInterviewPage.tsx`, and `PeerInterviewSessionPage.tsx`) based on the synced elapsed time to eliminate client clock skew.
 
 ---
 

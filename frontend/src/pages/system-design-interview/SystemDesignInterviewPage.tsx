@@ -326,6 +326,13 @@ export const SystemDesignInterviewPage = () => {
           }
         });
 
+        // Listen for timer synchronization
+        connection.on('TimerSynced', (serverElapsedTime: number) => {
+          if (serverElapsedTime > 0) {
+            setSessionStartTime(new Date(Date.now() - serverElapsedTime * 1000));
+          }
+        });
+
         await connection.start();
         // Ensure sessionId is a string for SignalR
         const sessionIdString = String(activeSession.id);
@@ -412,10 +419,20 @@ export const SystemDesignInterviewPage = () => {
     const interval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - sessionStartTime.getTime()) / 1000);
       setElapsedTime(elapsed);
+
+      // Periodically broadcast timer if I am the interviewer (or the first user in session)
+      if (activeSession?.id && sessionHubConnectionRef.current?.state === 'Connected') {
+        const isInterviewer = activeSession.interviewerId === user?.id;
+        const isOnlyUserSoFar = !activeSession.interviewerId || !activeSession.intervieweeId;
+        // Broadcast every 5 seconds
+        if ((isInterviewer || isOnlyUserSoFar) && elapsed > 0 && elapsed % 5 === 0) {
+           sessionHubConnectionRef.current.invoke('SendTimerSync', activeSession.id, elapsed).catch(() => {});
+        }
+      }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [sessionStartTime]);
+  }, [sessionStartTime, activeSession?.id, activeSession?.interviewerId, activeSession?.intervieweeId, user?.id]);
 
   // Polling backup: Check for session updates every 3 seconds if waiting for second user
   useEffect(() => {

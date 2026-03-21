@@ -199,6 +199,11 @@ public class CollaborationHub : Hub
         await Clients.GroupExcept(sessionId, Context.ConnectionId).SendAsync("TestResultsUpdated", testResults);
     }
 
+    public async Task SendTimerSync(string sessionId, int elapsedTime)
+    {
+        await Clients.GroupExcept(sessionId, Context.ConnectionId).SendAsync("TimerSynced", elapsedTime);
+    }
+
     /// <summary>
     /// Broadcast whiteboard update to all other users in the session
     /// </summary>

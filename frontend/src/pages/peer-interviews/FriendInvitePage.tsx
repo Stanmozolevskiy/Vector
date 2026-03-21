@@ -39,6 +39,8 @@ export const FriendInvitePage = () => {
     const returnUrl = encodeURIComponent(`/friend-invite/${liveSessionId}`);
 
     if (!isAuthenticated) {
+      // Save destination to session storage for post-registration redirects
+      sessionStorage.setItem('pendingInviteRedirect', `/friend-invite/${liveSessionId}`);
       // Redirect to login with return URL
       navigate(`/login?returnUrl=${returnUrl}`, { replace: true });
       return;

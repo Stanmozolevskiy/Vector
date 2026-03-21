@@ -33,7 +33,14 @@ export const LoginPage = () => {
   useEffect(() => {
     if (isAuthenticated) {
       const returnUrl = searchParams.get('returnUrl');
-      navigate(returnUrl ? decodeURIComponent(returnUrl) : ROUTES.DASHBOARD, { replace: true });
+      const pendingRedirect = sessionStorage.getItem('pendingInviteRedirect');
+      const finalRedirectUrl = returnUrl ? decodeURIComponent(returnUrl) : (pendingRedirect || ROUTES.DASHBOARD);
+      
+      if (pendingRedirect) {
+        sessionStorage.removeItem('pendingInviteRedirect');
+      }
+      
+      navigate(finalRedirectUrl, { replace: true });
     }
   }, [isAuthenticated, navigate, searchParams]);
 
@@ -42,9 +49,16 @@ export const LoginPage = () => {
       setError('');
       await login({ email: data.email, password: data.password, remember: data.remember ?? false });
       
-      // Redirect to returnUrl if provided, otherwise to dashboard
+      // Redirect to returnUrl if provided, then pendingInviteRedirect, otherwise dashboard
       const returnUrl = searchParams.get('returnUrl');
-      navigate(returnUrl ? decodeURIComponent(returnUrl) : ROUTES.DASHBOARD, { replace: true });
+      const pendingRedirect = sessionStorage.getItem('pendingInviteRedirect');
+      const finalRedirectUrl = returnUrl ? decodeURIComponent(returnUrl) : (pendingRedirect || ROUTES.DASHBOARD);
+      
+      if (pendingRedirect) {
+        sessionStorage.removeItem('pendingInviteRedirect');
+      }
+      
+      navigate(finalRedirectUrl, { replace: true });
     } catch (err) {
       const errorMessage = err && typeof err === 'object' && 'response' in err
         ? (err.response as { data?: { error?: string } })?.data?.error

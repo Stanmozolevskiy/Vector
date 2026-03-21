@@ -81,68 +81,82 @@ export const SystemDesignInterviewPage = () => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }, []);
 
-  // Check for active session
   const checkActiveSession = useCallback(async () => {
     if (!sessionId || !user?.id) return;
 
     try {
       const session = await peerInterviewService.getSession(sessionId);
-      setActiveSession(session);
-
-      // Load question if available (optional for system design)
-      if (session.questionId) {
+      handleSessionData(session);
+    } catch (error: any) {
+      const status = error?.response?.status;
+      if (status === 401 || status === 403) {
         try {
-          const question = await questionService.getQuestionById(session.questionId);
-          if (question) {
-            // Convert InterviewQuestion to QuestionList format
-            const questionList: QuestionList = {
-              id: question.id,
-              title: question.title,
-              difficulty: question.difficulty,
-              questionType: question.questionType,
-              category: question.category,
-              tags: question.tags,
-              companyTags: question.companyTags,
-              isActive: question.isActive,
-              approvalStatus: question.approvalStatus,
-            };
-            setSelectedQuestion(questionList);
-          }
-        } catch (error) {
-          console.error('Failed to load question:', error);
-          // For system design, it's ok if there's no question assigned
+          await peerInterviewService.joinFriendInterview(sessionId);
+          const retrySession = await peerInterviewService.getSession(sessionId);
+          handleSessionData(retrySession);
+          return; // Successfully joined, stop error flow
+        } catch {
+          // silently fail and let the normal error handler take over
         }
       }
-      // For system design interviews, questions are optional - no error if missing
-
-      // Load whiteboard data for this session
-      await loadWhiteboardData(sessionId);
-
-      // Set session start time
-      if (session.createdAt) {
-        const startTime = new Date(session.createdAt);
-        setSessionStartTime(startTime);
-        const savedStartTime = localStorage.getItem(`session_start_${sessionId}`);
-        if (savedStartTime) {
-          setSessionStartTime(new Date(savedStartTime));
-        } else {
-          localStorage.setItem(`session_start_${sessionId}`, startTime.toISOString());
-          setSessionStartTime(startTime);
-        }
-      }
-
-      // Show video if both users are in session
-      // For friend interviews, show video immediately even with one participant
-      const isFriendInterview = session.practiceType === 'friend';
-      if (session.status === 'InProgress' && (isFriendInterview || (session.interviewerId && session.intervieweeId))) {
-        setShowPartnerVideo(true);
-      }
-    } catch (error) {
       console.error('Failed to load session:', error);
       connectionLostRef.current = true;
       setShowRejoinModal(true);
     }
   }, [sessionId, user?.id]);
+
+  const handleSessionData = async (session: any) => {
+    setActiveSession(session);
+
+    // Load question if available (optional for system design)
+    if (session.questionId) {
+      try {
+        const question = await questionService.getQuestionById(session.questionId);
+        if (question) {
+          // Convert InterviewQuestion to QuestionList format
+          const questionList: QuestionList = {
+            id: question.id,
+            title: question.title,
+            difficulty: question.difficulty,
+            questionType: question.questionType,
+            category: question.category,
+            tags: question.tags,
+            companyTags: question.companyTags,
+            isActive: question.isActive,
+            approvalStatus: question.approvalStatus,
+          };
+          setSelectedQuestion(questionList);
+        }
+      } catch (error) {
+        console.error('Failed to load question:', error);
+        // For system design, it's ok if there's no question assigned
+      }
+    }
+    // For system design interviews, questions are optional - no error if missing
+
+    // Load whiteboard data for this session
+    await loadWhiteboardData(sessionId!);
+
+    // Set session start time
+    if (session.createdAt) {
+      const startTime = new Date(session.createdAt);
+      setSessionStartTime(startTime);
+      const savedStartTime = localStorage.getItem(`session_start_${sessionId}`);
+      if (savedStartTime) {
+        setSessionStartTime(new Date(savedStartTime));
+      } else {
+        localStorage.setItem(`session_start_${sessionId}`, startTime.toISOString());
+        setSessionStartTime(startTime);
+      }
+    }
+
+    // Show video if both users are in session
+    // For friend interviews, show video immediately even with one participant
+    const isFriendInterview = session.practiceType === 'friend';
+    if (session.status === 'InProgress' && (isFriendInterview || (session.interviewerId && session.intervieweeId))) {
+      setShowPartnerVideo(true);
+    }
+  };
 
   // Load shared session whiteboard (ONE board for both users)
   const loadWhiteboardData = useCallback(async (liveSessionId: string) => {
@@ -646,6 +660,23 @@ export const SystemDesignInterviewPage = () => {
           </div>
         </div>
         <div className="session-controls">
+          {activeSession?.practiceType === 'friend' && (!activeSession.interviewerId || !activeSession.intervieweeId) && (
+            <button
+              className="control-button"
+              title="Copy Invite Link"
+              onClick={() => {
+                const url = `${window.location.origin}/friend-invite/${activeSession.id}`;
+                navigator.clipboard.writeText(url).then(() => {
+                  // Assuming showToast is not imported, let's use a standard alert or a custom toast if available
+                  // Let's add a simple alert since showToast is not in this file's imports
+                  alert('Invite link copied to clipboard!');
+                });
+              }}
+              style={{ backgroundColor: '#ecfdf5', color: '#059669', border: '1px solid #10b981', marginRight: '10px' }}
+            >
+              <i className="fas fa-link"></i> Copy Link
+            </button>
+          )}
           <button
             onClick={handleEndSession}
             disabled={isEndingSession}

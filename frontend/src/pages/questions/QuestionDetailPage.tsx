@@ -475,54 +475,69 @@ export const QuestionDetailPage = () => {
     
     try {
       const session = await peerInterviewService.getSession(sessionIdFromUrl);
-      if (session) {
-        // Check if user is part of this session
-        const isUserInSession = session.interviewerId === user.id || 
-                               (session.intervieweeId && session.intervieweeId === user.id);
-        
-        if (isUserInSession) {
-          // User is in session - set it as active
-          setActiveSession(session);
-          setShowPartnerVideo(true);
-          
-          // Start timer ONLY if both users have joined (status is InProgress AND intervieweeId is set)
-          // Exception: For "practice with a friend", start timer immediately with 1 participant
-          const isFriendInterview = session.practiceType === 'friend';
-          const shouldStartTimer = session.status === 'InProgress' && (isFriendInterview || session.intervieweeId);
-          
-          if (shouldStartTimer) {
-            // Try to use the backend's startedAt time as the source of truth
-            if (session.startedAt) {
-              const backendStartTime = new Date(session.startedAt);
-              setSessionStartTime(backendStartTime);
-              const storedStartTime = localStorage.getItem(`session_start_${sessionIdFromUrl}`);
-              if (!storedStartTime) {
-                localStorage.setItem(`session_start_${sessionIdFromUrl}`, backendStartTime.toISOString());
-              }
-            } else {
-              // Fallback: If backend didn't provide startedAt, check localStorage or use current time
-              const storedStartTime = localStorage.getItem(`session_start_${sessionIdFromUrl}`);
-              if (storedStartTime) {
-                setSessionStartTime(new Date(storedStartTime));
-              } else {
-                // No backend time and no stored time - start timer now
-                const now = new Date();
-                setSessionStartTime(now);
-                localStorage.setItem(`session_start_${sessionIdFromUrl}`, now.toISOString());
-              }
-            }
-          }
-          
-          // If questionId doesn't match, redirect to correct question
-          if (session.questionId && session.questionId !== id) {
-            navigate(`${ROUTES.QUESTIONS}/${session.questionId}?session=${sessionIdFromUrl}`, { replace: true });
-            return;
-          }
+      handleSessionData(session, sessionIdFromUrl);
+    } catch (error: any) {
+      // If user opened a "practice with a friend" invite link but hasn't joined yet,
+      // the backend will return 401 or 403. Attempt an auto-join.
+      const status = error?.response?.status;
+      if (status === 401 || status === 403) {
+        try {
+          await peerInterviewService.joinFriendInterview(sessionIdFromUrl);
+          const retrySession = await peerInterviewService.getSession(sessionIdFromUrl);
+          handleSessionData(retrySession, sessionIdFromUrl);
+        } catch {
+          // Silently fail - session check is optional
+          // Don't log errors to console - they're expected when session doesn't exist
         }
       }
-    } catch (error) {
-      // Silently fail - session check is optional
-      // Don't log errors to console - they're expected when session doesn't exist
+    }
+  };
+
+  const handleSessionData = (session: PeerInterviewSession, sessionIdFromUrl: string) => {
+    if (session) {
+      // Check if user is part of this session
+      const isUserInSession = session.interviewerId === user?.id || 
+                             (session.intervieweeId && session.intervieweeId === user?.id);
+      
+      if (isUserInSession) {
+        // User is in session - set it as active
+        setActiveSession(session);
+        setShowPartnerVideo(true);
+        
+        // Start timer ONLY if both users have joined (status is InProgress AND intervieweeId is set)
+        // Exception: For "practice with a friend", start timer immediately with 1 participant
+        const isFriendInterview = session.practiceType === 'friend';
+        const shouldStartTimer = session.status === 'InProgress' && (isFriendInterview || session.intervieweeId);
+        
+        if (shouldStartTimer) {
+          // Try to use the backend's startedAt time as the source of truth
+          if (session.startedAt) {
+            const backendStartTime = new Date(session.startedAt);
+            setSessionStartTime(backendStartTime);
+            const storedStartTime = localStorage.getItem(`session_start_${sessionIdFromUrl}`);
+            if (!storedStartTime) {
+              localStorage.setItem(`session_start_${sessionIdFromUrl}`, backendStartTime.toISOString());
+            }
+          } else {
+            // Fallback: If backend didn't provide startedAt, check localStorage or use current time
+            const storedStartTime = localStorage.getItem(`session_start_${sessionIdFromUrl}`);
+            if (storedStartTime) {
+              setSessionStartTime(new Date(storedStartTime));
+            } else {
+              // No backend time and no stored time - start timer now
+              const now = new Date();
+              setSessionStartTime(now);
+              localStorage.setItem(`session_start_${sessionIdFromUrl}`, now.toISOString());
+            }
+          }
+        }
+        
+        // If questionId doesn't match, redirect to correct question
+        if (session.questionId && session.questionId !== id) {
+          navigate(`${ROUTES.QUESTIONS}/${session.questionId}?session=${sessionIdFromUrl}`, { replace: true });
+          return;
+        }
+      }
     }
   };
 
@@ -2303,6 +2318,23 @@ export const QuestionDetailPage = () => {
             >
               <i className="fas fa-edit"></i>
             </Link>
+          )}
+          {/* Show copy invite link if friend interview and only one participant joined */}
+          {activeSession?.practiceType === 'friend' && (!activeSession.interviewerId || !activeSession.intervieweeId) && (
+            <button
+              className="session-control-btn"
+              title="Copy Invite Link"
+              onClick={() => {
+                const url = `${window.location.origin}/friend-invite/${activeSession.id}`;
+                navigator.clipboard.writeText(url).then(() => {
+                  showToast('Invite link copied to clipboard!', 'success');
+                });
+              }}
+              style={{ backgroundColor: '#ecfdf5', color: '#059669', border: '1px solid #10b981' }}
+            >
+              <i className="fas fa-link"></i>
+              <span>Copy Link</span>
+            </button>
           )}
           {/* Show session controls once both users have joined (session exists with both participants) */}
           {/* For "practice with a friend", show controls immediately even with one participant */}

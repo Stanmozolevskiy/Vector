@@ -207,16 +207,16 @@ Video in live interview sessions has several display and state issues.
 
 ---
 
-#### 4. Practice with a Friend — No Join Link Access
+#### 4. ~~Practice with a Friend — No Join Link Access~~ ✅ Fixed
 **Component:** Friend Interview
 
-When a user selects "Practice with a Friend", they cannot access the shareable join link after creation. No UI to copy or share the link with their friend.
+~~When a user selects "Practice with a Friend", they cannot access the shareable join link after creation. No UI to copy or share the link with their friend.~~
 
-**Observed:** Session is created and user is redirected, but no visible share link or copy button. Friend has no way to join.
+~~**Observed:** Session is created and user is redirected, but no visible share link or copy button. Friend has no way to join.~~
 
-**Expected:** Modal after creation showing join URL, copy-to-clipboard button, share option. Link should remain accessible during the interview.
+~~**Expected:** Modal after creation showing join URL, copy-to-clipboard button, share option. Link should remain accessible during the interview.~~
 
-**Files to investigate:** `DashboardPage.tsx`, `InterviewPage.tsx`, `CreateFriendInterviewAsync`
+**Fix applied:** Added a "Copy Link" button inside the live session pages (`QuestionDetailPage`, `SystemDesignInterviewPage`, `PeerInterviewSessionPage`) that shows if it's a friend interview and the second user hasn't joined. Fixed authentication loop issue by updating `PeerInterviewController.cs` to return `403 Forbidden` instead of `401 Unauthorized` for `UnauthorizedAccessException`. Also added logic to `FriendInvitePage.tsx` to cache the intended session URL to `sessionStorage` before login/registration redirects, so the user returns to the session after authenticating.
 
 ---
 

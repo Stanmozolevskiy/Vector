@@ -416,6 +416,23 @@ const PeerInterviewSessionPage: React.FC = () => {
 
       {/* Bottom-center controls */}
       <div className="peer-noncoding-controls" aria-label="Call controls">
+        {scheduledSession?.practiceType === 'friend' && (liveSession?.participants?.length || 0) < 2 && (
+          <button
+            type="button"
+            className="peer-noncoding-control-btn"
+            title="Copy Invite Link"
+            aria-label="Copy Invite Link"
+            onClick={() => {
+              const url = `${window.location.origin}/friend-invite/${liveSession?.id || id}`;
+              navigator.clipboard.writeText(url).then(() => {
+                alert('Invite link copied to clipboard!');
+              });
+            }}
+            style={{ backgroundColor: '#ecfdf5', color: '#059669', borderColor: '#10b981' }}
+          >
+            <i className="fa-solid fa-link" aria-hidden="true"></i>
+          </button>
+        )}
         <button
           type="button"
           className={`peer-noncoding-control-btn ${videoState.isAudioEnabled ? '' : 'danger'}`}

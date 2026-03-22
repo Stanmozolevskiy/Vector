@@ -295,11 +295,26 @@ export const VideoChat = React.forwardRef<VideoChatHandle, VideoChatProps>(({
       }
     });
 
+    connection.on('MediaStateUpdated', (data: { userId: string; isVideoEnabled: boolean; isAudioEnabled: boolean }) => {
+      if (data.userId !== userId) {
+        setIsRemoteVideoMuted(!data.isVideoEnabled);
+        // If they explicitly turned off video, we assume they have a track but it's just off
+        if (!data.isVideoEnabled) {
+          setHasRemoteVideoTrack(true);
+        }
+      }
+    });
+
     // Start connection
     await connection.start();
     
     // Join the session group
     await connection.invoke('JoinSession', sessionId);
+
+    // Initial broadcast of our local state
+    const videoEnabled = getSavedVideoState();
+    const audioEnabled = getSavedAudioState();
+    await connection.invoke('SendMediaState', sessionId, videoEnabled, audioEnabled).catch(() => {});
 
     return connection;
   };
@@ -529,6 +544,9 @@ export const VideoChat = React.forwardRef<VideoChatHandle, VideoChatProps>(({
     if (!localStream) {
       setIsVideoEnabled(newState);
       localStorage.setItem(`video_enabled_${sessionId}`, String(newState));
+      if (signalRConnectionRef.current?.state === 'Connected') {
+        signalRConnectionRef.current.invoke('SendMediaState', sessionId, newState, isAudioEnabled).catch(() => {});
+      }
       return;
     }
 
@@ -547,12 +565,15 @@ export const VideoChat = React.forwardRef<VideoChatHandle, VideoChatProps>(({
         });
         const newVideoTrack = stream.getVideoTracks()[0];
         if (newVideoTrack) {
-          localStream.addTrack(newVideoTrack);
+          // Create a NEW MediaStream to force React to update the local video srcObject properly
+          const newStream = new MediaStream([newVideoTrack, ...localStream.getAudioTracks()]);
+          setLocalStream(newStream);
+
           const sender = peerConnectionRef.current?.getSenders().find((s) => s.track?.kind === 'video');
           if (sender) {
             await sender.replaceTrack(newVideoTrack);
           } else {
-            peerConnectionRef.current?.addTrack(newVideoTrack, localStream);
+            peerConnectionRef.current?.addTrack(newVideoTrack, newStream);
           }
         }
       } catch (error) {
@@ -564,6 +585,9 @@ export const VideoChat = React.forwardRef<VideoChatHandle, VideoChatProps>(({
     
     setIsVideoEnabled(newState);
     localStorage.setItem(`video_enabled_${sessionId}`, String(newState));
+    if (signalRConnectionRef.current?.state === 'Connected') {
+      signalRConnectionRef.current.invoke('SendMediaState', sessionId, newState, isAudioEnabled).catch(() => {});
+    }
   };
 
   const toggleAudio = async () => {
@@ -572,6 +596,9 @@ export const VideoChat = React.forwardRef<VideoChatHandle, VideoChatProps>(({
     if (!localStream) {
       setIsAudioEnabled(newState);
       localStorage.setItem(`audio_enabled_${sessionId}`, String(newState));
+      if (signalRConnectionRef.current?.state === 'Connected') {
+        signalRConnectionRef.current.invoke('SendMediaState', sessionId, isVideoEnabled, newState).catch(() => {});
+      }
       return;
     }
 
@@ -590,12 +617,15 @@ export const VideoChat = React.forwardRef<VideoChatHandle, VideoChatProps>(({
         });
         const newAudioTrack = stream.getAudioTracks()[0];
         if (newAudioTrack) {
-          localStream.addTrack(newAudioTrack);
+          // Create a NEW MediaStream to trigger effect hooks naturally
+          const newStream = new MediaStream([...localStream.getVideoTracks(), newAudioTrack]);
+          setLocalStream(newStream);
+
           const sender = peerConnectionRef.current?.getSenders().find((s) => s.track?.kind === 'audio');
           if (sender) {
             await sender.replaceTrack(newAudioTrack);
           } else {
-            peerConnectionRef.current?.addTrack(newAudioTrack, localStream);
+            peerConnectionRef.current?.addTrack(newAudioTrack, newStream);
           }
         }
       } catch (error) {
@@ -607,6 +637,9 @@ export const VideoChat = React.forwardRef<VideoChatHandle, VideoChatProps>(({
     
     setIsAudioEnabled(newState);
     localStorage.setItem(`audio_enabled_${sessionId}`, String(newState));
+    if (signalRConnectionRef.current?.state === 'Connected') {
+      signalRConnectionRef.current.invoke('SendMediaState', sessionId, isVideoEnabled, newState).catch(() => {});
+    }
   };
 
   const toggleScreenShare = async () => {

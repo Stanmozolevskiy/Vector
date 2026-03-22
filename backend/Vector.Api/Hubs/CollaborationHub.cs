@@ -317,5 +317,24 @@ public class CollaborationHub : Hub
             sdpMid = sdpMid
         });
     }
+
+    /// <summary>
+    /// Broadcast explicit media state (camera/mic on/off)
+    /// </summary>
+    public async Task SendMediaState(string sessionId, bool isVideoEnabled, bool isAudioEnabled)
+    {
+        var userId = GetUserId();
+        if (!userId.HasValue)
+        {
+            return;
+        }
+
+        await Clients.GroupExcept(sessionId, Context.ConnectionId).SendAsync("MediaStateUpdated", new
+        {
+            userId = userId.Value.ToString(),
+            isVideoEnabled,
+            isAudioEnabled
+        });
+    }
 }
 

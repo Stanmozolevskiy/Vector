@@ -557,8 +557,8 @@ export const SystemDesignInterviewPage = () => {
   // Handle feedback complete
   const handleFeedbackComplete = useCallback(() => {
     setShowFeedbackForm(false);
-    navigate(ROUTES.FIND_PEER, { replace: true });
-  }, [navigate]);
+    window.location.assign(ROUTES.FIND_PEER);
+  }, []);
 
   // Handle rejoin
   const handleRejoin = useCallback(() => {

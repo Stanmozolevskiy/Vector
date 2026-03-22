@@ -1275,8 +1275,8 @@ export const QuestionDetailPage = () => {
   const handleFeedbackComplete = () => {
     setShowFeedbackForm(false);
     setActiveSession(null);
-    // Navigate to find peer page
-    navigate(ROUTES.FIND_PEER);
+    // Navigate to find peer page with full refresh
+    window.location.assign(ROUTES.FIND_PEER);
   };
 
   const formatTime = (seconds: number): string => {

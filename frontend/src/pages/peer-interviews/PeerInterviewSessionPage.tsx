@@ -696,12 +696,11 @@ const PeerInterviewSessionPage: React.FC = () => {
                 date={liveSession.startedAt || liveSession.createdAt}
                 onComplete={() => {
                   setShowFeedback(false);
-                  navigate(ROUTES.FIND_PEER, { replace: true });
+                  window.location.assign(ROUTES.FIND_PEER);
                 }}
                 onCancel={() => {
                   setShowFeedback(false);
-                  // Redirect to find peer page when closing without submitting
-                  navigate(ROUTES.FIND_PEER, { replace: true });
+                  window.location.assign(ROUTES.FIND_PEER);
                 }}
               />
             ) : (
@@ -715,7 +714,7 @@ const PeerInterviewSessionPage: React.FC = () => {
                   className="empty-feedback-close-btn"
                   onClick={() => {
                     setShowFeedback(false);
-                    navigate(ROUTES.FIND_PEER, { replace: true });
+                    window.location.assign(ROUTES.FIND_PEER);
                   }}
                 >
                   Continue

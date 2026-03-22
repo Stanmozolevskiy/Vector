@@ -222,16 +222,18 @@ Video in live interview sessions has several display and state issues.
 
 ### Medium Priority
 
-#### 5. Behavioral Interview Redirect After Feedback Submission
+#### 5. ~~Behavioral Interview Redirect After Feedback Submission~~ ✅ Fixed
 **Component:** Behavioral Interview
 
-After completing a behavioral interview and submitting feedback, the URL changes but the page content does not update without a manual refresh.
+~~After completing a behavioral interview and submitting feedback, the URL changes but the page content does not update without a manual refresh.~~
 
-**Observed:** User submits feedback, URL changes to post-interview page, but screen remains on feedback form.
+~~**Observed:** User submits feedback, URL changes to post-interview page, but screen remains on feedback form.~~
 
-**Expected:** Page should automatically update/redirect after feedback submission.
+~~**Expected:** Page should automatically update/redirect after feedback submission.~~
 
-**Files to investigate:** `BehavioralInterviewPage.tsx`, `FeedbackForm.tsx`
+~~**Files to investigate:** `BehavioralInterviewPage.tsx`, `FeedbackForm.tsx`~~
+
+**Fix applied:** Replaced `navigate(ROUTES.FIND_PEER)` with `window.location.assign(ROUTES.FIND_PEER)` in `PeerInterviewSessionPage.tsx`, `QuestionDetailPage.tsx`, and `SystemDesignInterviewPage.tsx`. This forces a hard navigation out of the React application's current state and reloads the page at the target URL, correctly clearing the modal overlay and any lingering WebRTC/SignalR states.
 
 ---
 

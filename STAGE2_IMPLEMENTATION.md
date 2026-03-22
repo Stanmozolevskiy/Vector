@@ -252,14 +252,16 @@ Video in live interview sessions has several display and state issues.
 
 ---
 
-#### 7. Interview Feedback Forms Not Interview-Type Specific
+#### 7. ~~Interview Feedback Forms Not Interview-Type Specific~~ ✅ Fixed
 **Component:** Interview Feedback
 
-Feedback forms are generic for all interview types. Each type (Behavioral, System Design, Coding/SQL/ML) should have customized feedback questions.
+~~Feedback forms are generic for all interview types. Each type (Behavioral, System Design, Coding/SQL/ML) should have customized feedback questions.~~
 
-**Expected:** Type-specific forms (e.g., Behavioral: listening skills, follow-up questions; System Design: requirements clarity, architecture depth; Coding: problem explanation, hint quality).
+~~**Expected:** Type-specific forms (e.g., Behavioral: listening skills, follow-up questions; System Design: requirements clarity, architecture depth; Coding: problem explanation, hint quality).~~
 
-**Files to investigate:** `FeedbackForm.tsx`, `InterviewFeedback` model
+~~**Files to investigate:** `FeedbackForm.tsx`, `InterviewFeedback` model~~
+
+**Fix applied:** Implemented dynamic feedback form labels in `FeedbackForm.tsx`. It now checks the `interviewType` prop and maps the feedback ratings (Problem Solving, Coding Skills, Communication, Interviewer Performance) to context-specific questions (e.g., "requirements clarity and architecture depth" for System Design vs. "listening skills and empathy" for Behavioral).
 
 ---
 

@@ -109,6 +109,36 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
     wantEmailIntroduction: null,
   });
 
+  const getFeedbackLabels = () => {
+    const type = interviewType?.toLowerCase().trim() || '';
+    if (type.includes('behavioral') || type.includes('product')) {
+      return {
+        problemSolving: "How were your partner's listening skills and empathy?",
+        problemSolvingError: "Listening skills rating is required",
+        communication: "How were your partner's follow-up questions and clarity?",
+        interviewerPerformance: "How did your partner perform as your interviewer?",
+      };
+    } else if (type.includes('system design') || type.includes('whiteboard')) {
+      return {
+        problemSolving: "How were your partner's requirements clarity and architecture depth?",
+        problemSolvingError: "Requirements clarity rating is required",
+        communication: "How well did your partner communicate trade-offs?",
+        interviewerPerformance: "How well did your partner guide the system design discussion?",
+      };
+    } else {
+      // Default / Coding
+      return {
+        problemSolving: "How was your partner's problem explanation and approach?",
+        problemSolvingError: "Problem solving rating is required",
+        codingSkills: "How were your partner's coding skills and code quality?",
+        communication: "How were your partner's hints and overall communication?",
+        interviewerPerformance: "How did your partner perform as your interviewer?",
+      };
+    }
+  };
+
+  const labels = getFeedbackLabels();
+
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -131,7 +161,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
       
       // Problem solving is required for all interview types
       if (!formData.problemSolvingRating || formData.problemSolvingRating < 1) {
-        newErrors.problemSolvingRating = isNonCoding ? 'Response quality rating is required' : 'Problem solving rating is required';
+        newErrors.problemSolvingRating = labels.problemSolvingError;
       }
       
       if (!formData.communicationRating || formData.communicationRating < 1) {
@@ -242,9 +272,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
               {/* Response Quality / Problem Solving */}
               <div className="feedback-form-section">
                 <label className="feedback-form-label">
-                  {isNonCoding 
-                    ? "How were your partner's response quality and depth?" 
-                    : "How were your partner's problem solving skills?"} <span className="required">*</span>
+                  {labels.problemSolving} <span className="required">*</span>
                 </label>
                 <StarRatingInput
                   rating={formData.problemSolvingRating || 0}
@@ -259,10 +287,10 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
               </div>
 
               {/* Coding Skills - Only show for coding interviews */}
-              {!isNonCoding && (
+              {!isNonCoding && labels.codingSkills && (
                 <div className="feedback-form-section">
                   <label className="feedback-form-label">
-                    How were your partner's coding skills? <span className="required">*</span>
+                    {labels.codingSkills} <span className="required">*</span>
                   </label>
                   <StarRatingInput
                     rating={formData.codingSkillsRating || 0}
@@ -280,7 +308,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
               {/* Communication */}
               <div className="feedback-form-section">
                 <label className="feedback-form-label">
-                  How were your partner's communication skills? <span className="required">*</span>
+                  {labels.communication} <span className="required">*</span>
                 </label>
                 <StarRatingInput
                   rating={formData.communicationRating || 0}
@@ -337,7 +365,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
               {/* Interviewer Performance */}
               <div className="feedback-form-section">
                 <label className="feedback-form-label">
-                  How did your partner perform as your interviewer? <span className="required">*</span>
+                  {labels.interviewerPerformance} <span className="required">*</span>
                 </label>
                 <StarRatingInput
                   rating={formData.interviewerPerformanceRating || 0}

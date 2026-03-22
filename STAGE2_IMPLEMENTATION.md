@@ -194,16 +194,18 @@ LeetCode-style problem solving, interview question bank, peer mock interviews, c
 
 ---
 
-#### 3. Live Session Video Glitches
+#### 3. ~~Live Session Video Glitches~~ ✅ Fixed
 **Component:** Live Interview - Video Chat
 
-Video in live interview sessions has several display and state issues.
+~~Video in live interview sessions has several display and state issues.~~
 
-**Observed:** Main user's own video does not display (self-view missing or incorrect). Camera "off" indicator sometimes shows when video is actually visible to the other participant. Inconsistent video state between participants.
+~~**Observed:** Main user's own video does not display (self-view missing or incorrect). Camera "off" indicator sometimes shows when video is actually visible to the other participant. Inconsistent video state between participants.~~
 
-**Expected:** Main user should see their own video; camera on/off state should be accurate and consistent for both participants.
+~~**Expected:** Main user should see their own video; camera on/off state should be accurate and consistent for both participants.~~
 
-**Files to investigate:** `VideoChat.tsx` (or equivalent), `CodingInterviewPage.tsx`, WebRTC/stream handling logic
+~~**Files to investigate:** `VideoChat.tsx` (or equivalent), `CodingInterviewPage.tsx`, WebRTC/stream handling logic~~
+
+**Fix applied:** Updated `VideoChat.tsx` and `CollaborationHub.cs` to explicitly synchronize camera and microphone states over SignalR (`SendMediaState`) instead of relying purely on WebRTC track `mute` events, which do not reliably fire across browsers when tracks are manually disabled. Also changed the local video toggle logic to spawn a new `MediaStream` containing the tracks, forcing React to reliably remount the stream to the local `<video>` element, fixing the missing self-view issue.
 
 ---
 

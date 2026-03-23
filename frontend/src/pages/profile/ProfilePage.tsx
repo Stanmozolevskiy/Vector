@@ -62,6 +62,8 @@ export const ProfilePage = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [firstNameError, setFirstNameError] = useState('');
+  const [lastNameError, setLastNameError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [hasCoachApplication, setHasCoachApplication] = useState(false);
   const [coachApplication, setCoachApplication] = useState<{ status: string; adminNotes?: string } | null>(null);
@@ -193,9 +195,31 @@ export const ProfilePage = () => {
   };
 
   const handleProfileInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    let value = e.target.value;
+
+    if (e.target.name === 'firstName') setFirstNameError('');
+    if (e.target.name === 'lastName') setLastNameError('');
+
+    if (e.target.name === 'phoneNumber') {
+      let digits = value.replace(/\D/g, '');
+      if (digits.startsWith('1')) {
+        digits = digits.substring(1);
+      }
+      
+      if (digits.length === 0) {
+        value = '';
+      } else if (digits.length <= 3) {
+        value = `+1 (${digits}`;
+      } else if (digits.length <= 6) {
+        value = `+1 (${digits.slice(0, 3)}) ${digits.slice(3)}`;
+      } else {
+        value = `+1 (${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
+      }
+    }
+
     setProfileData({
       ...profileData,
-      [e.target.name]: e.target.value,
+      [e.target.name]: value,
     });
   };
 
@@ -285,11 +309,12 @@ export const ProfilePage = () => {
     e.preventDefault();
     
     // Frontend validation for names
-    const firstNameError = validateNameValue(profileData.firstName, 'First Name');
-    const lastNameError = validateNameValue(profileData.lastName, 'Last Name');
+    const fErr = validateNameValue(profileData.firstName, 'First Name');
+    const lErr = validateNameValue(profileData.lastName, 'Last Name');
     
-    if (firstNameError || lastNameError) {
-      setErrorMessage(firstNameError || lastNameError || 'Invalid input.');
+    if (fErr || lErr) {
+      setFirstNameError(fErr || '');
+      setLastNameError(lErr || '');
       return;
     }
 
@@ -489,7 +514,9 @@ export const ProfilePage = () => {
                           name="firstName"
                           value={profileData.firstName}
                           onChange={handleProfileInputChange}
+                          style={firstNameError ? { borderColor: '#ef4444' } : {}}
                         />
+                        {firstNameError && <span style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.25rem', display: 'block' }}>{firstNameError}</span>}
                       </div>
                       <div className="form-group">
                         <label htmlFor="lastName">Last Name</label>
@@ -499,7 +526,9 @@ export const ProfilePage = () => {
                           name="lastName"
                           value={profileData.lastName}
                           onChange={handleProfileInputChange}
+                          style={lastNameError ? { borderColor: '#ef4444' } : {}}
                         />
+                        {lastNameError && <span style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.25rem', display: 'block' }}>{lastNameError}</span>}
                       </div>
                     </div>
 

@@ -58,12 +58,22 @@ public class UserService : IUserService
         // Update only provided fields
         if (!string.IsNullOrWhiteSpace(dto.FirstName))
         {
-            user.FirstName = dto.FirstName.Trim();
+            var firstName = dto.FirstName.Trim();
+            if (firstName.Length > 35)
+                throw new ArgumentException("First name must be at most 35 characters.");
+            if (System.Text.RegularExpressions.Regex.IsMatch(firstName, @"[^\p{L}\s\-']"))
+                throw new ArgumentException("First name cannot contain numbers or special characters.");
+            user.FirstName = firstName;
         }
         
         if (!string.IsNullOrWhiteSpace(dto.LastName))
         {
-            user.LastName = dto.LastName.Trim();
+            var lastName = dto.LastName.Trim();
+            if (lastName.Length > 35)
+                throw new ArgumentException("Last name must be at most 35 characters.");
+            if (System.Text.RegularExpressions.Regex.IsMatch(lastName, @"[^\p{L}\s\-']"))
+                throw new ArgumentException("Last name cannot contain numbers or special characters.");
+            user.LastName = lastName;
         }
         
         if (!string.IsNullOrWhiteSpace(dto.Bio))

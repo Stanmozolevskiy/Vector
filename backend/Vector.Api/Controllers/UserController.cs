@@ -140,6 +140,11 @@ public class UserController : ControllerBase
                 updatedAt = user.UpdatedAt
             });
         }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Validation error for user {UserId}: {Message}", userId, ex.Message);
+            return BadRequest(new ApiErrorResponse(ex.Message, "VALIDATION_ERROR"));
+        }
         catch (InvalidOperationException ex)
         {
             _logger.LogWarning(ex, "User not found: {UserId}", userId);

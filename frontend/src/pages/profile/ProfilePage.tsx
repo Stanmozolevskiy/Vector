@@ -28,6 +28,18 @@ interface PasswordFormData {
   confirmPassword: string;
 }
 
+function validateNameValue(raw: unknown, label: string): string | undefined {
+  const s = typeof raw === 'string' ? raw : String(raw ?? '');
+  const t = s.trim();
+  if (!t) return `${label} is required.`;
+  if (t.length > 35) return `${label} must be at most 35 characters.`;
+  
+  // Regular expression to check for any special characters (only allows letters, spaces, hyphens, and apostrophes)
+  if (/[^\p{L}\s\-']/u.test(t)) return `${label} cannot contain numbers or special characters.`;
+  
+  return undefined;
+}
+
 export const ProfilePage = () => {
   const { user, isAuthenticated, isLoading, logout, refreshUser } = useAuth();
   const navigate = useNavigate();
@@ -271,6 +283,16 @@ export const ProfilePage = () => {
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Frontend validation for names
+    const firstNameError = validateNameValue(profileData.firstName, 'First Name');
+    const lastNameError = validateNameValue(profileData.lastName, 'Last Name');
+    
+    if (firstNameError || lastNameError) {
+      setErrorMessage(firstNameError || lastNameError || 'Invalid input.');
+      return;
+    }
+
     setIsSaving(true);
     setErrorMessage('');
     setSuccessMessage('');

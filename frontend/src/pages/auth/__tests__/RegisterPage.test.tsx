@@ -61,7 +61,7 @@ describe('RegisterPage', () => {
     await user.click(screen.getByRole('button', { name: /create account/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/first name must not contain numbers/i)).toBeInTheDocument();
+      expect(screen.getByText(/first name cannot contain numbers or special characters/i)).toBeInTheDocument();
     });
   });
 
@@ -78,7 +78,7 @@ describe('RegisterPage', () => {
     await user.click(screen.getByRole('button', { name: /create account/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/last name must not contain numbers/i)).toBeInTheDocument();
+      expect(screen.getByText(/last name cannot contain numbers or special characters/i)).toBeInTheDocument();
     });
   });
 

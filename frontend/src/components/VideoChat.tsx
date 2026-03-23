@@ -65,131 +65,6 @@ export const VideoChat = React.forwardRef<VideoChatHandle, VideoChatProps>(({
   const isOfferSentRef = useRef<boolean>(false);
   const screenStreamRef = useRef<MediaStream | null>(null);
 
-  type PreviewRect = { x: number; y: number; width: number; height: number };
-
-  const getDefaultPreviewRect = (): PreviewRect => {
-    const width = 140;
-    const height = 105;
-    const right = 18;
-    const top = 18;
-    const vw = typeof window !== 'undefined' ? window.innerWidth : 1280;
-    const x = Math.max(8, vw - right - width);
-    const y = top;
-    return { x, y, width, height };
-  };
-
-  const previewStorageKey = `local_preview_rect_${sessionId}`;
-  const [previewRect, setPreviewRect] = useState<PreviewRect>(() => {
-    try {
-      const raw = localStorage.getItem(previewStorageKey);
-      if (!raw) return getDefaultPreviewRect();
-      const parsed = JSON.parse(raw);
-      if (!parsed || typeof parsed !== 'object') return getDefaultPreviewRect();
-      const x = Number(parsed.x);
-      const y = Number(parsed.y);
-      const width = Number(parsed.width);
-      const height = Number(parsed.height);
-      if (![x, y, width, height].every(Number.isFinite)) return getDefaultPreviewRect();
-      return { x, y, width, height };
-    } catch {
-      return getDefaultPreviewRect();
-    }
-  });
-
-  const interactionRef = useRef<
-    | null
-    | { mode: 'move'; startX: number; startY: number; originX: number; originY: number }
-    | { mode: 'resize'; startX: number; startY: number; originW: number; originH: number }
-  >(null);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(previewStorageKey, JSON.stringify(previewRect));
-    } catch {
-      // ignore
-    }
-  }, [previewRect, previewStorageKey]);
-
-  useEffect(() => {
-    const onWindowResize = () => {
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      setPreviewRect((r) => {
-        const minW = 120;
-        const minH = 90;
-        const width = Math.max(minW, Math.min(r.width, vw - 8));
-        const height = Math.max(minH, Math.min(r.height, vh - 8));
-        const x = Math.max(8, Math.min(r.x, vw - width - 8));
-        const y = Math.max(8, Math.min(r.y, vh - height - 8));
-        return { x, y, width, height };
-      });
-    };
-    window.addEventListener('resize', onWindowResize);
-    return () => window.removeEventListener('resize', onWindowResize);
-  }, []);
-
-  const clampPreviewRect = (next: PreviewRect): PreviewRect => {
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    const minW = 120;
-    const minH = 90;
-    const width = Math.max(minW, Math.min(next.width, vw - 8));
-    const height = Math.max(minH, Math.min(next.height, vh - 8));
-    const x = Math.max(8, Math.min(next.x, vw - width - 8));
-    const y = Math.max(8, Math.min(next.y, vh - height - 8));
-    return { x, y, width, height };
-  };
-
-  const handlePreviewPointerDown = (e: React.PointerEvent) => {
-    if (!showLocalPreview) return;
-    if (!localStream) return;
-    if ((e.target as HTMLElement | null)?.closest?.('.local-preview-resize-handle')) return;
-
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    interactionRef.current = {
-      mode: 'move',
-      startX: e.clientX,
-      startY: e.clientY,
-      originX: previewRect.x,
-      originY: previewRect.y,
-    };
-  };
-
-  const handleResizePointerDown = (e: React.PointerEvent) => {
-    if (!showLocalPreview) return;
-    if (!localStream) return;
-
-    e.stopPropagation();
-    (localPreviewRef.current as HTMLElement | null)?.setPointerCapture?.(e.pointerId);
-    interactionRef.current = {
-      mode: 'resize',
-      startX: e.clientX,
-      startY: e.clientY,
-      originW: previewRect.width,
-      originH: previewRect.height,
-    };
-  };
-
-  const handlePreviewPointerMove = (e: React.PointerEvent) => {
-    const state = interactionRef.current;
-    if (!state) return;
-
-    if (state.mode === 'move') {
-      const dx = e.clientX - state.startX;
-      const dy = e.clientY - state.startY;
-      setPreviewRect((r) => clampPreviewRect({ ...r, x: state.originX + dx, y: state.originY + dy }));
-      return;
-    }
-
-    const dx = e.clientX - state.startX;
-    const dy = e.clientY - state.startY;
-    setPreviewRect((r) => clampPreviewRect({ ...r, width: state.originW + dx, height: state.originH + dy }));
-  };
-
-  const handlePreviewPointerUp = () => {
-    interactionRef.current = null;
-  };
-
   useEffect(() => {
     initializeVideoAndSignaling();
     return () => {
@@ -775,18 +650,6 @@ export const VideoChat = React.forwardRef<VideoChatHandle, VideoChatProps>(({
               <div
                 ref={localPreviewRef}
                 className="local-video-preview"
-                style={{
-                  left: `${previewRect.x}px`,
-                  top: `${previewRect.y}px`,
-                  width: `${previewRect.width}px`,
-                  height: `${previewRect.height}px`,
-                  right: 'auto',
-                  bottom: 'auto',
-                }}
-                onPointerDown={handlePreviewPointerDown}
-                onPointerMove={handlePreviewPointerMove}
-                onPointerUp={handlePreviewPointerUp}
-                onPointerCancel={handlePreviewPointerUp}
                 aria-label="Your camera preview"
                 role="group"
               >
@@ -802,18 +665,6 @@ export const VideoChat = React.forwardRef<VideoChatHandle, VideoChatProps>(({
                     <i className="fas fa-video-slash"></i>
                   </div>
                 ) : null}
-                <div
-                  className="local-preview-resize-handle"
-                  role="button"
-                  aria-label="Resize preview"
-                  tabIndex={0}
-                  onPointerDown={handleResizePointerDown}
-                  onKeyDown={(ev) => {
-                    if (ev.key === 'Enter' || ev.key === ' ') {
-                      ev.preventDefault();
-                    }
-                  }}
-                />
               </div>
             )}
             {!hideControls && overlayControls && (

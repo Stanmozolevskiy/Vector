@@ -2337,23 +2337,6 @@ export const QuestionDetailPage = () => {
               <i className="fas fa-edit"></i>
             </Link>
           )}
-          {/* Show copy invite link if friend interview and only one participant joined */}
-          {activeSession?.practiceType === 'friend' && (!activeSession.interviewerId || !activeSession.intervieweeId) && (
-            <button
-              className="session-control-btn"
-              title="Copy Invite Link"
-              onClick={() => {
-                const url = `${window.location.origin}/friend-invite/${activeSession.id}`;
-                navigator.clipboard.writeText(url).then(() => {
-                  showToast('Invite link copied to clipboard!', 'success');
-                });
-              }}
-              style={{ backgroundColor: '#ecfdf5', color: '#059669', border: '1px solid #10b981' }}
-            >
-              <i className="fas fa-link"></i>
-              <span>Copy Link</span>
-            </button>
-          )}
           {/* Show session controls once both users have joined (session exists with both participants) */}
           {/* For "practice with a friend", show controls immediately even with one participant */}
           {activeSession && (activeSession.interviewerId || activeSession.intervieweeId) && (

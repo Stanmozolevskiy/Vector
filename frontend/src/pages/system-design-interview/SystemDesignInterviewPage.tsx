@@ -677,23 +677,6 @@ export const SystemDesignInterviewPage = () => {
           </div>
         </div>
         <div className="session-controls">
-          {activeSession?.practiceType === 'friend' && (!activeSession.interviewerId || !activeSession.intervieweeId) && (
-            <button
-              className="control-button"
-              title="Copy Invite Link"
-              onClick={() => {
-                const url = `${window.location.origin}/friend-invite/${activeSession.id}`;
-                navigator.clipboard.writeText(url).then(() => {
-                  // Assuming showToast is not imported, let's use a standard alert or a custom toast if available
-                  // Let's add a simple alert since showToast is not in this file's imports
-                  alert('Invite link copied to clipboard!');
-                });
-              }}
-              style={{ backgroundColor: '#ecfdf5', color: '#059669', border: '1px solid #10b981', marginRight: '10px' }}
-            >
-              <i className="fas fa-link"></i> Copy Link
-            </button>
-          )}
           <button
             onClick={handleEndSession}
             disabled={isEndingSession}

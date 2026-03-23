@@ -50,6 +50,9 @@ Stage 3 includes the Resume Review Service from the main implementation plan, pl
 
 ## Part B: Future Enhancements (from Stage 2)
 
+### Bug Fixes
+- [ ] Live Session Video Glitches (Self-view missing, incorrect camera state between participants)
+
 ### Gamification
 - [ ] Badges & milestones (100, 500, 1000, 5000 coins)
 - [ ] Achievement showcase on profile

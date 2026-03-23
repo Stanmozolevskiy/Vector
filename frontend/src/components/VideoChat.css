@@ -88,10 +88,15 @@
   font-size: 1.25rem;
 }
 
+.local-video {
+  transform: scaleX(-1);
+}
+
 .preview-video-element {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transform: scaleX(-1);
 }
 
 .local-preview-resize-handle {
@@ -162,6 +167,86 @@
 .video-overlay i {
   font-size: 2rem;
   opacity: 0.7;
+}
+
+.connection-status-overlay {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 10;
+}
+
+.device-settings-modal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.device-settings-content {
+  background: #2a2a2a;
+  padding: 1.5rem;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 400px;
+  color: white;
+}
+
+.device-settings-content h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.device-settings-content .form-group {
+  margin-bottom: 1rem;
+}
+
+.device-settings-content label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.device-settings-content select {
+  width: 100%;
+  padding: 0.5rem;
+  background: #1a1a1a;
+  color: white;
+  border: 1px solid #4a4a4a;
+  border-radius: 4px;
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+.settings-actions button {
+  padding: 0.5rem 1rem;
+  background: #7c3aed;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.settings-actions button:hover {
+  background: #6d28d9;
 }
 
 .video-chat-grid.single-video {

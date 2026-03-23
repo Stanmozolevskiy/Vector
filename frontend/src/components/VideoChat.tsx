@@ -60,6 +60,12 @@ export const VideoChat = React.forwardRef<VideoChatHandle, VideoChatProps>(({
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [hasRemoteVideoTrack, setHasRemoteVideoTrack] = useState(false);
   const [isRemoteVideoMuted, setIsRemoteVideoMuted] = useState(false);
+  const [connectionState, setConnectionState] = useState<string>('connecting');
+  const [showSettings, setShowSettings] = useState(false);
+  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedVideoDeviceId, setSelectedVideoDeviceId] = useState<string>('');
+  const [selectedAudioDeviceId, setSelectedAudioDeviceId] = useState<string>('');
+
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const signalRConnectionRef = useRef<signalR.HubConnection | null>(null);
   const isOfferSentRef = useRef<boolean>(false);
@@ -88,6 +94,85 @@ export const VideoChat = React.forwardRef<VideoChatHandle, VideoChatProps>(({
       // ignore
     }
   }, [localStream]);
+
+  useEffect(() => {
+    // Initial fetch of devices
+    const getDevices = async () => {
+      try {
+        const d = await navigator.mediaDevices.enumerateDevices();
+        setDevices(d);
+        const savedVideoId = localStorage.getItem(`selected_video_device_${sessionId}`);
+        const savedAudioId = localStorage.getItem(`selected_audio_device_${sessionId}`);
+        
+        const hasVideo = d.some(dev => dev.deviceId === savedVideoId && dev.kind === 'videoinput');
+        const hasAudio = d.some(dev => dev.deviceId === savedAudioId && dev.kind === 'audioinput');
+
+        if (hasVideo && savedVideoId) setSelectedVideoDeviceId(savedVideoId);
+        else {
+          const firstVideo = d.find(dev => dev.kind === 'videoinput');
+          if (firstVideo) setSelectedVideoDeviceId(firstVideo.deviceId);
+        }
+
+        if (hasAudio && savedAudioId) setSelectedAudioDeviceId(savedAudioId);
+        else {
+          const firstAudio = d.find(dev => dev.kind === 'audioinput');
+          if (firstAudio) setSelectedAudioDeviceId(firstAudio.deviceId);
+        }
+      } catch (err) {
+        console.error('Error fetching devices', err);
+      }
+    };
+    getDevices();
+    navigator.mediaDevices.addEventListener('devicechange', getDevices);
+    return () => {
+      navigator.mediaDevices.removeEventListener('devicechange', getDevices);
+    };
+  }, [sessionId]);
+
+  const changeDevice = async (kind: 'audioinput' | 'videoinput', deviceId: string) => {
+    if (kind === 'videoinput') {
+      setSelectedVideoDeviceId(deviceId);
+      localStorage.setItem(`selected_video_device_${sessionId}`, deviceId);
+      if (!isVideoEnabled || !localStream) return;
+    } else {
+      setSelectedAudioDeviceId(deviceId);
+      localStorage.setItem(`selected_audio_device_${sessionId}`, deviceId);
+      if (!isAudioEnabled || !localStream) return;
+    }
+
+    try {
+      const constraints: MediaStreamConstraints = {};
+      if (kind === 'videoinput') {
+        constraints.video = { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } };
+        constraints.audio = false;
+      } else {
+        constraints.video = false;
+        constraints.audio = { deviceId: { exact: deviceId }, echoCancellation: true, noiseSuppression: true };
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      const newTrack = kind === 'videoinput' ? stream.getVideoTracks()[0] : stream.getAudioTracks()[0];
+      const oldTrack = kind === 'videoinput' ? localStream.getVideoTracks()[0] : localStream.getAudioTracks()[0];
+
+      if (oldTrack) {
+        oldTrack.stop();
+        localStream.removeTrack(oldTrack);
+      }
+      localStream.addTrack(newTrack);
+
+      const sender = peerConnectionRef.current?.getSenders().find(s => s.track?.kind === (kind === 'videoinput' ? 'video' : 'audio'));
+      if (sender) {
+        await sender.replaceTrack(newTrack);
+      }
+
+      // Recreate stream to trigger React rerender for local video element
+      setLocalStream(new MediaStream(localStream.getTracks()));
+
+    } catch (error) {
+      console.error(`Failed to change ${kind} device`, error);
+      onError?.(`Failed to change ${kind === 'videoinput' ? 'camera' : 'microphone'}`);
+    }
+  };
 
   // Track remote video availability (for "camera off" placeholder).
   useEffect(() => {
@@ -211,11 +296,13 @@ export const VideoChat = React.forwardRef<VideoChatHandle, VideoChatProps>(({
       // Get local media stream with saved preferences
       const stream = await navigator.mediaDevices.getUserMedia({
         video: videoEnabled ? {
+          deviceId: selectedVideoDeviceId ? { exact: selectedVideoDeviceId } : undefined,
           width: { ideal: 1280 },
           height: { ideal: 720 },
           facingMode: 'user'
         } : false,
         audio: audioEnabled ? {
+          deviceId: selectedAudioDeviceId ? { exact: selectedAudioDeviceId } : undefined,
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true
@@ -279,6 +366,7 @@ export const VideoChat = React.forwardRef<VideoChatHandle, VideoChatProps>(({
 
       // Handle connection state changes
       peerConnection.onconnectionstatechange = () => {
+        setConnectionState(peerConnection.connectionState);
         if (peerConnection.connectionState === 'failed') {
           onError?.('WebRTC connection failed. Please try refreshing.');
         } else if (peerConnection.connectionState === 'connected') {
@@ -432,6 +520,7 @@ export const VideoChat = React.forwardRef<VideoChatHandle, VideoChatProps>(({
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
+            deviceId: selectedVideoDeviceId ? { exact: selectedVideoDeviceId } : undefined,
             width: { ideal: 1280 },
             height: { ideal: 720 },
             facingMode: 'user',
@@ -485,6 +574,7 @@ export const VideoChat = React.forwardRef<VideoChatHandle, VideoChatProps>(({
         const stream = await navigator.mediaDevices.getUserMedia({
           video: false,
           audio: {
+            deviceId: selectedAudioDeviceId ? { exact: selectedAudioDeviceId } : undefined,
             echoCancellation: true,
             noiseSuppression: true,
             autoGainControl: true,
@@ -634,6 +724,12 @@ export const VideoChat = React.forwardRef<VideoChatHandle, VideoChatProps>(({
               playsInline
               className="video-element remote-video"
             />
+            {connectionState !== 'connected' && connectionState !== 'connecting' && (
+              <div className="connection-status-overlay">
+                <i className="fas fa-signal"></i>
+                <span>{connectionState}</span>
+              </div>
+            )}
             {!remoteStream && (
               <div className="video-overlay">
                 <i className="fas fa-user-slash"></i>
@@ -711,6 +807,46 @@ export const VideoChat = React.forwardRef<VideoChatHandle, VideoChatProps>(({
           >
             <i className="fas fa-desktop"></i>
           </button>
+          <button
+            className="control-btn"
+            onClick={() => setShowSettings(true)}
+            title="Settings"
+          >
+            <i className="fas fa-cog"></i>
+          </button>
+        </div>
+      )}
+      
+      {showSettings && (
+        <div className="device-settings-modal">
+          <div className="device-settings-content">
+            <h3>Device Settings</h3>
+            <div className="form-group">
+              <label>Camera</label>
+              <select 
+                value={selectedVideoDeviceId} 
+                onChange={(e) => changeDevice('videoinput', e.target.value)}
+              >
+                {devices.filter(d => d.kind === 'videoinput').map(d => (
+                  <option key={d.deviceId} value={d.deviceId}>{d.label || `Camera ${d.deviceId.substring(0, 5)}`}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Microphone</label>
+              <select 
+                value={selectedAudioDeviceId} 
+                onChange={(e) => changeDevice('audioinput', e.target.value)}
+              >
+                {devices.filter(d => d.kind === 'audioinput').map(d => (
+                  <option key={d.deviceId} value={d.deviceId}>{d.label || `Microphone ${d.deviceId.substring(0, 5)}`}</option>
+                ))}
+              </select>
+            </div>
+            <div className="settings-actions">
+              <button onClick={() => setShowSettings(false)}>Close</button>
+            </div>
+          </div>
         </div>
       )}
     </div>

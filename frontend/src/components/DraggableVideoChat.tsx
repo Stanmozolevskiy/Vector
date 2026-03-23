@@ -19,10 +19,10 @@ export const DraggableVideoChat: React.FC<DraggableVideoChatProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [position, setPosition] = useState({ 
-    x: Math.max(20, window.innerWidth - 660), 
+    x: Math.max(20, window.innerWidth - 320), 
     y: 20 
   });
-  const [size, setSize] = useState({ width: 640, height: 180 }); // 32:9 aspect ratio for two side-by-side videos
+  const [size, setSize] = useState({ width: 300, height: 225 }); // 16:9 aspect ratio for 300px width
   const dragStartPos = useRef({ x: 0, y: 0 });
   const resizeStartPos = useRef({ x: 0, y: 0, width: 0, height: 0 });
 
@@ -63,9 +63,9 @@ export const DraggableVideoChat: React.FC<DraggableVideoChatProps> = ({
     if (isResizing) {
       const deltaX = e.clientX - resizeStartPos.current.x;
       
-      // Calculate new size maintaining aspect ratio (32:9 for side-by-side videos)
-      const aspectRatio = 32 / 9;
-      const newWidth = Math.max(400, Math.min(1000, resizeStartPos.current.width + deltaX));
+      // Calculate new size maintaining aspect ratio (16:9)
+      const aspectRatio = 16 / 9;
+      const newWidth = Math.max(250, Math.min(600, resizeStartPos.current.width + deltaX));
       const newHeight = newWidth / aspectRatio;
       
       setSize({
@@ -138,8 +138,8 @@ export const DraggableVideoChat: React.FC<DraggableVideoChatProps> = ({
           userId={userId}
           peerUserId={peerUserId}
           onError={onError}
-          showLocalVideo={true}
-          showLocalPreview={false}
+          showLocalVideo={false}
+          showLocalPreview={true}
           overlayControls={true}
         />
       </div>

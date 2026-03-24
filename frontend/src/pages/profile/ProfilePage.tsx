@@ -64,9 +64,10 @@ export const ProfilePage = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [firstNameError, setFirstNameError] = useState('');
   const [lastNameError, setLastNameError] = useState('');
+  const [phoneNumberError, setPhoneNumberError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [hasCoachApplication, setHasCoachApplication] = useState(false);
-  const [coachApplication, setCoachApplication] = useState<{ status: string; adminNotes?: string } | null>(null);
+  const [coachApplication, setCoachApplication] = useState<{ status: string; adminNotes?: string; updatedAt?: string } | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [currentSubscription, setCurrentSubscription] = useState<Subscription | null>(null);
@@ -100,7 +101,8 @@ export const ProfilePage = () => {
             if (app) {
               setCoachApplication({
                 status: app.status,
-                adminNotes: app.adminNotes
+                adminNotes: app.adminNotes,
+                updatedAt: app.updatedAt
               });
             } else {
               setCoachApplication(null);
@@ -199,6 +201,7 @@ export const ProfilePage = () => {
 
     if (e.target.name === 'firstName') setFirstNameError('');
     if (e.target.name === 'lastName') setLastNameError('');
+    if (e.target.name === 'phoneNumber') setPhoneNumberError('');
 
     if (e.target.name === 'phoneNumber') {
       let digits = value.replace(/\D/g, '');
@@ -311,10 +314,22 @@ export const ProfilePage = () => {
     // Frontend validation for names
     const fErr = validateNameValue(profileData.firstName, 'First Name');
     const lErr = validateNameValue(profileData.lastName, 'Last Name');
+    let pErr = '';
     
-    if (fErr || lErr) {
+    if (profileData.phoneNumber) {
+      let digits = profileData.phoneNumber.replace(/\D/g, '');
+      if (digits.startsWith('1')) {
+        digits = digits.substring(1);
+      }
+      if (digits.length > 0 && digits.length !== 10) {
+        pErr = 'Please enter a valid 10-digit phone number.';
+      }
+    }
+    
+    if (fErr || lErr || pErr) {
       setFirstNameError(fErr || '');
       setLastNameError(lErr || '');
+      setPhoneNumberError(pErr || '');
       return;
     }
 
@@ -605,7 +620,9 @@ export const ProfilePage = () => {
                           value={profileData.phoneNumber}
                           onChange={handleProfileInputChange}
                           placeholder="+1 (555) 123-4567"
+                          style={phoneNumberError ? { borderColor: '#ef4444' } : {}}
                         />
+                        {phoneNumberError && <span style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.25rem', display: 'block' }}>{phoneNumberError}</span>}
                       </div>
                       <div className="form-group">
                         <label htmlFor="location">Location</label>
@@ -688,14 +705,40 @@ export const ProfilePage = () => {
                         )}
                         {coachApplication.status === 'rejected' && (
                           <div style={{ marginTop: '1rem' }}>
-                            <Link 
-                              to={ROUTES.COACH_APPLY}
-                              className="btn-primary"
-                              style={{ display: 'inline-block', textDecoration: 'none' }}
-                            >
-                              <i className="fas fa-redo" style={{ marginRight: '0.5rem' }}></i>
-                              Reapply for Coaching
-                            </Link>
+                            {(() => {
+                              const reapplyDate = coachApplication.updatedAt ? new Date(new Date(coachApplication.updatedAt).setMonth(new Date(coachApplication.updatedAt).getMonth() + 1)) : new Date();
+                              const canReapply = Date.now() >= reapplyDate.getTime();
+                              
+                              if (!canReapply) {
+                                return (
+                                  <>
+                                    <div style={{ marginBottom: '0.75rem', fontSize: '0.9rem', color: '#856404', backgroundColor: '#fff3cd', padding: '0.75rem', borderRadius: '4px', border: '1px solid #ffeeba' }}>
+                                      <i className="fas fa-clock" style={{ marginRight: '0.5rem' }}></i>
+                                      You can reapply on {reapplyDate.toLocaleDateString()}
+                                    </div>
+                                    <button 
+                                      className="btn-primary"
+                                      disabled
+                                      style={{ opacity: 0.6, cursor: 'not-allowed', display: 'inline-block' }}
+                                    >
+                                      <i className="fas fa-redo" style={{ marginRight: '0.5rem' }}></i>
+                                      Reapply for Coaching
+                                    </button>
+                                  </>
+                                );
+                              }
+                              
+                              return (
+                                <Link 
+                                  to={ROUTES.COACH_APPLY}
+                                  className="btn-primary"
+                                  style={{ display: 'inline-block', textDecoration: 'none' }}
+                                >
+                                  <i className="fas fa-redo" style={{ marginRight: '0.5rem' }}></i>
+                                  Reapply for Coaching
+                                </Link>
+                              );
+                            })()}
                           </div>
                         )}
                       </>

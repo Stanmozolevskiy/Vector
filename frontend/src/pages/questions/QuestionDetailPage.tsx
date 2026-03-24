@@ -1338,12 +1338,7 @@ export const QuestionDetailPage = () => {
       setQuestion(questionData);
       setTestCases(testCasesData);
       setSolutions(solutionsData);
-      
-      // Log for debugging SQL test cases
-      if (questionData?.questionType?.toLowerCase() === 'sql') {
-        console.log(`SQL question loaded: ${questionData.title}, Test cases: ${testCasesData.length}`);
-      }
-      
+
       // Set default language based on question type
       if (questionData?.questionType?.toLowerCase() === 'sql') {
         setSelectedLanguage('sql');

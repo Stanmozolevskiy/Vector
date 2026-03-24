@@ -51,13 +51,10 @@ const refreshAccessToken = async (): Promise<string> => {
     throw new Error('No refresh token');
   }
 
-  console.log('[TokenRefresh] Refreshing access token...');
-  
   try {
     const { authService } = await import('./auth.service');
     const response = await authService.refreshToken();
 
-    console.log('[TokenRefresh] Refresh successful');
     tokenStorage.setTokensFromRefresh(response.accessToken, response.refreshToken);
     startProactiveTokenRefresh();
 
@@ -85,12 +82,6 @@ const ensureFreshAccessToken = async (minValidityMs: number = 2 * 60 * 1000): Pr
 
   const remainingMs = expMs - now;
   
-  // Log token status for debugging
-  const remainingMinutes = Math.floor(remainingMs / 60000);
-  if (remainingMs < minValidityMs) {
-    console.log(`[TokenRefresh] Token expiring in ${remainingMinutes} minutes, refreshing proactively`);
-  }
-  
   if (remainingMs > minValidityMs) return accessToken;
 
   // Deduplicate refresh across requests/timers
@@ -105,7 +96,6 @@ const ensureFreshAccessToken = async (minValidityMs: number = 2 * 60 * 1000): Pr
   refreshPromise = (async () => {
     try {
       const newToken = await refreshAccessToken();
-      console.log('[TokenRefresh] Successfully refreshed token');
       return newToken;
     } catch (error) {
       console.error('[TokenRefresh] Failed to refresh token:', error);
@@ -184,7 +174,6 @@ const startProactiveTokenRefresh = () => {
         const isRefreshTokenExpired = status === 401 || status === 400;
 
         if (isRefreshTokenExpired) {
-          console.debug('Proactive token refresh failed (refresh token expired)');
           tokenStorage.clearTokens();
           stopProactiveTokenRefresh();
           return;
@@ -194,8 +183,6 @@ const startProactiveTokenRefresh = () => {
         consecutiveRefreshFailures += 1;
         // More aggressive retry - max 2 minutes instead of 5
         const backoffMs = Math.min(2 * 60 * 1000, 15_000 * consecutiveRefreshFailures);
-        console.warn(`[TokenRefresh] Proactive refresh failed (attempt ${consecutiveRefreshFailures}), will retry in ${backoffMs/1000}s:`, error);
-
         tokenRefreshTimeout = setTimeout(() => {
           scheduleNext();
         }, backoffMs);
@@ -210,10 +197,7 @@ const startProactiveTokenRefresh = () => {
   // Reduced interval to catch token expiry more quickly for inactive users.
   backgroundRefreshInterval = setInterval(() => {
     const rt = tokenStorage.getRefreshToken();
-    if (!rt) {
-      console.log('[TokenRefresh] No refresh token found in background check');
-      return;
-    }
+    if (!rt) return;
     // Keep at least 3 minutes of validity when possible.
     ensureFreshAccessToken(3 * 60 * 1000).catch((error) => {
       console.error('[TokenRefresh] Background refresh failed:', error);
@@ -241,9 +225,7 @@ window.addEventListener('storage', (e) => {
 const wakeRefresh = () => {
   const refreshToken = tokenStorage.getRefreshToken();
   if (!refreshToken) return;
-  
-  console.log('[TokenRefresh] Wake event triggered, checking token validity');
-  
+
   // More aggressive: refresh if less than 10 minutes remaining
   ensureFreshAccessToken(10 * 60 * 1000).catch((error) => {
     console.error('[TokenRefresh] Wake refresh failed:', error);
@@ -317,21 +299,16 @@ api.interceptors.response.use(
       const refreshToken = tokenStorage.getRefreshToken();
       
       if (!refreshToken) {
-        console.warn('[Auth] No refresh token found, redirecting to login');
         processQueue(new Error('No refresh token'), null);
         tokenStorage.clearTokens();
         const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
         window.location.href = `/login?returnUrl=${returnUrl}`;
         return Promise.reject(error);
       }
-      
-      console.log('[Auth] Attempting token refresh due to 401 response');
 
       try {
         const { authService } = await import('./auth.service');
         const response = await authService.refreshToken();
-        
-        console.log('[Auth] Token refresh successful');
         tokenStorage.setTokensFromRefresh(response.accessToken, response.refreshToken);
         
         // Restart proactive refresh if it was stopped
@@ -357,10 +334,6 @@ api.interceptors.response.use(
                                      refreshError?.message?.includes('invalid');
         
         if (isRefreshTokenExpired) {
-          console.warn('[Auth] Refresh token expired or invalid, redirecting to login', {
-            status: refreshError?.response?.status,
-            message: refreshError?.message
-          });
           processQueue(refreshError, null);
           isRefreshing = false;
           tokenStorage.clearTokens();
@@ -375,7 +348,6 @@ api.interceptors.response.use(
             processQueue(refreshError, null);
           }
           isRefreshing = false;
-          console.warn('Token refresh failed but not due to expiration, retrying original request');
           // Retry original request - it might work if token is still valid
           return api(originalRequest);
         }

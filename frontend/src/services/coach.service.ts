@@ -83,7 +83,6 @@ export const coachService = {
         'Content-Type': 'multipart/form-data',
       },
     });
-    console.log('Upload response:', response.data);
     const imageUrl = response.data?.imageUrl || response.data;
     if (!imageUrl || typeof imageUrl !== 'string') {
       throw new Error('Invalid response format from server');

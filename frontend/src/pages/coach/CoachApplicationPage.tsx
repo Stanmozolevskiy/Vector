@@ -126,8 +126,7 @@ const CoachApplicationPage = () => {
 
     try {
       const imageUrl = await coachService.uploadImage(file);
-      console.log('Uploaded image URL:', imageUrl);
-      
+
       if (!imageUrl || typeof imageUrl !== 'string') {
         throw new Error('Invalid image URL received');
       }
@@ -463,7 +462,6 @@ const CoachApplicationPage = () => {
                         }}
                         onLoad={() => {
                           // Image loaded successfully - force re-render
-                          console.log('Image loaded:', url);
                         }}
                         crossOrigin="anonymous"
                       />

@@ -53,11 +53,9 @@ export const QuestionDiscussion = ({ questionId, comments, onCommentAdded }: Que
       return;
     }
 
-    console.log('Submitting comment:', { questionId, commentText, commentType });
     setIsSubmitting(true);
     try {
-      const result = await commentsService.createComment(questionId, commentText, commentType);
-      console.log('Comment created successfully:', result);
+      await commentsService.createComment(questionId, commentText, commentType);
       setCommentText('');
       setCommentType(null);
       onCommentAdded();

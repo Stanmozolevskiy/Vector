@@ -416,7 +416,6 @@ const FindPeerPage: React.FC = () => {
         const matchingStatus = await peerInterviewService.getMatchingStatus(sessionId);
         if (matchingStatus?.liveSessionId && matchingStatus.status === 'Confirmed') {
           // Both users confirmed and session exists - redirect to live session
-          console.log('Session already active, redirecting to live session:', matchingStatus.liveSessionId);
           try {
             const liveSession = await peerInterviewService.getSession(matchingStatus.liveSessionId);
             window.location.href = getSessionRedirectUrl(liveSession, matchingStatus.liveSessionId, matchingStatus);
@@ -447,14 +446,10 @@ const FindPeerPage: React.FC = () => {
             startMatchingPoll(sessionId);
             return;
           }
-        } catch (error: any) {
+        } catch {
           // 204/404 means no matching request exists yet - this is expected and not an error
-          // Only log if it's a different error
-          if (error?.response?.status !== 204 && error?.response?.status !== 404 && error?.response?.status !== 403) {
-            console.warn("GetMatchingStatus returned unexpected error:", error?.response?.status);
-          }
         }
-        
+
         // Start matching process
         try {
           const result = await peerInterviewService.startMatching(sessionId);
@@ -504,15 +499,10 @@ const FindPeerPage: React.FC = () => {
           startMatchingPoll(sessionId);
           return;
         }
-      } catch (error: any) {
+      } catch {
         // 204/404 means no matching request exists yet - this is expected and not an error
-        // Only log if it's a different error
-        if (error?.response?.status !== 204 && error?.response?.status !== 404 && error?.response?.status !== 403) {
-          console.warn("GetMatchingStatus returned unexpected error:", error?.response?.status);
-        }
-        // No existing status, continue with starting matching
       }
-      
+
       // Start matching
       try {
         const result = await peerInterviewService.startMatching(sessionId);
@@ -551,7 +541,6 @@ const FindPeerPage: React.FC = () => {
         
         // Handle network errors gracefully - don't break the flow
         if (error?.code === 'ERR_NETWORK' || error?.message === 'Network Error') {
-          console.warn('Network error during startMatching, but continuing with polling:', error);
           // Continue with polling - the polling will handle finding the match
           startMatchingPoll(sessionId);
           return;
@@ -564,7 +553,6 @@ const FindPeerPage: React.FC = () => {
       
       // Don't show alert for network errors - they're often transient
       if (error?.code === 'ERR_NETWORK' || error?.message === 'Network Error') {
-        console.warn('Network error during interview start, but session may still work. Continuing...');
         // Try to continue - maybe the session is already set up
         try {
           const session = await peerInterviewService.getSession(sessionId);
@@ -585,10 +573,7 @@ const FindPeerPage: React.FC = () => {
         }
       }
       
-      // Only show alert for non-network errors
-      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to start interview';
-      console.error('Non-network error:', errorMessage);
-      // Don't use alert - just log and close modal
+      // Don't use alert - just close modal for non-network errors
       setShowMatchingModal(false);
     }
   };
@@ -613,8 +598,8 @@ const FindPeerPage: React.FC = () => {
       
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.3);
-    } catch (error) {
-      console.warn('Could not play match sound:', error);
+    } catch {
+      // Audio not supported or blocked
     }
   };
 
@@ -685,17 +670,9 @@ const FindPeerPage: React.FC = () => {
         // Both confirmed if status is 'Confirmed' and liveSessionId exists (backend creates session when both confirm)
         const bothConfirmed = isConfirmed && hasLiveSession;
         
-        // Add logging to debug polling
-        if (status) {
-          console.log('POLLING: Status check - Status:', status.status, 'UserConfirmed:', status.userConfirmed, 'MatchedUserConfirmed:', status.matchedUserConfirmed, 'LiveSessionId:', status.liveSessionId, 'BothConfirmed:', bothConfirmed);
-        }
-        
         // If both confirmed, redirect immediately
         if (bothConfirmed) {
-          // Both users confirmed - get the live session and redirect
-          console.log('Polling detected both users confirmed! Status:', status?.status, 'UserConfirmed:', status?.userConfirmed, 'MatchedUserConfirmed:', status?.matchedUserConfirmed);
-          
-            clearInterval(interval);
+          clearInterval(interval);
             if (countdownInterval) {
               clearInterval(countdownInterval);
             }
@@ -721,43 +698,36 @@ const FindPeerPage: React.FC = () => {
                     try {
               const scheduledSession = await peerInterviewService.getScheduledSession(sessionId);
               liveSessionId = scheduledSession.liveSessionId;
-              console.log('Got liveSessionId from scheduled session:', liveSessionId);
-            } catch (error) {
-              console.warn('Error getting scheduled session during poll:', error);
+            } catch {
+              // Ignore - will try fallback
             }
           }
           
           if (liveSessionId) {
-            // Get the live session
             try {
               const liveSession = await peerInterviewService.getSession(liveSessionId);
-              console.log('Got live session:', liveSession);
-              console.log('Polling detected both confirmed, redirecting to:', liveSession.interviewType || status?.interviewType || 'default');
               window.location.href = getSessionRedirectUrl(liveSession, liveSessionId, status);
               return;
-                } catch (error) {
-              console.error('Error getting live session during poll:', error);
-                }
-              }
-          
+            } catch {
+              // Fall through to fallback
+            }
+          }
+
           // Fallback: try to get live session one more time by checking both matching requests
-          console.log('Fallback: trying to find live session from matching request...');
           try {
             // Get matching status again to see if liveSessionId is now available
             const latestStatus = await peerInterviewService.getMatchingStatus(sessionId);
             if (latestStatus?.liveSessionId) {
               const liveSession = await peerInterviewService.getSession(latestStatus.liveSessionId);
-              console.log('Found live session in fallback, redirecting to:', liveSession.interviewType || latestStatus.interviewType || 'default');
               window.location.href = getSessionRedirectUrl(liveSession, latestStatus.liveSessionId, latestStatus);
               return;
             }
-            } catch (error) {
-            console.error('Error in fallback redirect:', error);
-              }
-          
+          } catch {
+            // Fall through to last resort
+          }
+
           // Last resort: wait a bit and try again
-          console.log('Last resort: waiting 2 seconds and retrying...');
-                      setTimeout(async () => {
+          setTimeout(async () => {
                         try {
               const latestStatus = await peerInterviewService.getMatchingStatus(sessionId);
               if (latestStatus?.liveSessionId) {
@@ -765,11 +735,9 @@ const FindPeerPage: React.FC = () => {
                 window.location.href = getSessionRedirectUrl(liveSession, latestStatus.liveSessionId, latestStatus);
                 return;
               }
-            } catch (error) {
-              console.error('Error in last resort redirect:', error);
+            } catch {
+              // Could not find live session
             }
-            // If still no live session found, show error
-            console.error('Could not find live session after confirmation');
           }, 2000);
         } else if (status?.status === 'Matched') {
           // Match found but not both confirmed - update UI state and countdown
@@ -799,14 +767,7 @@ const FindPeerPage: React.FC = () => {
             }
           }
         } else if (!status || status.status === 'Pending' || status.status === 'Expired') {
-          // Still waiting, continue polling
-          // Log queue status for debugging
-          if (!status) {
-            console.log('POLLING: No matching request found (may be creating new request after expiration, waiting for match...)');
-          } else {
-            console.log(`POLLING: Status=${status.status}, Waiting for match... RequestId=${status.id}, UserId=${status.userId}`);
-          }
-          // No action needed - just continue the poll interval
+          // Still waiting, continue polling - no action needed
           // GetMatchingStatusAsync will trigger TryMatchAsync for pending requests
         }
       } catch (error) {
@@ -841,12 +802,8 @@ const FindPeerPage: React.FC = () => {
 
   // SIMPLIFIED: Expire match and re-queue users if timeout occurs
   const handleMatchTimeout = async (matchingRequestId: string) => {
-    console.log('TIMEOUT: Match confirmation timeout (15 seconds expired), expiring match and re-queuing...');
-    
-    // Expire the match on the backend using the matching request ID
     try {
       await peerInterviewService.expireMatch(matchingRequestId);
-      console.log('TIMEOUT: Match expired on backend, users re-queued');
     } catch (error) {
       console.error('TIMEOUT: Error expiring match on backend:', error);
     }
@@ -884,16 +841,12 @@ const FindPeerPage: React.FC = () => {
     try {
       // Set this user's readiness to true
       const result = await peerInterviewService.confirmMatch(matchingStatus.id);
-      console.log('Confirm match result:', result);
-      
+
       // Update matching status with the latest from backend
       setMatchingStatus(result.matchingRequest);
 
       // Check if both users have confirmed - if so, redirect immediately
       if (result.completed && result.session) {
-        // Both users confirmed, session is ready - navigate immediately
-        console.log('Both users confirmed, redirecting to session:', result.session.id);
-        
         // Clear all intervals and timeouts
         if (matchingPollInterval) {
           clearInterval(matchingPollInterval);
@@ -920,18 +873,13 @@ const FindPeerPage: React.FC = () => {
           // Session exists - redirect based on interview type
           try {
             const session = await peerInterviewService.getSession(sessionId);
-            console.log('Redirecting to session, interviewType:', session.interviewType || 'default');
             window.location.href = getSessionRedirectUrl(session, sessionId, result.matchingRequest);
-          } catch (error) {
-            console.error('Error getting session after confirm:', error);
+          } catch {
             window.location.href = getSessionRedirectUrl(null, sessionId, result.matchingRequest);
           }
           return;
         }
       } else if (result.completed && result.matchingRequest?.liveSessionId) {
-        // Both users confirmed but session not in response, get it using liveSessionId
-        console.log('Both confirmed, getting session from liveSessionId:', result.matchingRequest.liveSessionId);
-        
         // Clear all intervals and timeouts
         if (matchingPollInterval) {
           clearInterval(matchingPollInterval);
@@ -948,20 +896,15 @@ const FindPeerPage: React.FC = () => {
         
         try {
           const liveSession = await peerInterviewService.getSession(result.matchingRequest.liveSessionId);
-          console.log('Redirecting to live session, interviewType:', liveSession.interviewType || result.matchingRequest?.interviewType || 'default');
           window.location.href = getSessionRedirectUrl(liveSession, result.matchingRequest.liveSessionId, result.matchingRequest);
           return;
-        } catch (error) {
-          console.error('Error getting live session:', error);
+        } catch {
           window.location.href = getSessionRedirectUrl(null, result.matchingRequest.liveSessionId, result.matchingRequest);
           return;
         }
       } else {
         // Only this user confirmed - waiting for other user
-        // DO NOT redirect - wait for the other user to confirm
         // The polling will detect when both users confirm and redirect
-        console.log('CONFIRM: This user confirmed, waiting for partner. Status:', result.matchingRequest.status, 'UserConfirmed:', result.matchingRequest.userConfirmed, 'LiveSessionId:', result.matchingRequest.liveSessionId);
-        
         // Keep isConfirmingMatch as true to show "Confirmed" state (waiting for partner)
         // The polling will detect when both users confirm and redirect
         // Polling is already running and will detect when both users confirm
@@ -972,13 +915,8 @@ const FindPeerPage: React.FC = () => {
       
       // Don't show alert for network errors
       if (error?.code === 'ERR_NETWORK' || error?.message === 'Network Error') {
-        console.warn('Network error during confirm match, but match may still be processing');
-        // Continue - the polling will detect when match is confirmed
         return;
       }
-      console.error('Error confirming match:', error);
-      const errorMessage = error?.response?.data?.message || 'Failed to confirm match';
-      console.error('Confirm match error:', errorMessage);
     }
   };
 
@@ -1949,10 +1887,7 @@ const FindPeerPage: React.FC = () => {
                             )}
                             <button
                               className="btn-join-interview"
-                              onClick={() => {
-                                console.log('Join button clicked');
-                                handleConfirmMatch();
-                              }}
+                              onClick={() => handleConfirmMatch()}
                               disabled={false}
                     >
                       Join your interview

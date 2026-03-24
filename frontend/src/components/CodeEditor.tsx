@@ -105,8 +105,8 @@ export const CodeEditor = ({
       setTimeout(() => {
         try {
           editor.focus();
-        } catch (e) {
-          console.warn('Failed to focus editor:', e);
+        } catch {
+          // Focus may fail if editor is not ready
         }
       }, 100);
     }

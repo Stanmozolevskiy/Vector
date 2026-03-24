@@ -51,7 +51,6 @@ Stage 3 includes the Resume Review Service from the main implementation plan, pl
 ## Part B: Future Enhancements (from Stage 2)
 
 ### Bug Fixes
-- [ ] Live Session Video Glitches (Self-view missing, incorrect camera state between participants)
 - [ ] Whiteboard Synchronization Issues (Desync during live interviews - details to be added)
 
 ### Gamification

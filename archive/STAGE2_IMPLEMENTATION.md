@@ -3,7 +3,7 @@
 ## Overview
 
 **Timeline:** 8-10 weeks  
-**Status:** ✅ Majority Complete
+**Status:** ✅ Complete
 
 LeetCode-style problem solving, interview question bank, peer mock interviews, code execution (Judge0), analytics, and gamification. See `STAGE_2_IMPLEMENTATION_SUMMARY.md` for detailed notes.
 
@@ -194,16 +194,16 @@ LeetCode-style problem solving, interview question bank, peer mock interviews, c
 
 ---
 
-#### 3. Live Session Video Glitches (Moved to Stage 3)
+#### 3. ~~Live Session Video Glitches~~ ✅ Fixed
 **Component:** Live Interview - Video Chat
 
-Video in live interview sessions has several display and state issues.
+~~Video in live interview sessions has several display and state issues.~~
 
-**Observed:** Main user's own video does not display (self-view missing or incorrect). Camera "off" indicator sometimes shows when video is actually visible to the other participant. Inconsistent video state between participants.
+~~**Observed:** Main user's own video does not display (self-view missing or incorrect). Camera "off" indicator sometimes shows when video is actually visible to the other participant. Inconsistent video state between participants.~~
 
-**Expected:** Main user should see their own video; camera on/off state should be accurate and consistent for both participants.
+~~**Expected:** Main user should see their own video; camera on/off state should be accurate and consistent for both participants.~~
 
-**Files to investigate:** `VideoChat.tsx` (or equivalent), `CodingInterviewPage.tsx`, WebRTC/stream handling logic
+**Fix applied:** Re-implemented VideoChat with PiP layout, local mirroring, device selection, connection status, and improved WebRTC state sync.
 
 ---
 
@@ -267,17 +267,17 @@ Video in live interview sessions has several display and state issues.
 
 ### Low Priority
 
-#### 8. Excessive Console Logging in Production
+#### 8. ~~Excessive Console Logging in Production~~ ✅ Fixed
 **Component:** All
 
-Too many console.log statements in production code, cluttering the browser console and potentially exposing sensitive information.
+~~Too many console.log statements in production code, cluttering the browser console and potentially exposing sensitive information.~~
 
-**Fix:** Remove or disable debug logging in production; use proper log levels.
+**Fix applied:** Removed excessive `console.log` and `console.warn` from production code across the frontend (VideoChat, FindPeerPage, QuestionDetailPage, DashboardPage, api.ts, coach.service, etc.). Kept `console.error` only for real failure cases in catch blocks.
 ---
 
 ## Next Steps
 
-- [ ] Fix known bugs
+- [x] Fix known bugs
 - [ ] CoachService unit tests
 - [ ] Integration tests for endpoints
 - [ ] E2E (post-Stage 2)

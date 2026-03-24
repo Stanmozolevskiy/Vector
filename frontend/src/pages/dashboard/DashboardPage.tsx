@@ -40,14 +40,10 @@ export const DashboardPage = () => {
       try {
         setAnalyticsLoading(true);
         setInterviewsLoading(true);
-        
-        console.log('[Dashboard] Loading dashboard data...');
-        
+
         // First, rebuild analytics from existing data
         try {
-          console.log('[Dashboard] Rebuilding analytics...');
           await analyticsService.rebuildAnalytics();
-          console.log('[Dashboard] Analytics rebuilt successfully');
         } catch (rebuildError) {
           console.error('[Dashboard] Error rebuilding analytics:', rebuildError);
           // Continue even if rebuild fails
@@ -58,10 +54,7 @@ export const DashboardPage = () => {
           analyticsService.getUserAnalytics(),
           peerInterviewService.getUpcomingSessions()
         ]);
-        
-        console.log('[Dashboard] Analytics data:', analyticsData);
-        console.log('[Dashboard] Interviews data:', interviewsData);
-        
+
         setAnalytics(analyticsData);
         setUpcomingInterviews(interviewsData);
 

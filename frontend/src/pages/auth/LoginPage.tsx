@@ -73,9 +73,8 @@ export const LoginPage = () => {
     }
   };
 
-  const handleSocialLogin = (provider: 'google' | 'linkedin') => {
+  const handleSocialLogin = (_provider: 'google' | 'linkedin') => {
     // TODO: Implement social login
-    console.log(`${provider} login clicked`);
   };
 
   return (

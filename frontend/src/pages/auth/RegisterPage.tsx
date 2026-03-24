@@ -126,8 +126,8 @@ export const RegisterPage = () => {
     }
   };
 
-  const handleSocialSignup = (provider: 'google' | 'linkedin') => {
-    console.log(`${provider} signup clicked`);
+  const handleSocialSignup = (_provider: 'google' | 'linkedin') => {
+    // TODO: Implement social signup
   };
 
   if (success) {

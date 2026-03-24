@@ -369,8 +369,6 @@ export const VideoChat = React.forwardRef<VideoChatHandle, VideoChatProps>(({
         setConnectionState(peerConnection.connectionState);
         if (peerConnection.connectionState === 'failed') {
           onError?.('WebRTC connection failed. Please try refreshing.');
-        } else if (peerConnection.connectionState === 'connected') {
-          console.log('WebRTC connection established');
         }
       };
 
@@ -460,9 +458,8 @@ export const VideoChat = React.forwardRef<VideoChatHandle, VideoChatProps>(({
 
       const candidate = JSON.parse(candidateString);
       await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(candidate));
-    } catch (error) {
+    } catch {
       // Silently fail - candidate might already be added or invalid
-      console.debug('Failed to add ICE candidate:', error);
     }
   };
 

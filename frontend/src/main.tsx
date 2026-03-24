@@ -11,9 +11,6 @@ if (!rootElement) {
   throw new Error('Root element not found')
 }
 
-// Log that we're attempting to render
-console.log('React app starting to render...', { rootElement: !!rootElement })
-
 // Show loading message immediately
 if (rootElement) {
   rootElement.innerHTML = '<div style="padding: 20px; text-align: center; font-family: sans-serif;">Loading application...</div>'
@@ -21,15 +18,11 @@ if (rootElement) {
 
 try {
   const root = createRoot(rootElement)
-  console.log('React root created successfully')
-  
   root.render(
     <StrictMode>
       <App />
     </StrictMode>,
   )
-  
-  console.log('React app rendered successfully')
 } catch (error) {
   console.error('Failed to render React app:', error)
   if (rootElement) {

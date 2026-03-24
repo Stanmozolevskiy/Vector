@@ -28,7 +28,6 @@ export const saveCode = (questionId: string, language: string, code: string): bo
   } catch (error) {
     // Handle quota exceeded error
     if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-      console.warn('localStorage quota exceeded. Attempting to clear old entries...');
       try {
         // Clear old entries (keep only last 50 entries)
         clearOldEntries(50);

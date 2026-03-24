@@ -32,6 +32,38 @@ public class CoachService : ICoachService
 
         if (existingApplication != null)
         {
+            if (existingApplication.Status == "rejected")
+            {
+                var eligibleDate = existingApplication.UpdatedAt.AddMonths(1);
+                if (DateTime.UtcNow < eligibleDate)
+                {
+                    var waitDays = Math.Max(1, (eligibleDate - DateTime.UtcNow).Days);
+                    throw new InvalidOperationException($"You must wait {waitDays} more days before reapplying.");
+                }
+                
+                // User is eligible to reapply: update existing application
+                existingApplication.Motivation = dto.Motivation;
+                existingApplication.Experience = dto.Experience;
+                existingApplication.Specialization = dto.Specialization;
+                existingApplication.ImageUrls = dto.ImageUrls != null && dto.ImageUrls.Any() 
+                    ? string.Join(",", dto.ImageUrls) 
+                    : null;
+                existingApplication.Status = "pending";
+                existingApplication.UpdatedAt = DateTime.UtcNow;
+                existingApplication.ReviewedBy = null;
+                existingApplication.AdminNotes = null;
+
+                await _context.SaveChangesAsync();
+                
+                var existingUser = await _context.Users.FindAsync(userId);
+                if (existingUser != null)
+                {
+                    await SendApplicationReceivedEmailAsync(existingUser);
+                }
+
+                return existingApplication;
+            }
+            
             throw new InvalidOperationException("You have already submitted a coach application.");
         }
 
@@ -68,7 +100,13 @@ public class CoachService : ICoachService
 
         _logger.LogInformation("Coach application submitted by user {UserId}", userId);
 
-        // Send confirmation email to user
+        await SendApplicationReceivedEmailAsync(user);
+
+        return application;
+    }
+
+    private async Task SendApplicationReceivedEmailAsync(User user)
+    {
         try
         {
             await _emailService.SendEmailAsync(
@@ -83,10 +121,8 @@ public class CoachService : ICoachService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to send confirmation email for coach application {ApplicationId}", application.Id);
+            _logger.LogWarning(ex, "Failed to send confirmation email for coach application to {Email}", user.Email);
         }
-
-        return application;
     }
 
     public async Task<CoachApplication?> GetApplicationByUserIdAsync(Guid userId)

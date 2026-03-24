@@ -73,6 +73,9 @@ public class PasswordResetTests : IDisposable
         Assert.False(passwordReset.IsUsed);
         Assert.True(passwordReset.ExpiresAt > DateTime.UtcNow);
         
+        // Wait for fire-and-forget task to complete
+        await Task.Delay(100);
+        
         _emailServiceMock.Verify(
             x => x.SendPasswordResetEmailAsync(user.Email, It.IsAny<string>()), 
             Times.Once

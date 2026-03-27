@@ -463,7 +463,6 @@ const CoachApplicationPage = () => {
                         onLoad={() => {
                           // Image loaded successfully - force re-render
                         }}
-                        crossOrigin="anonymous"
                       />
                     </div>
                     <button

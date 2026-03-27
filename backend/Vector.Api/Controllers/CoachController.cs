@@ -104,6 +104,8 @@ public class CoachController : ControllerBase
     /// Upload images for coach application (portfolio, certificates, etc.)
     /// </summary>
     [HttpPost("upload-image")]
+    [RequestFormLimits(MultipartBodyLengthLimit = 12 * 1024 * 1024)]
+    [Consumes("multipart/form-data")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]

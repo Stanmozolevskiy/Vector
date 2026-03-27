@@ -17,6 +17,7 @@ public class S3Service : IS3Service
     private readonly string _region;
     private readonly string? _publicBaseUrl;
     private readonly bool _useCustomProvider;
+    private readonly string _serviceUrl;
 
     public S3Service(
         IAmazonS3 s3Client,
@@ -32,7 +33,8 @@ public class S3Service : IS3Service
 
         _region = configuration["AWS:Region"] ?? "us-east-1";
         _publicBaseUrl = configuration["Storage:PublicUrl"];
-        _useCustomProvider = !string.IsNullOrEmpty(configuration["Storage:ServiceUrl"]);
+        _serviceUrl = configuration["Storage:ServiceUrl"] ?? "";
+        _useCustomProvider = !string.IsNullOrEmpty(_serviceUrl);
     }
 
     public async Task<string> UploadFileAsync(Stream fileStream, string fileName, string contentType, string folder = "")
@@ -112,7 +114,7 @@ public class S3Service : IS3Service
                 FilePath = tempPath,
                 ContentType = contentType,
                 // R2 does not support STREAMING-AWS4-HMAC-SHA256-PAYLOAD-TRAILER; use unsigned payload (HTTPS provides integrity).
-                DisablePayloadSigning = true
+                DisablePayloadSigning = !_serviceUrl.StartsWith("http://")
             };
 
             await _s3Client.PutObjectAsync(putRequest);

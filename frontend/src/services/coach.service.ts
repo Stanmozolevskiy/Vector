@@ -78,11 +78,7 @@ export const coachService = {
   uploadImage: async (file: File): Promise<string> => {
     const formData = new FormData();
     formData.append('file', file);
-    const response = await api.post<{ imageUrl: string }>('/coach/upload-image', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await api.post<{ imageUrl: string }>('/coach/upload-image', formData);
     const imageUrl = response.data?.imageUrl || response.data;
     if (!imageUrl || typeof imageUrl !== 'string') {
       throw new Error('Invalid response format from server');

@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { useAuth } from '../../hooks/useAuth.tsx';
 import { ROUTES } from '../../utils/constants';
 import { PasswordInput } from '../../components/common/PasswordInput';
+import { normalizeName, normalizeSpaces } from '../../utils/textFormatting';
 
 function validateNameValue(raw: unknown, label: string): string | undefined {
   const s = typeof raw === 'string' ? raw : String(raw ?? '');
@@ -84,8 +85,8 @@ export const RegisterPage = () => {
   });
 
   const onSubmit = async (data: RegisterFormData) => {
-    const fn = namesFromFormRef.current.firstName;
-    const ln = namesFromFormRef.current.lastName;
+    const fn = normalizeName(namesFromFormRef.current.firstName);
+    const ln = normalizeName(namesFromFormRef.current.lastName);
     const fe = validateNameValue(fn, 'First name');
     const le = validateNameValue(ln, 'Last name');
     if (fe) setFieldError('firstName', { type: 'manual', message: fe });
@@ -95,7 +96,7 @@ export const RegisterPage = () => {
     try {
       setBannerError('');
       await registerUser({
-        email: data.email,
+        email: normalizeSpaces(data.email).toLowerCase(),
         password: data.password,
         firstName: fn,
         lastName: ln,

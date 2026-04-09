@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { coachService, type CoachApplication } from '../../services/coach.service';
 import { ROUTES } from '../../utils/constants';
 import { Navbar } from '../../components/layout/Navbar';
+import { normalizeSentence } from '../../utils/textFormatting';
 import '../../styles/style.css';
 import '../../styles/dashboard.css';
 
@@ -47,7 +48,9 @@ const CoachApplicationPage = () => {
     try {
       const app = await coachService.getMyApplication();
       setApplication(app);
-      if (app) {
+      // Only pre-fill the form if the application is not rejected
+      // If it is rejected, we want to show a blank form for them to reapply.
+      if (app && app.status !== 'rejected') {
         setFormData({
           motivation: app.motivation,
           experience: app.experience || '',
@@ -70,9 +73,22 @@ const CoachApplicationPage = () => {
     e.preventDefault();
     setError('');
     setSuccess('');
+    
+    const normalizedMotivation = normalizeSentence(formData.motivation);
+    const normalizedExperience = normalizeSentence(formData.experience);
+    const normalizedSpecialization = normalizeSentence(formData.specialization);
+
+    // Update the state so the user sees the formatted text (or just send it)
+    setFormData((prev) => ({
+      ...prev,
+      motivation: normalizedMotivation,
+      experience: normalizedExperience,
+      specialization: normalizedSpecialization,
+    }));
+
     setSubmitting(true);
 
-    if (formData.motivation.length < 50) {
+    if (normalizedMotivation.length < 50) {
       setError('Motivation must be at least 50 characters long');
       setSubmitting(false);
       return;
@@ -80,9 +96,9 @@ const CoachApplicationPage = () => {
 
     try {
       const result = await coachService.submitApplication({
-        motivation: formData.motivation,
-        experience: formData.experience || undefined,
-        specialization: formData.specialization || undefined,
+        motivation: normalizedMotivation,
+        experience: normalizedExperience || undefined,
+        specialization: normalizedSpecialization || undefined,
         imageUrls: formData.imageUrls.length > 0 ? formData.imageUrls : undefined,
       });
       setApplication(result);

@@ -5,6 +5,7 @@ import api from '../../services/api';
 import { coachService, type CoachApplication } from '../../services/coach.service';
 import { adminService } from '../../services/admin.service';
 import { ROUTES } from '../../utils/constants';
+import { normalizeSentence } from '../../utils/textFormatting';
 import '../../styles/admin.css';
 
 interface UserStats {
@@ -92,7 +93,8 @@ const AdminDashboardPage = () => {
   };
 
   const handleReviewApplication = async (applicationId: string) => {
-    const notes = reviewNotes[applicationId] || '';
+    const rawNotes = reviewNotes[applicationId] || '';
+    const notes = normalizeSentence(rawNotes);
     const status = reviewStatus[applicationId] || 'approved';
 
     if (status === 'rejected' && !notes.trim()) {

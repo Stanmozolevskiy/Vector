@@ -10,6 +10,7 @@ import { coachService } from '../../services/coach.service';
 import subscriptionService from '../../services/subscription.service';
 import type { Subscription } from '../../services/subscription.service';
 import coinsService, { type UserCoins, type CoinTransaction } from '../../services/coins.service';
+import { normalizeName, normalizeSpaces, normalizeSentence } from '../../utils/textFormatting';
 import '../../styles/style.css';
 import '../../styles/dashboard.css';
 import '../../styles/profile.css';
@@ -311,13 +312,24 @@ export const ProfilePage = () => {
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Normalize data before submission
+    const normalizedData = {
+      firstName: normalizeName(profileData.firstName),
+      lastName: normalizeName(profileData.lastName),
+      bio: normalizeSentence(profileData.bio),
+      phoneNumber: normalizeSpaces(profileData.phoneNumber),
+      location: normalizeSpaces(profileData.location),
+    };
+
+    setProfileData(normalizedData);
+    
     // Frontend validation for names
-    const fErr = validateNameValue(profileData.firstName, 'First Name');
-    const lErr = validateNameValue(profileData.lastName, 'Last Name');
+    const fErr = validateNameValue(normalizedData.firstName, 'First Name');
+    const lErr = validateNameValue(normalizedData.lastName, 'Last Name');
     let pErr = '';
     
-    if (profileData.phoneNumber) {
-      let digits = profileData.phoneNumber.replace(/\D/g, '');
+    if (normalizedData.phoneNumber) {
+      let digits = normalizedData.phoneNumber.replace(/\D/g, '');
       if (digits.startsWith('1')) {
         digits = digits.substring(1);
       }
@@ -362,7 +374,7 @@ export const ProfilePage = () => {
       }
 
       // Update profile data
-      await api.put('/users/me', profileData);
+      await api.put('/users/me', normalizedData);
       if (!profilePicture) setSuccessMessage('Profile updated successfully!');
 
       // Refresh user context to get updated data

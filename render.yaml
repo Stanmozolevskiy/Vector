@@ -62,8 +62,7 @@ services:
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Staging
-      - key: ASPNETCORE_URLS
-        value: http://+:80
+      # Do not set ASPNETCORE_URLS here — Render sets PORT; Program.cs binds Kestrel to PORT.
 
       # Auto-wired from managed database
       - key: ConnectionStrings__DefaultConnection
@@ -133,8 +132,7 @@ services:
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
-      - key: ASPNETCORE_URLS
-        value: http://+:80
+      # Do not set ASPNETCORE_URLS here — Render sets PORT; Program.cs binds Kestrel to PORT.
 
       - key: ConnectionStrings__DefaultConnection
         fromDatabase:

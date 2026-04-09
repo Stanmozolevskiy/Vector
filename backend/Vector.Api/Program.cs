@@ -11,6 +11,13 @@ using Vector.Api.Data;
 using Vector.Api.Middleware;
 using Vector.Api.Services;
 
+// Render (and similar hosts) forward HTTP to the port in $PORT (often 10000). If ASPNETCORE_URLS
+// is fixed to :80, the process listens on the wrong port and health checks fail. Local Docker keeps
+// ASPNETCORE_URLS=http://+:80 and does not set PORT.
+var renderPort = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrEmpty(renderPort))
+    Environment.SetEnvironmentVariable("ASPNETCORE_URLS", $"http://+:{renderPort}");
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container

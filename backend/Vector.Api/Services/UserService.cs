@@ -88,6 +88,10 @@ public class UserService : IUserService
         user.Location = string.IsNullOrWhiteSpace(dto.Location) ? null : dto.Location.Trim();
         _logger.LogInformation("Setting Location to: {Location}", user.Location ?? "NULL");
 
+        if (dto.NotifyInterviewReminders.HasValue) user.NotifyInterviewReminders = dto.NotifyInterviewReminders.Value;
+        if (dto.NotifyWeeklyProgress.HasValue) user.NotifyWeeklyProgress = dto.NotifyWeeklyProgress.Value;
+        if (dto.NotifyNewQuestions.HasValue) user.NotifyNewQuestions = dto.NotifyNewQuestions.Value;
+
         user.UpdatedAt = DateTime.UtcNow;
         
         await _context.SaveChangesAsync();

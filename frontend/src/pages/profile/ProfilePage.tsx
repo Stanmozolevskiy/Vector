@@ -76,6 +76,11 @@ export const ProfilePage = () => {
   const [coins, setCoins] = useState<UserCoins | null>(null);
   const [transactions, setTransactions] = useState<CoinTransaction[]>([]);
   const [transactionsLoading, setTransactionsLoading] = useState(false);
+  const [notificationSettings, setNotificationSettings] = useState({
+    notifyInterviewReminders: true,
+    notifyWeeklyProgress: true,
+    notifyNewQuestions: false,
+  });
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -92,6 +97,12 @@ export const ProfilePage = () => {
         bio: user.bio || '',
         phoneNumber: user.phoneNumber || '',
         location: user.location || '',
+      });
+
+      setNotificationSettings({
+        notifyInterviewReminders: user.notifyInterviewReminders ?? true,
+        notifyWeeklyProgress: user.notifyWeeklyProgress ?? true,
+        notifyNewQuestions: user.notifyNewQuestions ?? false,
       });
       
       // Check if user has a coach application (only for students, silently handle 404)
@@ -232,6 +243,18 @@ export const ProfilePage = () => {
       ...passwordData,
       [e.target.name]: e.target.value,
     });
+  };
+
+  const handleNotificationToggle = async (key: keyof typeof notificationSettings) => {
+    const updated = { ...notificationSettings, [key]: !notificationSettings[key] };
+    setNotificationSettings(updated);
+    try {
+      await api.put('/users/me', updated);
+      await refreshUser();
+    } catch {
+      // Revert optimistic update on failure
+      setNotificationSettings(notificationSettings);
+    }
   };
 
   const handleChangePassword = async (e: React.FormEvent) => {
@@ -1020,56 +1043,79 @@ export const ProfilePage = () => {
                 <div className="profile-card">
                   <h3>Email Notifications</h3>
                   <div className="notification-settings">
-                    <div className="notification-item">
+
+                    {/* Course Updates — Coming Soon */}
+                    <div className="notification-item notification-item--disabled">
                       <div className="notification-info">
-                        <h4>Course Updates</h4>
+                        <h4>Course Updates <span className="notification-badge">Coming Soon</span></h4>
                         <p>Get notified when new lessons are added to your enrolled courses</p>
                       </div>
-                      <label className="toggle-switch">
-                        <input type="checkbox" defaultChecked />
+                      <label className="toggle-switch toggle-switch--disabled">
+                        <input type="checkbox" disabled />
                         <span className="toggle-slider"></span>
                       </label>
                     </div>
+
+                    {/* Mock Interview Reminders — Live */}
                     <div className="notification-item">
                       <div className="notification-info">
                         <h4>Mock Interview Reminders</h4>
                         <p>Receive reminders 24 hours before your scheduled mock interviews</p>
                       </div>
                       <label className="toggle-switch">
-                        <input type="checkbox" defaultChecked />
+                        <input
+                          type="checkbox"
+                          checked={notificationSettings.notifyInterviewReminders}
+                          onChange={() => handleNotificationToggle('notifyInterviewReminders')}
+                        />
                         <span className="toggle-slider"></span>
                       </label>
                     </div>
+
+                    {/* Weekly Progress — Live */}
                     <div className="notification-item">
                       <div className="notification-info">
                         <h4>Weekly Progress Report</h4>
                         <p>Get a summary of your learning progress every week</p>
                       </div>
                       <label className="toggle-switch">
-                        <input type="checkbox" defaultChecked />
+                        <input
+                          type="checkbox"
+                          checked={notificationSettings.notifyWeeklyProgress}
+                          onChange={() => handleNotificationToggle('notifyWeeklyProgress')}
+                        />
                         <span className="toggle-slider"></span>
                       </label>
                     </div>
+
+                    {/* New Question Alerts — Live */}
                     <div className="notification-item">
                       <div className="notification-info">
                         <h4>New Question Alerts</h4>
                         <p>Get notified when new interview questions are added</p>
                       </div>
                       <label className="toggle-switch">
-                        <input type="checkbox" />
+                        <input
+                          type="checkbox"
+                          checked={notificationSettings.notifyNewQuestions}
+                          onChange={() => handleNotificationToggle('notifyNewQuestions')}
+                        />
                         <span className="toggle-slider"></span>
                       </label>
                     </div>
-                    <div className="notification-item">
+
+                    {/* Marketing Emails — Coming Soon */}
+                    <div className="notification-item notification-item--disabled">
                       <div className="notification-info">
-                        <h4>Marketing Emails</h4>
+                        <h4>Marketing Emails <span className="notification-badge">Coming Soon</span></h4>
                         <p>Receive updates about new features, tips, and special offers</p>
                       </div>
-                      <label className="toggle-switch">
-                        <input type="checkbox" />
+                      <label className="toggle-switch toggle-switch--disabled">
+                        <input type="checkbox" disabled />
                         <span className="toggle-slider"></span>
                       </label>
                     </div>
+
                   </div>
                 </div>
               </div>

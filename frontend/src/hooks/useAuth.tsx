@@ -17,6 +17,9 @@ interface User {
   profilePictureUrl?: string;
   emailVerified: boolean;
   createdAt: string;
+  notifyInterviewReminders?: boolean;
+  notifyWeeklyProgress?: boolean;
+  notifyNewQuestions?: boolean;
 }
 
 interface AuthContextType {

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
 using Vector.Api.Data;
 using Vector.Api.DTOs.Question;
@@ -12,15 +13,18 @@ public class QuestionService : IQuestionService
     private readonly ApplicationDbContext _context;
     private readonly ICoinService _coinService;
     private readonly ILogger<QuestionService> _logger;
+    private readonly IServiceScopeFactory _scopeFactory;
 
     public QuestionService(
-        ApplicationDbContext context, 
+        ApplicationDbContext context,
         ICoinService coinService,
-        ILogger<QuestionService> logger)
+        ILogger<QuestionService> logger,
+        IServiceScopeFactory scopeFactory)
     {
         _context = context;
         _coinService = coinService;
         _logger = logger;
+        _scopeFactory = scopeFactory;
     }
 
     public async Task<InterviewQuestion?> GetQuestionByIdAsync(Guid questionId)
@@ -495,6 +499,38 @@ public class QuestionService : IQuestionService
                     question.CreatedBy.Value, questionId);
             }
         }
+
+        // Fire-and-forget: notify all users who opted in to new question alerts
+        var approvedTitle = question.Title;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
+
+                var subscribers = await db.Users
+                    .Where(u => u.NotifyNewQuestions)
+                    .Select(u => new { u.Email, u.FirstName })
+                    .ToListAsync();
+
+                foreach (var u in subscribers)
+                {
+                    var subject = $"New Interview Question: {approvedTitle}";
+                    var body = $@"
+<p>Hello {System.Net.WebUtility.HtmlEncode(u.FirstName ?? "there")},</p>
+<p>A new interview question has just been approved on Vector:</p>
+<p><strong>{System.Net.WebUtility.HtmlEncode(approvedTitle)}</strong></p>
+<p>Log in and give it a try!</p>";
+                    await emailService.SendEmailAsync(u.Email, subject, body);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send new-question notifications for question {QuestionId}", questionId);
+            }
+        });
 
         return question;
     }

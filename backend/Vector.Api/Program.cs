@@ -242,6 +242,9 @@ builder.Services.AddHttpClient(nameof(CodeExecutionService), (serviceProvider, c
 });
 builder.Services.AddScoped<ICodeExecutionService, CodeExecutionService>();
 
+// Background services
+builder.Services.AddHostedService<NotificationBackgroundService>();
+
 // CORS
 builder.Services.AddCors(options =>
 {

@@ -37,5 +37,10 @@ public class User
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    // Email notification preferences
+    public bool NotifyInterviewReminders { get; set; } = true;
+    public bool NotifyWeeklyProgress { get; set; } = true;
+    public bool NotifyNewQuestions { get; set; } = false;
 }
 

@@ -524,6 +524,33 @@
     border-radius: var(--radius-md);
 }
 
+/* Grayed-out state for unimplemented notification items */
+.notification-item--disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.notification-info,
+.privacy-info {
+    flex: 1;
+    margin-right: var(--spacing-md);
+}
+
+/* "Coming Soon" badge */
+.notification-badge {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 0.15rem 0.45rem;
+    margin-left: 0.5rem;
+    background: #e5e7eb;
+    color: #6b7280;
+    border-radius: 4px;
+    vertical-align: middle;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
 .notification-info h4,
 .privacy-info h4 {
     font-size: 1rem;
@@ -582,6 +609,16 @@ input:checked + .toggle-slider {
 
 input:checked + .toggle-slider:before {
     transform: translateX(24px);
+}
+
+/* Disabled toggle switch */
+.toggle-switch--disabled {
+    cursor: not-allowed;
+}
+
+.toggle-switch--disabled .toggle-slider {
+    cursor: not-allowed;
+    background: #d1d5db;
 }
 
 /* Danger Zone */

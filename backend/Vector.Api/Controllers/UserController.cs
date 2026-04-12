@@ -86,7 +86,10 @@ public class UserController : ControllerBase
                 role = user.Role,
                 profilePictureUrl = user.ProfilePictureUrl,
                 emailVerified = user.EmailVerified,
-                createdAt = user.CreatedAt
+                createdAt = user.CreatedAt,
+                notifyInterviewReminders = user.NotifyInterviewReminders,
+                notifyWeeklyProgress = user.NotifyWeeklyProgress,
+                notifyNewQuestions = user.NotifyNewQuestions
             });
     }
 
@@ -137,7 +140,10 @@ public class UserController : ControllerBase
                 role = user.Role,
                 profilePictureUrl = user.ProfilePictureUrl,
                 emailVerified = user.EmailVerified,
-                updatedAt = user.UpdatedAt
+                updatedAt = user.UpdatedAt,
+                notifyInterviewReminders = user.NotifyInterviewReminders,
+                notifyWeeklyProgress = user.NotifyWeeklyProgress,
+                notifyNewQuestions = user.NotifyNewQuestions
             });
         }
         catch (ArgumentException ex)
@@ -188,7 +194,12 @@ public class UserController : ControllerBase
 
         try
         {
-            await _userService.ChangePasswordAsync(userId, dto.CurrentPassword, dto.NewPassword);
+            var success = await _userService.ChangePasswordAsync(userId, dto.CurrentPassword, dto.NewPassword);
+
+            if (!success)
+            {
+                return BadRequest(new ApiErrorResponse("Current password is incorrect.", "INVALID_PASSWORD"));
+            }
             
             return Ok(new { message = "Password changed successfully" });
         }

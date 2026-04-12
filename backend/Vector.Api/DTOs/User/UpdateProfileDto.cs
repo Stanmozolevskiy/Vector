@@ -19,5 +19,10 @@ public class UpdateProfileDto
     
     [MaxLength(200)]
     public string? Location { get; set; }
+
+    // Email notification preferences (nullable = only update when explicitly provided)
+    public bool? NotifyInterviewReminders { get; set; }
+    public bool? NotifyWeeklyProgress { get; set; }
+    public bool? NotifyNewQuestions { get; set; }
 }
 

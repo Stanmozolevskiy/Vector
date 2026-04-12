@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Vector.Api.Data;
@@ -14,6 +15,7 @@ public class QuestionServiceCRUDTests : IDisposable
     private readonly ApplicationDbContext _context;
     private readonly Mock<ILogger<QuestionService>> _loggerMock;
     private readonly Mock<ICoinService> _coinServiceMock;
+    private readonly Mock<IServiceScopeFactory> _scopeFactoryMock;
     private readonly QuestionService _service;
 
     public QuestionServiceCRUDTests()
@@ -25,7 +27,8 @@ public class QuestionServiceCRUDTests : IDisposable
 
         _loggerMock = new Mock<ILogger<QuestionService>>();
         _coinServiceMock = new Mock<ICoinService>();
-        _service = new QuestionService(_context, _coinServiceMock.Object, _loggerMock.Object);
+        _scopeFactoryMock = new Mock<IServiceScopeFactory>();
+        _service = new QuestionService(_context, _coinServiceMock.Object, _loggerMock.Object, _scopeFactoryMock.Object);
     }
 
     public void Dispose()
